@@ -8,7 +8,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 import app.profile.evidence  # noqa: F401  registers rebuild_evidence on the shared broker
 import app.profile.storage as storage
 from app.core.auth import Principal, require_role
+from app.profile.bank import search_candidates
+from app.profile.pdf import render_profile_pdf
 from app.profile.schemas import (
+    CandidateBankItem,
     CandidateProfile,
     CandidateSettings,
     CandidateUpdate,
@@ -130,3 +133,38 @@ async def update_my_settings(
 ) -> CandidateSettings:
     candidate = await storage.current_candidate(session, principal)
     return await storage.update_settings(session, candidate, body)
+
+
+@router.get("/candidates/me/profile.pdf")
+async def download_my_profile_pdf(
+    principal: Principal = Depends(require_role("candidate")),
+    session: AsyncSession = Depends(_db),
+) -> Response:
+    candidate = await storage.current_candidate(session, principal)
+    profile = await storage.profile_view(session, candidate)
+    payload = render_profile_pdf(profile)
+    return Response(
+        content=payload,
+        media_type="application/pdf",
+        headers={"Content-Disposition": 'inline; filename="profile.pdf"'},
+    )
+
+
+@router.get("/candidates", response_model=list[CandidateBankItem])
+async def search_candidate_bank(
+    specialization: str | None = None,
+    grade: str | None = None,
+    stack: str | None = None,
+    fsp: bool | None = None,
+    q: str | None = None,
+    _: Principal = Depends(require_role("employer")),
+    session: AsyncSession = Depends(_db),
+) -> list[CandidateBankItem]:
+    return await search_candidates(
+        session,
+        specialization=specialization,
+        grade=grade,
+        stack=stack,
+        fsp=fsp,
+        q=q,
+    )

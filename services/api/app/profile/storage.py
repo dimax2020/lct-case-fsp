@@ -218,8 +218,16 @@ async def profile_view(session: AsyncSession, candidate: Candidate) -> Candidate
     )
 
 
-async def update_profile(session: AsyncSession, candidate: Candidate, body: CandidateUpdate) -> CandidateProfile:
-    data = body.model_dump(mode="json", exclude_unset=True)
+def clean_soft_skills(values: list[str] | None) -> list[str]:
+    found: list[str] = []
+    for raw in values or []:
+        text = str(raw).strip()
+        if text and text not in found:
+            found.append(text)
+    return found
+
+
+def apply_profile_update(candidate: Candidate, data: dict[str, Any]) -> None:
     if "full_name" in data:
         candidate.full_name = data["full_name"] or ""
     if "city" in data:
@@ -246,6 +254,16 @@ async def update_profile(session: AsyncSession, candidate: Candidate, body: Cand
         candidate.phone = data["phone"]
     if "contact_email" in data:
         candidate.contact_email = data["contact_email"]
+    if "consent_processing" in data and data["consent_processing"] is not None:
+        candidate.consent_processing = bool(data["consent_processing"])
+    if "consent_publication" in data and data["consent_publication"] is not None:
+        candidate.consent_publication = bool(data["consent_publication"])
+    if "soft_skills" in data and data["soft_skills"] is not None:
+        candidate.soft_skills = clean_soft_skills(list(data["soft_skills"]))
+
+
+async def update_profile(session: AsyncSession, candidate: Candidate, body: CandidateUpdate) -> CandidateProfile:
+    apply_profile_update(candidate, body.model_dump(mode="json", exclude_unset=True))
     await _touch(candidate)
     await session.flush()
     return await profile_view(session, candidate)
@@ -532,12 +550,21 @@ async def grade_view(session: AsyncSession, candidate: Candidate) -> GradeView:
 
 
 async def settings_view(candidate: Candidate) -> CandidateSettings:
-    return CandidateSettings(visible=bool(candidate.visible), hidden_company_ids=list(candidate.hidden_company_ids or []))
+    return CandidateSettings(
+        visible=bool(candidate.visible),
+        hidden_company_ids=list(candidate.hidden_company_ids or []),
+        consent_processing=bool(candidate.consent_processing),
+        consent_publication=bool(candidate.consent_publication),
+        soft_skills=list(candidate.soft_skills or []),
+    )
 
 
 async def update_settings(session: AsyncSession, candidate: Candidate, body: CandidateSettings) -> CandidateSettings:
     candidate.visible = body.visible
     candidate.hidden_company_ids = list(body.hidden_company_ids)
+    candidate.consent_processing = body.consent_processing
+    candidate.consent_publication = body.consent_publication
+    candidate.soft_skills = clean_soft_skills(body.soft_skills)
     await _touch(candidate)
     await session.flush()
     return await settings_view(candidate)
