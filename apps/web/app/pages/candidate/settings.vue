@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { components } from '~/api/schema'
 import { read } from '~/utils/read'
 useHead({ title: 'Настройки и приватность — Карьера ФСП' })
 
@@ -24,12 +25,17 @@ const hideQuery = ref('')
 const hidden = ref<string[]>([])
 const fspLinked = ref(false)
 const published = ref(true)
+const consentProcessing = ref(false)
+const consentPublication = ref(false)
 const email = ref('')
 
 watch(screen.data, (bundle) => {
   if (!bundle) return
   published.value = bundle.settings.visible
   hidden.value = [...(bundle.settings.hidden_company_ids ?? [])]
+  const consents = bundle.settings as typeof bundle.settings & { consent_processing?: boolean; consent_publication?: boolean }
+  if ('consent_processing' in bundle.settings) consentProcessing.value = !!consents.consent_processing
+  if ('consent_publication' in bundle.settings) consentPublication.value = !!consents.consent_publication
   fspLinked.value = (bundle.profile.fsp_achievements?.length ?? 0) > 0
   email.value = bundle.me.email || bundle.profile.contact_email || ''
 }, { immediate: true })
@@ -56,8 +62,14 @@ async function toggleFsp() {
 }
 async function saveSettings() {
   try {
+    const body = {
+      visible: published.value,
+      hidden_company_ids: hidden.value,
+      consent_processing: consentProcessing.value,
+      consent_publication: consentPublication.value,
+    } as components['schemas']['CandidateSettings']
     const next = await read(api.PUT('/api/v1/candidates/me/settings', {
-      body: { visible: published.value, hidden_company_ids: hidden.value },
+      body,
     }))
     if (screen.data.value) screen.data.value.settings = next
     show(next.visible ? 'Профиль виден работодателям' : 'Профиль скрыт из подборок')
@@ -126,6 +138,8 @@ async function togglePublish() {
           <section id="consent" style="padding: 24px 0 0; box-shadow: inset 0 1px 0 var(--line);">
             <h2 class="fsp-display" style="font-size: 20px; line-height: 24px; margin-bottom: 20px;">Согласия</h2>
             <div style="display: flex; flex-direction: column; gap: 16px;">
+              <FspCheckbox v-model="consentProcessing" label="Согласие на обработку персональных данных" />
+              <FspCheckbox v-model="consentPublication" label="Согласие на публикацию профиля работодателям" />
               <div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; padding-bottom: 16px; box-shadow: inset 0 -1px 0 var(--line);">
                 <div style="flex: 1 1 360px;"><div style="font-weight: 600;">Обработка персональных данных (152-ФЗ)</div><div style="font-size: 14px; color: var(--text-muted); margin-top: 4px;">Обязательно для работы сервиса · дано 10.10.2026</div></div>
                 <a href="#" class="fsp-link" style="font-size: 14px;" @click.prevent="show('Текст согласия откроется в PDF')">Текст согласия</a>

@@ -18,20 +18,20 @@ const cardStyle = (on: boolean) => on
   ? '--cut: var(--cut-m); padding: 20px; display: flex; gap: 14px; cursor: pointer;'
   : '--cut: var(--cut-m); --fill: var(--surface); --edge: var(--line-card); --bw: var(--border-card); padding: 20px; display: flex; gap: 14px; cursor: pointer;'
 
+function keycloakLogin() {
+  const next = role.value === 'employer' ? '/employer/need' : '/candidate/profile'
+  location.href = `/auth/keycloak/login?callbackRedirectUrl=${encodeURIComponent(next)}`
+}
 function submit() {
   errors.email = /.+@.+\..+/.test(email.value) ? '' : 'Введите корректную почту'
   errors.password = mode.value === 'login' || password.value.length >= 10 ? '' : 'Пароль — не менее 10 символов'
   if (mode.value === 'login' && !password.value) errors.password = 'Введите пароль'
   errors.agree = mode.value === 'register' && !agree.value ? 'Нужно согласие на обработку данных' : ''
   if (errors.email || errors.password || errors.agree) return
-  if (import.meta.client) sessionStorage.setItem('fsp-mock-role', role.value)
-  show(mode.value === 'register' ? 'Аккаунт создан — письмо отправлено на ' + email.value : 'С возвращением!')
-  navigateTo(role.value === 'employer' ? (mode.value === 'register' ? '/employer/company' : '/employer/need') : (mode.value === 'register' ? '/candidate/onboarding' : '/candidate/profile'))
+  keycloakLogin()
 }
 function fspId() {
-  if (import.meta.client) sessionStorage.setItem('fsp-mock-role', role.value)
-  show('Вход через ФСП ID: результаты соревнований подтянуты')
-  navigateTo(role.value === 'employer' ? '/employer/need' : '/candidate/onboarding')
+  keycloakLogin()
 }
 </script>
 

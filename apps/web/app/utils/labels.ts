@@ -158,6 +158,6 @@ export const employerLinks = [
   { label: 'Подборка', href: '/employer/need' },
   { label: 'Банк кандидатов', href: '/employer/pool' },
   { label: 'Приглашения', href: '/employer/invites' },
-  { label: 'Вакансии', href: '#' },
+  { label: 'Вакансии', href: '/employer/vacancies' },
   { label: 'Компания', href: '/employer/company' },
 ]
