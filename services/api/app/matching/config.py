@@ -132,3 +132,43 @@ HINT_TOP = 3
 HINT_ACTIVE_DAYS = 14
 EMPLOYER_HINT_MIN_POOL = 5
 
+# §6.1 pool statuses and the §7.2 "active 14 days" window already above.
+# "Активен за 30 дней" is the shortlist filter (POOL-3).
+ACTIVE_WINDOW_DAYS = 30
+CANDIDATE_POOL_STATUSES = ("seeking", "open")
+OPEN_INVITE_STATUSES = ("sent", "viewed")
+
+# FSP disciplines that count as the profile discipline for a specialization
+# (must_cov 0.8 and fsp feature 1.0). The specialization id itself is included.
+PROFILE_DISCIPLINES: dict[str, frozenset[str]] = {
+    "backend": frozenset({"backend", "algo"}),
+    "frontend": frozenset({"frontend", "product"}),
+    "data_ml": frozenset({"data_ml", "algo"}),
+    "devops": frozenset({"devops", "infosec"}),
+}
+
+BENEFIT_KEYS = ("dms", "accreditation", "flexible_start")
+TEST_SCORE_MAX = 100.0
+STACK_DISLIKE_PENALTY = 0.5
+FORMAT_EXACT = 1.0
+FORMAT_HYBRID_REMOTE = 0.5
+FORMAT_MISS = 0.0
+DOMAIN_LIKED = 1.0
+DOMAIN_NEUTRAL = 0.5
+DOMAIN_BLOCKED = 0.0
+FSP_PROFILE = 1.0
+FSP_OTHER = 0.5
+FSP_NONE = 0.0
+PROCESS_FULL_MAX_STAGES = 2
+PROCESS_MID_STAGES = 3
+PROCESS_FULL = 1.0
+PROCESS_MID = 0.5
+PROCESS_NONE = 0.0
+RECENCY_BASE = 0.5
+EXPLANATION_MAX = 3
+MATCH_SCALE = 100
+
+# Sample sizes for §7.1 rank counterfactuals ("по выборке потребностей").
+HINT_NEED_SAMPLE = 10
+HINT_PEER_CAP = 30
+
