@@ -1,6 +1,5 @@
 """Persist needs, parse requirements, and start a shortlist job."""
 
-import inspect
 import logging
 from dataclasses import dataclass
 from uuid import UUID, uuid4
@@ -33,7 +32,6 @@ from app.need.schemas import (
 logger = logging.getLogger(__name__)
 
 MAX_REQUIREMENTS = 40
-_CONTACT_HOOKS = ("contacts_for_employer", "reveal_contacts", "candidate_contacts")
 
 
 @dataclass
@@ -386,25 +384,16 @@ async def get_shortlist(session: AsyncSession, principal: Principal, need_id: UU
     return ShortlistOut.model_validate(payload)
 
 
-async def resolve_contacts(need_id: UUID, candidate_id: UUID) -> tuple[bool, str | None, str | None]:
-    """Use invitation.service when it exposes a contact hook. Otherwise contacts stay hidden."""
+async def resolve_contacts(
+    session: AsyncSession,
+    need_id: UUID,
+    candidate_id: UUID,
+) -> tuple[bool, str | None, str | None]:
+    """Contacts come from the invitation card and stay hidden until accepted."""
     import app.invitation.service as invitation_service
 
-    for name in _CONTACT_HOOKS:
-        hook = getattr(invitation_service, name, None)
-        if not callable(hook):
-            continue
-        try:
-            result = hook(need_id, candidate_id)
-            if inspect.isawaitable(result):
-                result = await result
-        except TypeError:
-            logger.warning("contact hook %s rejected the call", name)
-            break
-        if isinstance(result, dict):
-            return bool(result.get("contacts_revealed")), result.get("email"), result.get("phone")
-        break
-    return False, None, None
+    card = await invitation_service.build_candidate_card(session, need_id, candidate_id)
+    return bool(card.get("contacts_revealed")), card.get("email"), card.get("phone")
 
 
 async def get_candidate_card(
@@ -417,7 +406,7 @@ async def get_candidate_card(
     card = await matching.candidate_card(need_id, candidate_id)
     if card is None:
         raise AppError("not_found", "Кандидат не найден", status_code=404)
-    revealed, email, phone = await resolve_contacts(need_id, candidate_id)
+    revealed, email, phone = await resolve_contacts(session, need_id, candidate_id)
     card["contacts_revealed"] = revealed
     card["email"] = email if revealed else None
     card["phone"] = phone if revealed else None

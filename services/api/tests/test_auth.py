@@ -4,6 +4,8 @@ from collections.abc import AsyncIterator
 import jwt
 import pytest
 from app.core.auth import Principal, clear_jwks_cache
+from app.core.errors import AppError
+from app.core.models import User
 from app.core.settings import get_settings
 from app.main import app
 from cryptography.hazmat.primitives.asymmetric import rsa
@@ -60,13 +62,19 @@ def _token(**overrides: object) -> str:
 async def provisioned(monkeypatch: pytest.MonkeyPatch) -> AsyncIterator[list[Principal]]:
     calls: list[Principal] = []
 
-    async def fake_provision(_session: object, principal: Principal) -> None:
+    async def fake_provision(_session: object, principal: Principal) -> User:
         calls.append(principal)
+        return User(kc_sub=principal.sub, role=principal.role, email=principal.email)
+
+    async def stop_after_auth(_session: object, _user_id: object) -> None:
+        raise AppError("not_implemented", "Метод ещё не реализован", status_code=501)
 
     _FakeJWKClient.built = []
     clear_jwks_cache()
     monkeypatch.setattr("app.core.auth.PyJWKClient", _FakeJWKClient)
     monkeypatch.setattr("app.core.provision.provision_user", fake_provision)
+    monkeypatch.setattr("app.profile.storage.provision_user", fake_provision)
+    monkeypatch.setattr("app.profile.storage.get_or_create_candidate", stop_after_auth)
     monkeypatch.setattr("app.core.db.SessionLocal", lambda: _Session())
     yield calls
     clear_jwks_cache()
@@ -143,8 +151,7 @@ async def test_valid_token_provisions_user(client: AsyncClient, provisioned: lis
     response = await client.get("/api/v1/candidates/me", headers={"Authorization": f"Bearer {token}"})
     assert response.status_code == 501
     assert response.json()["error"]["code"] == "not_implemented"
-    assert len(provisioned) == 1
-    assert provisioned[0] == Principal(sub="kc-sub-1", role="candidate", email="candidate@demo.fsp")
+    assert Principal(sub="kc-sub-1", role="candidate", email="candidate@demo.fsp") in provisioned
 
 
 async def test_jwks_client_is_cached_for_ten_minutes(client: AsyncClient) -> None:

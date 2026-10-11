@@ -1,118 +1,143 @@
 <script setup lang="ts">
+import type { components } from '~/api/schema'
+import { read } from '~/utils/read'
+
+type Channel = components['schemas']['ContactChannel']
+
 useHead({ title: 'Профиль кандидата для работодателя — Карьера ФСП' })
-
-const v = reactive((() => {
-  return {
-      yes: true, av: 80, ic: 28,
-      links: [
-        { label: 'Подборка', href: '/employer/need', active: true },
-        { label: 'Банк кандидатов', href: '/employer/pool' },
-        { label: 'Приглашения', href: '/employer/invites' },
-        { label: 'Вакансии', href: '#' },
-        { label: 'Компания', href: '/employer/company' }
-      ]
-    };
-})())
-
+const route = useRoute()
 const { show } = useToast()
-const salaryFrom = ref('250 000')
-const salaryTo = ref('320 000')
-const channel = ref('Telegram')
-const contacts: Record<string, string> = { Telegram: '@kodsib_hr', 'Почта': 'hr@kodsib.ru', 'Телефон': '+7 383 000-00-00' }
-const contact = ref(contacts.Telegram)
-watch(channel, c => { contact.value = contacts[c] ?? '' })
+const api = useApi()
+const needId = computed(() => String(route.query.need || rememberedNeed() || ''))
+const candidateId = computed(() => String(route.query.candidate || ''))
+
+const screen = useScreen(async () => {
+  if (!needId.value || !candidateId.value) return { card: null, need: null, company: null }
+  const [card, need, company] = await Promise.all([
+    read(api.GET('/api/v1/needs/{id}/candidates/{candidate_id}', { params: { path: { id: needId.value, candidate_id: candidateId.value } } })),
+    read(api.GET('/api/v1/needs/{id}', { params: { path: { id: needId.value } } })),
+    read(api.GET('/api/v1/companies/me')),
+  ])
+  return { card, need, company }
+})
+
+const title = ref('')
+const message = ref('')
+const salaryFrom = ref<string | number>('')
+const salaryTo = ref<string | number>('')
+const channel = ref<Channel>('email')
+const contact = ref('')
+const deadline = ref('')
 const err = ref('')
-function send() {
-  if (!salaryFrom.value || !salaryTo.value) { err.value = 'Вилка обязательна — кандидат видит её до начала общения'; return }
+
+watch(screen.data, (bundle) => {
+  if (!bundle?.need) return
+  title.value = bundle.need.title
+  salaryFrom.value = bundle.need.salary_from
+  salaryTo.value = bundle.need.salary_to
+  message.value = bundle.need.description.slice(0, 400)
+  contact.value = bundle.company?.recruiter_contact?.email || ''
+}, { immediate: true })
+
+const card = computed(() => screen.data.value?.card ?? null)
+const companyName = computed(() => screen.data.value?.company?.name || 'Компания')
+
+async function send() {
   err.value = ''
-  show('Приглашение отправлено Алексею К.')
-  navigateTo('/employer/invites')
+  const from = parseMoney(salaryFrom.value)
+  const to = parseMoney(salaryTo.value)
+  if (!Number.isFinite(from) || !Number.isFinite(to) || !from || !to) {
+    err.value = 'Вилка обязательна — кандидат видит её до начала общения'
+    return
+  }
+  if (!contact.value.trim()) { err.value = 'Укажите контакт'; return }
+  if (!card.value || !needId.value) return
+  try {
+    await read(api.POST('/api/v1/invitations', {
+      body: {
+        need_id: needId.value,
+        candidate_id: card.value.candidate_id,
+        title: title.value.trim() || 'Приглашение',
+        message: message.value,
+        salary_from: from,
+        salary_to: to,
+        contact_channel: channel.value,
+        contact_value: contact.value.trim(),
+        deadline: deadline.value ? new Date(deadline.value).toISOString() : null,
+      },
+    }))
+    show(`Приглашение отправлено: ${card.value.display_name}`)
+    await navigateTo('/employer/invites')
+  } catch (e) {
+    err.value = e instanceof Error ? e.message : 'Не удалось отправить'
+  }
 }
 </script>
 
 <template>
   <div style="background: var(--bg); color: var(--text); font-family: var(--font-sans); min-height: 100vh;">
-    <FspHeader product="Для компаний" user="Код Сибири" :links="v.links" logo-dark="/brand/championship-logo-white.svg" logo-light="/brand/championship-logo-navy.svg" />
-
+    <FspHeader product="Для компаний" :user="companyName" :links="employerLinks" logo-dark="/brand/championship-logo-white.svg" logo-light="/brand/championship-logo-navy.svg" />
     <main style="max-width: 1240px; margin: 0 auto; padding: 32px 32px 64px;">
-      <NuxtLink to="/employer/pool" style="display: inline-block; font-size: 14px; color: var(--text-muted); text-decoration: none; margin-bottom: 20px;">← Подборка «Backend в процессинг платежей»</NuxtLink>
-
-      <div style="display: flex; flex-wrap: wrap; gap: 32px; align-items: flex-start;">
-        <div style="flex: 999 1 600px; min-width: 0; display: flex; flex-direction: column; gap: 24px;">
-          <section style="display: flex; flex-wrap: wrap; gap: 20px; align-items: center;">
-            <FspCompanyLogo name="Алексей Кузнецов" :size="v.av" />
-            <div style="flex: 1 1 300px; min-width: 0;">
-              <h1 style="margin: 0; font-size: 30px; line-height: 38px; font-weight: 700;">Алексей К.</h1>
-              <div style="font-size: 15px; color: var(--text-muted); margin-top: 4px;">Опыт 4 года · Новосибирск · готов к удалёнке · ожидания от 240 000 ₽</div>
+      <NuxtLink to="/employer/pool" style="display: inline-block; font-size: 14px; color: var(--text-muted); text-decoration: none; margin-bottom: 20px;">← Подборка</NuxtLink>
+      <ScreenState :phase="screen.phase.value" :error="screen.error.value" @retry="screen.load">
+        <p v-if="!needId || !candidateId" style="color: var(--text-muted);">Откройте кандидата из подборки.</p>
+        <div v-else-if="card" style="display: flex; flex-wrap: wrap; gap: 32px; align-items: flex-start;">
+          <div style="flex: 999 1 600px; min-width: 0; display: flex; flex-direction: column; gap: 24px;">
+            <section style="display: flex; flex-wrap: wrap; gap: 20px; align-items: center;">
+              <FspCompanyLogo :name="card.display_name" :size="80" />
+              <div>
+                <h1 style="margin: 0; font-size: 30px; line-height: 38px;">{{ card.display_name }}</h1>
+                <div style="font-size: 15px; color: var(--text-muted); margin-top: 4px;">{{ card.category }}<template v-if="card.experience_years != null"> · опыт {{ card.experience_years }}</template><template v-if="card.city"> · {{ card.city }}</template></div>
+              </div>
+            </section>
+            <section style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 12px;">
+              <div class="fsp-cut" style="--cut: var(--cut-m); --fill: var(--plate); color: var(--on-plate); padding: 20px;"><div style="font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--on-plate-muted);">Категория</div><div class="fsp-display" style="font-size: 20px; margin-top: 8px;">{{ card.category }}</div></div>
+              <div class="fsp-cut" style="--cut: var(--cut-m); --fill: var(--surface); --edge: var(--line-card); --bw: var(--border-card); padding: 20px;"><div style="font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted);">Соответствие</div><div class="fsp-display" style="font-size: 20px; margin-top: 8px;">{{ card.match }}%</div></div>
+              <div class="fsp-cut" style="--cut: var(--cut-m); --fill: var(--surface); --edge: var(--line-card); --bw: var(--border-card); padding: 20px;"><div style="font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted);">Тест</div><div class="fsp-display" style="font-size: 20px; margin-top: 8px;">{{ card.test_score ?? '—' }}</div></div>
+            </section>
+            <section class="fsp-cut" style="--cut: var(--cut-l); --fill: var(--surface); --edge: var(--accent-mark); --bw: var(--border-card); padding: 28px;">
+              <h2 class="fsp-display" style="font-size: 18px; margin-bottom: 14px;">Почему в подборке</h2>
+              <ul style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 10px;">
+                <li v-for="line in card.explanations ?? []" :key="line" style="display: flex; gap: 10px;"><FspIcon name="check" /><span>{{ line }}</span></li>
+              </ul>
+            </section>
+            <section v-if="card.skills?.length" style="display: flex; flex-wrap: wrap; gap: 8px;">
+              <FspTag v-for="s in card.skills" :key="s">{{ skillLabel(s) }}</FspTag>
+            </section>
+            <section v-if="card.fsp_badge" style="display: flex; gap: 8px; align-items: center;">
+              <FspDisciplineBadge :discipline="card.fsp_badge.discipline">{{ card.fsp_badge.text }}</FspDisciplineBadge>
+            </section>
+            <section style="padding: 24px 0 0; box-shadow: inset 0 1px 0 var(--line); display: flex; gap: 16px; align-items: center;">
+              <FspIcon name="user" :size="28" />
+              <div v-if="card.contacts_revealed"><b>{{ card.email }}</b><div style="font-size: 14px; color: var(--text-muted);">{{ card.phone }}</div></div>
+              <div v-else><b>Контакты скрыты</b><div style="font-size: 14px; color: var(--text-muted); margin-top: 4px;">Телефон и почта откроются, когда кандидат примет приглашение.</div></div>
+            </section>
+          </div>
+          <aside class="fsp-cut fsp-active" style="flex: 1 1 380px; min-width: 0; --cut: var(--cut-l); padding: 28px; display: flex; flex-direction: column; gap: 18px;">
+            <h2 class="fsp-display" style="font-size: 20px;">Приглашение</h2>
+            <FspStatusBadge v-if="card.invitation_status" :status="inviteTone(card.invitation_status)">{{ inviteLabel(card.invitation_status) }}</FspStatusBadge>
+            <FspInput v-model="title" label="Должность" />
+            <label style="display: flex; flex-direction: column; gap: 6px;">
+              <span style="font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted);">Предложение</span>
+              <textarea v-model="message" rows="5" style="font: 400 15px/22px var(--font-sans); color: var(--text); background: var(--field); border: 1px solid var(--line-strong); padding: 12px 14px; resize: vertical;" />
+            </label>
+            <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px;">
+              <FspInput v-model="salaryFrom" label="Зарплата от" suffix="₽" />
+              <FspInput v-model="salaryTo" label="до" suffix="₽" />
             </div>
-          </section>
-
-          <section style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 12px;">
-            <div class="fsp-cut" style="--cut: var(--cut-m); --fill: var(--plate); color: var(--on-plate); padding: 20px;"><div style="font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--on-plate-muted);">Категория</div><div class="fsp-display" style="font-size: 20px; line-height: 24px; margin-top: 8px;">Backend · Middle</div></div>
-            <div class="fsp-cut" style="--cut: var(--cut-m); --fill: var(--surface); --edge: var(--line-card); --bw: var(--border-card); padding: 20px;"><div style="font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted);">Соответствие</div><div class="fsp-display" style="font-size: 20px; line-height: 24px; margin-top: 8px;">94%</div></div>
-            <div class="fsp-cut" style="--cut: var(--cut-m); --fill: var(--surface); --edge: var(--line-card); --bw: var(--border-card); padding: 20px;"><div style="font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted);">В категории</div><div class="fsp-display" style="font-size: 20px; line-height: 24px; margin-top: 8px;">12 из 340</div></div>
-          </section>
-
-          <section class="fsp-cut" style="--cut: var(--cut-l); --fill: var(--surface); --edge: var(--line-card); --bw: var(--border-card); --edge: var(--accent-mark); --bw: var(--border-card); padding: 28px;">
-            <h2 class="fsp-display" style="font-size: 18px; line-height: 22px; margin-bottom: 14px;">Почему в подборке</h2>
-            <ul style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 10px; font-size: 15px; line-height: 22px;">
-              <li style="display: flex; gap: 10px;"><FspIcon name="check" /><span>Грейд Middle подтверждён тестом 10.10.2026: 82/100</span></li>
-              <li style="display: flex; gap: 10px;"><FspIcon name="check" /><span>Совпадает весь требуемый стек: Go, PostgreSQL, Kafka, конкурентность</span></li>
-              <li style="display: flex; gap: 10px;"><FspIcon name="check" /><span>2 место на Чемпионате России 2025 по алгоритмическому программированию</span></li>
-              <li style="display: flex; gap: 10px;"><FspIcon name="check" /><span>Ожидания по зарплате попадают в вашу вилку</span></li>
-            </ul>
-          </section>
-
-          <section style="padding: 24px 0 0; box-shadow: inset 0 1px 0 var(--line);">
-            <h2 class="fsp-display" style="font-size: 18px; line-height: 22px; margin-bottom: 18px;">Результаты теста по темам</h2>
-            <div style="display: flex; flex-direction: column; gap: 12px;">
-              <div style="display: grid; grid-template-columns: 180px 1fr 40px; gap: 16px; align-items: center; font-size: 15px;"><span>Алгоритмы</span><div style="height: 8px; background: var(--surface-hover);"><div style="width: 91%; height: 8px; background: var(--success);"></div></div><b>91</b></div>
-              <div style="display: grid; grid-template-columns: 180px 1fr 40px; gap: 16px; align-items: center; font-size: 15px;"><span>Go</span><div style="height: 8px; background: var(--surface-hover);"><div style="width: 88%; height: 8px; background: var(--success);"></div></div><b>88</b></div>
-              <div style="display: grid; grid-template-columns: 180px 1fr 40px; gap: 16px; align-items: center; font-size: 15px;"><span>PostgreSQL</span><div style="height: 8px; background: var(--surface-hover);"><div style="width: 81%; height: 8px; background: var(--success);"></div></div><b>81</b></div>
-              <div style="display: grid; grid-template-columns: 180px 1fr 40px; gap: 16px; align-items: center; font-size: 15px;"><span>Конкурентность</span><div style="height: 8px; background: var(--surface-hover);"><div style="width: 76%; height: 8px; background: var(--warning);"></div></div><b>76</b></div>
-              <div style="display: grid; grid-template-columns: 180px 1fr 40px; gap: 16px; align-items: center; font-size: 15px;"><span>Проектирование API</span><div style="height: 8px; background: var(--surface-hover);"><div style="width: 69%; height: 8px; background: var(--warning);"></div></div><b>69</b></div>
+            <div>
+              <div style="font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 8px;">Способ связи</div>
+              <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px;">
+                <FspChip v-for="c in (['email', 'phone', 'telegram'] as Channel[])" :key="c" :selected="channel === c" locked @click="channel = c">{{ c === 'email' ? 'Почта' : c === 'phone' ? 'Телефон' : 'Telegram' }}</FspChip>
+              </div>
+              <FspInput v-model="contact" aria-label="Контакт рекрутера" />
             </div>
-            <div style="font-size: 13px; color: var(--text-muted); margin-top: 16px;">Последнее задание работодателя: 15.09.2026 · подход принят</div>
-          </section>
-
-          <section style="padding: 24px 0 0; box-shadow: inset 0 1px 0 var(--line);">
-            <h2 class="fsp-display" style="font-size: 18px; line-height: 22px; margin-bottom: 18px;">Достижения ФСП</h2>
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 12px;">
-              <div style="display: flex; flex-direction: column; gap: 6px; padding: 16px; background: var(--surface-hover);"><FspDisciplineBadge discipline="algo" /><b style="margin-top: 4px;">Чемпионат России 2025 — 2 место</b><span style="font-size: 13px; color: var(--text-muted);">командный зачёт · 214 команд</span></div>
-              <div style="display: flex; flex-direction: column; gap: 6px; padding: 16px; background: var(--surface-hover);"><FspDisciplineBadge discipline="product" /><b style="margin-top: 4px;">Кубок России 2024 — финалист</b><span style="font-size: 13px; color: var(--text-muted);">хакатон 48 часов</span></div>
-            </div>
-          </section>
-
-          <section style="padding: 24px 0 0; box-shadow: inset 0 1px 0 var(--line); display: flex; gap: 16px; align-items: center; flex-wrap: wrap;">
-            <FspIcon name="user" :size="v.ic" />
-            <div style="flex: 1 1 320px;"><b>Контакты скрыты</b><div style="font-size: 14px; line-height: 20px; color: var(--text-muted); margin-top: 4px;">Телефон, почта и полное имя откроются, когда кандидат примет приглашение.</div></div>
-            <FspButton variant="outline" size="sm" toast="PDF-профиль кандидата скачивается">Скачать PDF-профиль</FspButton>
-          </section>
+            <FspInput v-model="deadline" label="Ответить до" type="date" icon="clock" />
+            <div v-if="err" style="font-size: 13px; color: var(--danger);">{{ err }}</div>
+            <FspButton size="lg" :block="true" :disabled="!!card.invitation_status && card.invitation_status !== 'declined'" @click="send">Отправить приглашение</FspButton>
+          </aside>
         </div>
-
-        <aside class="fsp-cut fsp-active" style="flex: 1 1 380px; min-width: 0; --cut: var(--cut-l); padding: 28px; display: flex; flex-direction: column; gap: 18px;">
-          <h2 class="fsp-display" style="font-size: 20px; line-height: 24px;">Приглашение</h2>
-          <FspInput label="Вакансия" default-value="Без привязки к вакансии" hint="Можно выбрать опубликованную вакансию" />
-          <FspInput label="Должность" default-value="Backend-разработчик (Go)" />
-          <label style="display: flex; flex-direction: column; gap: 6px;">
-            <span style="font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted);">Предложение</span>
-            <textarea rows="5" style="font: 400 15px/22px var(--font-sans); color: var(--text); background: var(--field); border: 1px solid var(--line-strong); padding: 12px 14px; resize: vertical;">Перестраиваем процессинг платежей и ищем человека в антифрод. Ваш результат по алгоритмам и опыт соревнований — то, что нужно. Команда 6 человек, релиз раз в неделю.</textarea>
-          </label>
-          <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px;">
-            <FspInput v-model="salaryFrom" label="Зарплата от" suffix="₽" :error="err && !salaryFrom ? ' ' : undefined" />
-            <FspInput v-model="salaryTo" label="до" suffix="₽" :error="err && !salaryTo ? ' ' : undefined" />
-          </div>
-          <div>
-            <div style="font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 8px;">Способ связи</div>
-            <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px;"><FspChip v-for="c in ['Telegram', 'Почта', 'Телефон']" :key="c" :selected="channel === c" locked @click="channel = c">{{ c }}</FspChip></div>
-            <FspInput v-model="contact" aria-label="Контакт рекрутера" />
-          </div>
-          <FspInput label="Ответить до" default-value="24.10.2026" icon="clock" />
-          <div v-if="err" style="font-size: 13px; color: var(--danger);">{{ err }}</div>
-          <FspButton size="lg" :block="v.yes" @click="send">Отправить приглашение</FspButton>
-          <p style="margin: 0; font-size: 13px; line-height: 18px; color: var(--text-muted);">Кандидат сразу увидит вилку, описание и компанию. Статус приглашения — в разделе «Приглашения».</p>
-        </aside>
-      </div>
+      </ScreenState>
     </main>
   </div>
 </template>

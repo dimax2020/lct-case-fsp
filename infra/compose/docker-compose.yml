@@ -195,6 +195,8 @@ services:
     networks: [sandbox]
     mem_limit: 512m
     cpus: "1.0"
+    volumes:
+      - piston:/piston
     restart: unless-stopped
 
 networks:
@@ -206,3 +208,4 @@ networks:
 volumes:
   pgdata:
   uploads:
+  piston:

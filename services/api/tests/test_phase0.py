@@ -13,11 +13,11 @@ from app.invitation import models as invitation_models  # noqa: F401
 from app.llm.service import extract, load_schema
 from app.main import app
 from app.matching.config import C_WEIGHTS, E_WEIGHTS
-from app.matching.service import NeedView, build_shortlist, score_pair
+from app.matching.service import NeedView, score_pair
 from app.need import models as need_models  # noqa: F401
 from app.need.schemas import NeedWrite
 from app.profile import models as profile_models  # noqa: F401
-from app.profile.service import get_candidate_features
+from app.profile.service import CandidateFeatures, SkillFeature
 from app.resume import models as resume_models  # noqa: F401
 from httpx import ASGITransport, AsyncClient
 from pydantic import ValidationError
@@ -50,12 +50,13 @@ async def test_health(client: AsyncClient) -> None:
     assert response.headers["x-request-id"]
 
 
-async def test_stub_returns_contract_error(client: AsyncClient) -> None:
-    response = await client.get("/api/v1/candidates/me")
-    assert response.status_code == 501
+async def test_missing_token_is_unauthorized() -> None:
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as http:
+        response = await http.get("/api/v1/candidates/me")
+    assert response.status_code == 401
     body = response.json()
     assert set(body["error"]) >= {"code", "message"}
-    assert body["error"]["code"] == "not_implemented"
 
 
 async def test_wrong_role_is_forbidden(client: AsyncClient) -> None:
@@ -134,7 +135,25 @@ async def test_seams_are_deterministic() -> None:
         extracted = await extract(name, "строил антифрод на Kafka")
         assert isinstance(extracted, dict)
 
-    features = await get_candidate_features(uuid4())
+    features = CandidateFeatures(
+        candidate_id=str(uuid4()),
+        full_name="Алексей Кузнецов",
+        display_name="Алексей К.",
+        specialization="backend",
+        grade="middle",
+        grade_score=82,
+        min_salary=250_000,
+        formats=["remote"],
+        status="seeking",
+        visible=True,
+        city="Новосибирск",
+        liked_skills=["go"],
+        disliked_skills=[],
+        liked_domains=["fintech"],
+        blocked_domains=[],
+        last_active_at=None,
+        skills=[SkillFeature(skill_id="go", score=82, source="test")],
+    )
     need = NeedView(
         id="n",
         specialization="backend",
@@ -151,8 +170,6 @@ async def test_seams_are_deterministic() -> None:
     first = await score_pair(need, features)
     second = await score_pair(need, features)
     assert first == second
-    shortlist = await build_shortlist(uuid4())
-    assert shortlist.items == []
 
 
 def test_contract_paths_are_registered() -> None:
