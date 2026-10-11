@@ -1,0 +1,8 @@
+node_modules/
+data/
+.tmp/
+*.log
+.env
+coverage/
+extensions/vscode/out/
+extensions/vscode/*.vsix

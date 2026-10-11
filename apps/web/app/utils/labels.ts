@@ -151,6 +151,7 @@ export const candidateLinks = [
   { label: 'Приглашения', href: '/candidate/invites' },
   { label: 'Грейд и тесты', href: '/candidate/grade' },
   { label: 'Вакансии', href: '/candidate/vacancy' },
+  { label: 'Тестовые задания', href: '/candidate/process' },
   { label: 'Настройки', href: '/candidate/settings' },
 ]
 
@@ -159,5 +160,6 @@ export const employerLinks = [
   { label: 'Банк кандидатов', href: '/employer/pool' },
   { label: 'Приглашения', href: '/employer/invites' },
   { label: 'Вакансии', href: '/employer/vacancies' },
+  { label: 'Тестовые задания', href: '/employer/process' },
   { label: 'Компания', href: '/employer/company' },
 ]

@@ -1,0 +1,1 @@
+ALTER TABLE ai_analyses ADD COLUMN IF NOT EXISTS progress integer NOT NULL DEFAULT 0;

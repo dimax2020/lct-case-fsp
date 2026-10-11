@@ -20,5 +20,6 @@ htmlcov/
 .idea/
 .vscode/
 services/api/.venv/
+services/epa/data/
 eval/out/
 seed/data/embeddings.npy

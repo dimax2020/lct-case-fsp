@@ -25,6 +25,7 @@ export default defineNuxtConfig({
   },
   runtimeConfig: {
     apiProxyTarget: process.env.API_PROXY_TARGET || 'http://127.0.0.1:8000',
+    epaProxyTarget: process.env.EPA_INTERNAL_URL || 'http://127.0.0.1:8080',
     keycloakInternalBase: internalBase,
     keycloakClientId: process.env.KEYCLOAK_CLIENT_ID || 'career-web',
     keycloakClientSecret: process.env.KEYCLOAK_CLIENT_SECRET || 'change-me',

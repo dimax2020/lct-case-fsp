@@ -1,0 +1,41 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "lib": ["ES2022"],
+    "types": ["node"],
+    "strict": true,
+    "noUncheckedIndexedAccess": false,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "baseUrl": ".",
+    "paths": {
+      "@epa/domain": ["packages/domain/src/index.ts"],
+      "@epa/contracts": ["packages/contracts/src/index.ts"],
+      "@epa/authz": ["packages/authz/src/index.ts"],
+      "@epa/telemetry": ["packages/telemetry/src/index.ts"],
+      "@epa/ai-provider": ["packages/ai-provider/src/index.ts"],
+      "@epa/platform": ["packages/platform/src/index.ts"],
+      "@epa/test-fixtures": ["packages/test-fixtures/src/index.ts"],
+      "@epa/practice": ["services/practice/src/index.ts"],
+      "@epa/rde": ["services/rde/src/index.ts"],
+      "@epa/git": ["services/git/src/index.ts"],
+      "@epa/timeline": ["services/timeline/src/index.ts"],
+      "@epa/snapshots": ["services/snapshots/src/index.ts"],
+      "@epa/sandbox": ["services/sandbox/src/index.ts"],
+      "@epa/review": ["services/review/src/index.ts"],
+      "@epa/ai-orchestrator": ["services/ai-orchestrator/src/index.ts"],
+      "@epa/assessment": ["services/assessment/src/index.ts"],
+      "@epa/retention": ["services/retention/src/index.ts"],
+      "@epa/workspace-agent": ["apps/workspace-agent/src/index.ts"],
+      "@epa/api": ["apps/api/src/index.ts"],
+      "@epa/worker": ["apps/worker/src/index.ts"]
+    }
+  },
+  "include": ["packages", "services", "apps", "tests", "vitest.config.ts"],
+  "exclude": ["node_modules", "data", "packages/test-fixtures/templates", "packages/test-fixtures/sandbox"]
+}

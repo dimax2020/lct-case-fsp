@@ -1,0 +1,40 @@
+{
+  "name": "engineering-process-analysis",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "engines": {
+    "node": ">=20.10"
+  },
+  "scripts": {
+    "dev": "tsx apps/api/src/main.ts",
+    "dev:local": "EPA_RDE_DRIVER=local EPA_SANDBOX_DRIVER=local tsx apps/api/src/main.ts",
+    "worker": "tsx apps/worker/src/main.ts",
+    "seed": "tsx apps/api/src/seed.ts",
+    "seed:local": "EPA_RDE_DRIVER=local EPA_SANDBOX_DRIVER=local tsx apps/api/src/seed.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p extensions/vscode/tsconfig.json --noEmit",
+    "extension:compile": "tsc -p extensions/vscode/tsconfig.json",
+    "extension:package": "npm run extension:compile && cd extensions/vscode && npx --yes @vscode/vsce package --allow-missing-repository --skip-license -o epa-vscode.vsix",
+    "test": "vitest run",
+    "test:unit": "vitest run --project unit",
+    "test:integration": "vitest run --project integration",
+    "test:e2e": "vitest run --project e2e",
+    "test:security": "vitest run --project security",
+    "test:performance": "vitest run --project performance",
+    "acceptance": "tsx tests/e2e/acceptance-run.ts"
+  },
+  "dependencies": {
+    "@electric-sql/pglite": "^0.3.0",
+    "fastify": "^5.0.0",
+    "pg": "^8.13.0",
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.17.0",
+    "@types/pg": "^8.11.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0",
+    "vitest": "^3.2.0",
+    "@types/vscode": "^1.93.0"
+  }
+}

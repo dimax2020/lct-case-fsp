@@ -236,7 +236,10 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-sans);
 .fsp-header-brand img { height: 36px; display: block; }
 .fsp-header-product { font-family: var(--font-display); font-weight: 700; font-size: 13px; letter-spacing: .04em; text-transform: uppercase; padding-left: var(--space-4); box-shadow: inset 1px 0 0 var(--line-strong); line-height: 28px; }
 .fsp-header-nav { display: flex; gap: var(--space-6); flex: 1; }
-.fsp-header-nav a { position: relative; font: 500 15px/var(--header-h) var(--font-sans); color: var(--text-muted); text-decoration: none; }
+.fsp-header-nav a { position: relative; display: inline-flex; align-items: center; font: 500 15px/var(--header-h) var(--font-sans); color: var(--text-muted); text-decoration: none; }
+.fsp-nav-label { position: relative; line-height: 20px; }
+.fsp-nav-count { position: absolute; top: -8px; right: -14px; box-sizing: border-box; width: 18px; height: 18px; padding: 0; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: var(--danger); color: #fff; font: 700 11px/1 var(--font-sans); }
+.fsp-desk-frame { width: 100%; height: 240px; border: 0; display: block; overflow: hidden; background: transparent; }
 .fsp-header-nav a:hover { color: var(--text); }
 .fsp-header-nav a[aria-current="page"] { color: var(--text); }
 .fsp-header-nav a[aria-current="page"]::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: var(--accent-mark); }

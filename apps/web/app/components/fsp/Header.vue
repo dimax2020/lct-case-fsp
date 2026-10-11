@@ -17,6 +17,29 @@ const userMenu = computed(() => isEmployer.value
   : [{ label: 'Мой профиль', to: '/candidate/profile' }, { label: 'Настройки и приватность', to: '/candidate/settings' }])
 
 const anyMatch = computed(() => props.links.some(l => l.href === route.path))
+const testCount = ref(0)
+
+async function loadTestCount() {
+  if (!props.links.some(l => l.href === '/candidate/process')) {
+    testCount.value = 0
+    return
+  }
+  try {
+    const applications = await $fetch<unknown>('/api/v1/applications', { query: { role: 'candidate' } })
+    const rows = Array.isArray(applications)
+      ? applications as { vacancy_id?: string }[]
+      : ((applications as { items?: { vacancy_id?: string }[] } | null)?.items ?? [])
+    const vacancyIds = [...new Set(rows.map(row => row.vacancy_id).filter((id): id is string => !!id))]
+    if (!vacancyIds.length) {
+      testCount.value = 0
+      return
+    }
+    const found = await $fetch<{ vacancyIds?: string[] }>('/v1/vacancy-tasks/lookup', { method: 'POST', body: { vacancyIds } })
+    testCount.value = found.vacancyIds?.length ?? 0
+  } catch {
+    testCount.value = 0
+  }
+}
 function isActive(l: NavLink) {
   if (anyMatch.value) return l.href === route.path
   return !!l.active
@@ -26,7 +49,10 @@ function toggle(m: 'bell' | 'user') {
   if (m === 'bell') hasUnread.value = false
 }
 function onDoc(e: MouseEvent) { if (root.value && !root.value.contains(e.target as Node)) menu.value = '' }
-onMounted(() => document.addEventListener('click', onDoc))
+onMounted(() => {
+  document.addEventListener('click', onDoc)
+  void loadTestCount()
+})
 onBeforeUnmount(() => document.removeEventListener('click', onDoc))
 watch(() => route.fullPath, () => { menu.value = '' })
 </script>
@@ -40,7 +66,9 @@ watch(() => route.fullPath, () => { menu.value = '' })
     </NuxtLink>
     <nav class="fsp-header-nav" aria-label="Основная навигация">
       <template v-for="l in links" :key="l.label">
-        <NuxtLink v-if="l.href && l.href.startsWith('/')" :to="l.href" :aria-current="isActive(l) ? 'page' : undefined">{{ l.label }}</NuxtLink>
+        <NuxtLink v-if="l.href && l.href.startsWith('/')" :to="l.href" :aria-current="isActive(l) ? 'page' : undefined" :aria-label="l.href === '/candidate/process' && testCount ? `${l.label}, тестовых: ${testCount}` : undefined">
+          <span class="fsp-nav-label">{{ l.label }}<span v-if="l.href === '/candidate/process' && testCount" class="fsp-nav-count">{{ testCount }}</span></span>
+        </NuxtLink>
         <a v-else href="#" @click.prevent="show('Раздел «' + l.label + '» ещё не реализован в рамках MVP')">{{ l.label }}</a>
       </template>
     </nav>

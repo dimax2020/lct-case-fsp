@@ -1,0 +1,45 @@
+{
+  "name": "epa-vscode",
+  "displayName": "EPA — ход работы над заданием",
+  "description": "Отправляет работодателю ход работы только из открытой папки: файлы, команды, тесты и коммиты. Клавиши, экран и другие папки не собираются.",
+  "version": "0.1.0",
+  "publisher": "epa",
+  "engines": {
+    "vscode": "^1.93.0"
+  },
+  "categories": ["Other"],
+  "activationEvents": ["onStartupFinished", "onUri"],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      { "command": "epa.connect", "title": "EPA: Подключить практику" },
+      { "command": "epa.disconnect", "title": "EPA: Отключить практику" },
+      { "command": "epa.about", "title": "EPA: Что собирается и чего нет" },
+      { "command": "epa.copy", "title": "EPA: копирование в папке задания" },
+      { "command": "epa.cut", "title": "EPA: вырезание в папке задания" },
+      { "command": "epa.paste", "title": "EPA: вставка в папке задания" }
+    ],
+    "menus": {
+      "commandPalette": [
+        { "command": "epa.copy", "when": "false" },
+        { "command": "epa.cut", "when": "false" },
+        { "command": "epa.paste", "when": "false" }
+      ]
+    },
+    "keybindings": [
+      { "command": "epa.copy", "key": "ctrl+c", "mac": "cmd+c", "when": "editorTextFocus" },
+      { "command": "epa.cut", "key": "ctrl+x", "mac": "cmd+x", "when": "editorTextFocus && !editorReadonly" },
+      { "command": "epa.paste", "key": "ctrl+v", "mac": "cmd+v", "when": "editorTextFocus && !editorReadonly" }
+    ],
+    "configuration": {
+      "title": "EPA",
+      "properties": {
+        "epa.apiUrl": {
+          "type": "string",
+          "default": "http://127.0.0.1:8080",
+          "description": "Адрес сервера практики. Его подставляет ваша ссылка со страницы кандидата, вручную менять не нужно."
+        }
+      }
+    }
+  }
+}

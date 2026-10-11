@@ -66,6 +66,11 @@ async function openVacancy(id: string) {
   }
 }
 
+function openTask(vacancyId?: string) {
+  if (!vacancyId) return
+  return navigateTo({ path: '/candidate/process', hash: `#vacancy=${vacancyId}` })
+}
+
 async function apply() {
   const id = detail.value?.id
   if (!id || applying.value) return
@@ -77,7 +82,7 @@ async function apply() {
     })
     const fresh = asList<AppRow>(await apiFetch<unknown>('/api/v1/applications', { query: { role: 'candidate' } }))
     if (screen.data.value) screen.data.value.applications = fresh
-    show('Отклик отправлен')
+    await navigateTo({ path: '/candidate/process', hash: `#vacancy=${id}` })
   } catch (e) {
     show(e instanceof Error ? e.message : 'Не удалось откликнуться')
   } finally {
@@ -124,7 +129,7 @@ const cardStyle = (on: boolean) => on
                   <div style="font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--on-plate-muted);">Зарплата</div>
                   <div style="font-size: 30px; line-height: 36px; font-weight: 700; margin: 8px 0 16px;">{{ fork(detail) }}</div>
                   <FspButton v-if="!appliedIds.has(detail.id)" size="lg" :block="true" :disabled="applying" @click="apply">Откликнуться</FspButton>
-                  <div v-else style="font-weight: 600;">Отклик отправлен</div>
+                  <FspButton v-else size="lg" :block="true" @click="openTask(detail.id)">Открыть задание</FspButton>
                 </FspPlate>
               </template>
             </ScreenState>
@@ -140,6 +145,7 @@ const cardStyle = (on: boolean) => on
             </div>
             <div style="font-weight: 700;">{{ fork(row) }}</div>
             <FspStatusBadge v-if="row.status" :status="inviteTone(row.status)">{{ inviteLabel(row.status) }}</FspStatusBadge>
+            <button v-if="row.vacancy_id" type="button" style="background: none; border: 0; padding: 0; font: inherit; font-weight: 600; color: inherit; cursor: pointer;" @click="openTask(row.vacancy_id)">Открыть задание</button>
           </div>
         </section>
       </ScreenState>

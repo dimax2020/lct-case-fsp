@@ -53,6 +53,11 @@ export default defineEventHandler(async (event) => {
   const pathname = url.pathname
   const nextPath = `${pathname}${url.search}`
 
+  if (pathname.startsWith('/v1/') || pathname === '/v1' || pathname.startsWith('/git/') || pathname.startsWith('/extension/')) {
+    const target = String(useRuntimeConfig().epaProxyTarget || 'http://127.0.0.1:8080').replace(/\/$/, '')
+    return proxyRequest(event, `${target}${pathname}${url.search}`)
+  }
+
   if (pathname === '/api' || pathname.startsWith('/api/')) {
     if (event.method === 'GET' && (pathname === '/api/_auth/session' || pathname === '/api/bff/session')) {
       return publicSession(event)

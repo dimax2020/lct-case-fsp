@@ -1,0 +1,29 @@
+services:
+  api:
+    build:
+      context: ../..
+      dockerfile: infra/deployments/Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      NODE_ENV: production
+      HOST: 0.0.0.0
+      PORT: "8080"
+      EPA_PUBLIC_URL: ${EPA_PUBLIC_URL:-http://localhost:8080}
+      EPA_SIGNING_SECRET: ${EPA_SIGNING_SECRET:?set EPA_SIGNING_SECRET}
+      EPA_DATA_DIR: /data
+      EPA_RDE_DRIVER: docker
+      EPA_SANDBOX_DRIVER: docker
+      EPA_RUNTIME_IMAGE: ${EPA_RUNTIME_IMAGE:-node:20-alpine}
+      EPA_EMBEDDED_WORKER: "true"
+      EPA_RETENTION_DAYS: ${EPA_RETENTION_DAYS:-90}
+      OLLAMA_URL: ${OLLAMA_URL:-http://127.0.0.1:11434}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen3-coder:14b}
+    volumes:
+      - epa-data:/data
+      - /var/run/docker.sock:/var/run/docker.sock
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+volumes:
+  epa-data:
