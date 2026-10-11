@@ -1,17 +1,19 @@
 <script setup lang="ts">
 import type { components } from '~/api/schema'
-import type { CatTask, CatView, Eligibility } from '~/utils/cat'
-import { CAT_DECISION_LABEL, CAT_FORMAT_LABEL, catFormat, clock } from '~/utils/cat'
+import type { CatView, Eligibility } from '~/utils/cat'
+import { CAT_DECISION_LABEL, CAT_FORMAT_LABEL, CAT_MAX_ITEMS, CAT_MIN_ITEMS, catFormat, catMode, clock } from '~/utils/cat'
 import { read } from '~/utils/read'
 import { apiFetch } from '~/utils/raw'
 
 type Spec = components['schemas']['Specialization']
 type Grade = components['schemas']['Grade']
 
-const OPEN_SPECS = new Set(['backend', 'frontend', 'devops', 'data_ml'])
+const OPEN_SPECS = new Set(['backend', 'frontend'])
+const LETTERS = 'ABCDEFGHIJ'
 
 useHead({ title: 'Опрос и тест на грейд — Карьера ФСП' })
 const cabinetUser = useCabinetUser('Кандидат')
+const links = candidateLinks.map(link => ({ ...link, active: link.href === '/candidate/grade' }))
 const { show } = useToast()
 const api = useApi()
 const route = useRoute()
@@ -48,7 +50,9 @@ const written = ref('')
 const code = ref('')
 const language = ref('python')
 const remaining = ref(0)
+const confirmFinish = ref(false)
 let tick: ReturnType<typeof setInterval> | undefined
+let confirmTimer: ReturnType<typeof setTimeout> | undefined
 
 watch(screen.data, (bundle) => {
   if (!bundle) return
@@ -58,17 +62,47 @@ watch(screen.data, (bundle) => {
   }
 }, { immediate: true })
 
+const openSpecs = computed(() => (screen.data.value?.specs ?? []).filter(s => OPEN_SPECS.has(s.id)))
 const task = computed(() => attempt.value?.task ?? null)
 const result = computed(() => attempt.value?.result ?? null)
 const format = computed(() => catFormat(task.value))
+const mode = computed(() => catMode(task.value))
+const multiple = computed(() => !!task.value?.multiple || format.value === 'MSQ')
+const languages = computed(() => task.value?.languages?.length ? task.value.languages : ['python'])
+const timerOn = computed(() => attempt.value?.timer_enabled === true)
+const limitMinutes = computed(() => attempt.value?.time_limit_minutes ?? 90)
+const answered = computed(() => attempt.value?.progress.answered ?? 0)
+const progressPct = computed(() => Math.min(100, Math.round(answered.value / CAT_MAX_ITEMS * 100)))
 const step = computed(() => {
   if (result.value) return 4
   if (attempt.value && !result.value) return 3
   if (!industries.value.length) return 1
   return 2
 })
+const canStart = computed(() => !!industries.value.length && !!spec.value && !!grade.value)
+
+const canSubmit = computed(() => {
+  if (!task.value || busy.value) return false
+  if (mode.value === 'choice') return multiple.value ? pickedMany.value.length > 0 : !!picked.value
+  if (mode.value === 'code') return code.value.trim().length >= 10
+  if (mode.value === 'short') return written.value.trim().length > 0
+  return written.value.trim().length >= 15
+})
+
+const hint = computed(() => {
+  if (mode.value === 'choice') {
+    const keys = `Клавиши 1–${Math.min(task.value?.options?.length ?? 0, 9)} выбирают вариант, Enter — ответить.`
+    return multiple.value
+      ? `Отметьте все верные варианты: за каждый лишний снимается балл. ${keys}`
+      : `Выберите один вариант. ${keys}`
+  }
+  if (mode.value === 'short') return 'Короткий ответ: число, слово или порядок через запятую. Enter — ответить.'
+  if (mode.value === 'code') return 'Решение оценивается по ключевым элементам рубрики, запуск в песочнице подключим позже. Tab — отступ, Ctrl+Enter — ответить.'
+  return 'Отвечайте по пунктам: проверяется, назвали ли вы ключевые проблемы и решения. Ctrl+Enter — ответить.'
+})
 
 function applyAttempt(next: CatView) {
+  const changed = next.task?.id !== attempt.value?.task?.id
   attempt.value = next
   rememberAttempt(next.id)
   picked.value = ''
@@ -77,16 +111,27 @@ function applyAttempt(next: CatView) {
   code.value = ''
   language.value = next.task?.languages?.[0] || 'python'
   remaining.value = next.remaining_seconds
+  resetConfirm()
+  if (changed && import.meta.client) window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
-function toggleMany(id: string) {
+function choose(id: string) {
+  if (!multiple.value) {
+    picked.value = id
+    return
+  }
   pickedMany.value = pickedMany.value.includes(id)
     ? pickedMany.value.filter(item => item !== id)
     : [...pickedMany.value, id]
 }
 
+function isPicked(id: string) {
+  return multiple.value ? pickedMany.value.includes(id) : picked.value === id
+}
+
 function startClock() {
   clearInterval(tick)
+  if (!timerOn.value || attempt.value?.finished_at) return
   tick = setInterval(() => {
     remaining.value = Math.max(0, remaining.value - 1)
   }, 1000)
@@ -103,59 +148,100 @@ async function loadEligibility() {
 async function resume() {
   if (!import.meta.client) return
   await loadEligibility()
-  const id = rememberedAttempt() || eligibility.value?.active_attempt_id
-  if (!id) return
-  try {
-    applyAttempt(await apiFetch<CatView>(`/api/v1/assessment/attempts/${id}`))
-    if (!attempt.value?.finished_at) startClock()
-  } catch {
-    sessionStorage.removeItem('fsp-attempt-id')
+  const ids = [...new Set([eligibility.value?.active_attempt_id, rememberedAttempt()].filter(Boolean))] as string[]
+  for (const id of ids) {
+    try {
+      const view = await apiFetch<CatView>(`/api/v1/assessment/attempts/${id}`)
+      if (view.engine !== 'cat' || view.finished_at) continue
+      applyAttempt(view)
+      startClock()
+      return
+    } catch {
+      // Попытка удалена или чужая — пробуем следующую.
+    }
+  }
+  sessionStorage.removeItem('fsp-attempt-id')
+}
+
+function onKey(event: KeyboardEvent) {
+  if (step.value !== 3 || !task.value || busy.value) return
+  const target = event.target as HTMLElement | null
+  const typing = !!target && (target.tagName === 'TEXTAREA' || target.tagName === 'INPUT') && target.getAttribute('type') !== 'radio' && target.getAttribute('type') !== 'checkbox'
+  if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
+    event.preventDefault()
+    if (canSubmit.value) void send(false)
+    return
+  }
+  if (typing || mode.value !== 'choice' || event.altKey || event.ctrlKey || event.metaKey) return
+  const options = task.value.options ?? []
+  const index = Number(event.key) - 1
+  if (Number.isInteger(index) && index >= 0 && index < options.length) {
+    event.preventDefault()
+    choose(options[index]!.id)
+  } else if (event.key === 'Enter' && canSubmit.value && target?.tagName !== 'BUTTON' && target?.tagName !== 'A') {
+    event.preventDefault()
+    void send(false)
   }
 }
 
-onMounted(resume)
-onBeforeUnmount(() => clearInterval(tick))
+onMounted(() => {
+  void resume()
+  window.addEventListener('keydown', onKey)
+})
+onBeforeUnmount(() => {
+  clearInterval(tick)
+  clearTimeout(confirmTimer)
+  window.removeEventListener('keydown', onKey)
+})
 
 function pickSpec(id: string) {
   if (!OPEN_SPECS.has(id)) return
   spec.value = id as Spec
 }
 
+function toggleIndustry(id: string) {
+  if (industries.value.includes(id)) {
+    industries.value = industries.value.filter(x => x !== id)
+  } else if (industries.value.length >= 3) {
+    show('Можно выбрать до трёх отраслей')
+  } else {
+    industries.value = [...industries.value, id]
+  }
+}
+
+function onCodeKey(event: KeyboardEvent) {
+  if (event.key !== 'Tab' || event.shiftKey) return
+  const target = event.target as HTMLTextAreaElement
+  event.preventDefault()
+  const { selectionStart: from, selectionEnd: to, value } = target
+  code.value = value.slice(0, from) + '    ' + value.slice(to)
+  void nextTick(() => { target.selectionStart = target.selectionEnd = from + 4 })
+}
+
 function payload() {
   const current = task.value
   if (!current) return null
-  if (format.value === 'MCQ') return { task_id: current.id, answer: picked.value }
-  if (format.value === 'MSQ') return { task_id: current.id, answer: pickedMany.value.join(',') }
-  if (format.value === 'CODE') return { task_id: current.id, code: code.value, language: language.value }
-  return { task_id: current.id, answer: written.value }
+  if (mode.value === 'choice') return { task_id: current.id, answer: multiple.value ? pickedMany.value.join(',') : picked.value }
+  if (mode.value === 'code') return { task_id: current.id, code: code.value, language: language.value }
+  return { task_id: current.id, answer: written.value.trim() }
 }
 
 async function start() {
-  if (!industries.value.length) {
-    show('Выберите хотя бы одну отрасль')
-    return
-  }
-  if (!spec.value || !OPEN_SPECS.has(spec.value)) {
-    show('Выберите специализацию')
-    return
-  }
-  if (!grade.value) {
-    show('Выберите грейд')
+  if (!canStart.value) {
+    show(!industries.value.length ? 'Выберите хотя бы одну отрасль' : !spec.value ? 'Выберите специализацию' : 'Выберите грейд')
     return
   }
   busy.value = true
   try {
-    await read(api.PUT('/api/v1/candidates/me', { body: { liked_domains: industries.value, specialization: spec.value } }))
+    await read(api.PUT('/api/v1/candidates/me', { body: { liked_domains: industries.value, specialization: spec.value as Spec } }))
     const next = await apiFetch<CatView>('/api/v1/assessment/attempts', {
       method: 'POST',
       body: { specialization: spec.value, declared_grade: grade.value },
     })
     applyAttempt(next)
     startClock()
-    show('Адаптивный тест начат. Обычно 8–20 заданий, 40–90 минут.')
   } catch (e) {
-    const message = e instanceof Error ? e.message : 'Не удалось начать тест'
-    show(message)
+    show(e instanceof Error ? e.message : 'Не удалось начать тест')
     await loadEligibility()
     if (eligibility.value?.active_attempt_id) await resume()
   } finally {
@@ -163,25 +249,10 @@ async function start() {
   }
 }
 
-async function send(skip = false) {
-  if (!attempt.value || !task.value) return
+async function send(skip: boolean) {
+  if (!attempt.value || !task.value || busy.value) return
+  if (!skip && !canSubmit.value) return
   const body = skip ? { task_id: task.value.id, skip: true } : payload()
-  if (!skip && format.value === 'MCQ' && !picked.value) {
-    show('Выберите вариант')
-    return
-  }
-  if (!skip && format.value === 'MSQ' && !pickedMany.value.length) {
-    show('Отметьте хотя бы один вариант')
-    return
-  }
-  if (!skip && format.value === 'CODE' && !code.value.trim()) {
-    show('Напишите решение')
-    return
-  }
-  if (!skip && !['MCQ', 'MSQ', 'CODE'].includes(format.value) && written.value.trim().length < 2) {
-    show('Напишите ответ')
-    return
-  }
   busy.value = true
   try {
     const next = await apiFetch<CatView>(`/api/v1/assessment/attempts/${attempt.value.id}/answers`, {
@@ -202,24 +273,20 @@ async function send(skip = false) {
   }
 }
 
-async function runCode() {
-  if (!task.value || !code.value.trim()) return
-  busy.value = true
-  try {
-    const out = await apiFetch<{ verdict: string; passed: number; total: number; stdout?: string; stderr?: string }>('/api/v1/assessment/run', {
-      method: 'POST',
-      body: { task_id: task.value.id, code: code.value, language: language.value },
-    })
-    show(out.verdict === 'PENDING' ? 'Песочница сейчас выключена, ответ всё равно можно отправить' : `${out.verdict}: ${out.passed}/${out.total}`)
-  } catch (e) {
-    show(e instanceof Error ? e.message : 'Не удалось запустить код')
-  } finally {
-    busy.value = false
-  }
+function resetConfirm() {
+  confirmFinish.value = false
+  clearTimeout(confirmTimer)
 }
 
 async function finishNow() {
-  if (!attempt.value) return
+  if (!attempt.value || busy.value) return
+  if (task.value && !confirmFinish.value) {
+    confirmFinish.value = true
+    clearTimeout(confirmTimer)
+    confirmTimer = setTimeout(resetConfirm, 5000)
+    return
+  }
+  resetConfirm()
   busy.value = true
   try {
     await apiFetch(`/api/v1/assessment/attempts/${attempt.value.id}/finish`, { method: 'POST' })
@@ -232,47 +299,47 @@ async function finishNow() {
     busy.value = false
   }
 }
-
-const optStyle = (on: boolean) => on
-  ? '--cut: var(--cut-s); padding: 8px 12px; cursor: pointer;'
-  : '--cut: var(--cut-s); --fill: var(--bg); --edge: var(--line-strong); --bw: 1px; padding: 8px 12px; cursor: pointer;'
 </script>
 
 <template>
   <div style="background: var(--bg); color: var(--text); font-family: var(--font-sans); min-height: 100vh;">
-    <FspHeader product="Карьера" :user="cabinetUser" :links="candidateLinks" />
+    <FspHeader product="Карьера" :user="cabinetUser" :links="links" />
     <main style="max-width: 1240px; margin: 0 auto; padding: 40px 32px 64px;">
       <ScreenState :phase="screen.phase.value" :error="screen.error.value" @retry="screen.load">
-        <nav aria-label="Шаги онбординга" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: 8px; margin-bottom: 40px;">
-          <div :style="{ padding: '14px 0', boxShadow: 'inset 0 3px 0 ' + (step > 1 ? 'var(--success)' : 'var(--warning)') }"><div style="font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted);">Шаг 1</div><div style="font-weight: 600; margin-top: 4px;">Специализация</div></div>
-          <div :style="{ padding: '14px 0', boxShadow: 'inset 0 3px 0 ' + (step > 2 ? 'var(--success)' : step === 2 ? 'var(--warning)' : 'var(--line-strong)') }"><div style="font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted);">Шаг 2</div><div style="font-weight: 600; margin-top: 4px;">Предполагаемый грейд</div></div>
-          <div :style="{ padding: '14px 0', boxShadow: 'inset 0 3px 0 ' + (step > 3 ? 'var(--success)' : step === 3 ? 'var(--warning)' : 'var(--line-strong)') }"><div style="font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted);">Шаг 3</div><div style="font-weight: 600; margin-top: 4px;">Адаптивный тест</div></div>
-          <div :style="{ padding: '14px 0', boxShadow: 'inset 0 3px 0 ' + (step === 4 ? 'var(--success)' : 'var(--line-strong)') }"><div style="font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted);">Шаг 4</div><div style="font-weight: 600; margin-top: 4px;">Результат</div></div>
+        <nav aria-label="Шаги онбординга" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 140px), 1fr)); gap: 8px; margin-bottom: 40px;">
+          <div :style="{ padding: '14px 0', boxShadow: 'inset 0 3px 0 ' + (step > 1 ? 'var(--success)' : 'var(--warning)') }"><div class="cat-label">Шаг 1</div><div style="font-weight: 600; margin-top: 4px;">Специализация</div></div>
+          <div :style="{ padding: '14px 0', boxShadow: 'inset 0 3px 0 ' + (step > 2 ? 'var(--success)' : step === 2 ? 'var(--warning)' : 'var(--line-strong)') }"><div class="cat-label">Шаг 2</div><div style="font-weight: 600; margin-top: 4px;">Предполагаемый грейд</div></div>
+          <div :style="{ padding: '14px 0', boxShadow: 'inset 0 3px 0 ' + (step > 3 ? 'var(--success)' : step === 3 ? 'var(--warning)' : 'var(--line-strong)') }"><div class="cat-label">Шаг 3</div><div style="font-weight: 600; margin-top: 4px;">Адаптивный тест</div></div>
+          <div :style="{ padding: '14px 0', boxShadow: 'inset 0 3px 0 ' + (step === 4 ? 'var(--success)' : 'var(--line-strong)') }"><div class="cat-label">Шаг 4</div><div style="font-weight: 600; margin-top: 4px;">Результат</div></div>
         </nav>
 
-        <section v-if="step < 3" style="display: flex; flex-direction: column; gap: 20px; max-width: 760px;">
-          <h1 class="fsp-display" style="font-size: 36px; line-height: 40px;">Опрос</h1>
-          <p style="margin: 0; color: var(--text-muted); line-height: 24px;">Сначала отрасль, затем специализация и самооценка грейда. Дальше адаптивный тест: теория, код, отладка, ревью и кейс. Обычно 8–20 заданий, 40–90 минут. Data/ML пока идёт по банку QA.</p>
+        <section v-if="step < 3" style="display: flex; flex-direction: column; gap: 24px; max-width: 760px;">
+          <h1 class="fsp-display" style="font-size: 36px; line-height: 40px; margin: 0;">Опрос</h1>
+          <p style="margin: 0; color: var(--text-muted); line-height: 24px;">Выберите отрасли, специализацию и грейд, на который претендуете. Дальше адаптивный тест: теория, отладка, код, ревью и кейс. Обычно 8–20 заданий; на тест будет отведено 90 минут, но сейчас таймер выключен.</p>
           <p v-if="eligibility && !eligibility.can_start && eligibility.message" style="margin: 0; color: var(--text-muted);">{{ eligibility.message }}<template v-if="eligibility.retry_at"> С {{ new Date(eligibility.retry_at).toLocaleDateString('ru-RU') }}.</template></p>
           <div>
-            <div style="font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 10px;">Отрасль · до трёх</div>
+            <div class="cat-label" style="margin-bottom: 10px;">Отрасль · до трёх</div>
             <div style="display: flex; flex-wrap: wrap; gap: 8px;">
-              <FspChip v-for="d in screen.data.value?.domains ?? []" :key="d.id" :selected="industries.includes(d.id)" locked @click="industries.includes(d.id) ? industries = industries.filter(x => x !== d.id) : industries.length >= 3 ? show('Можно выбрать до трёх отраслей') : industries = [...industries, d.id]">{{ d.name }}</FspChip>
+              <FspChip v-for="d in screen.data.value?.domains ?? []" :key="d.id" :selected="industries.includes(d.id)" locked @click="toggleIndustry(d.id)">{{ d.name }}</FspChip>
             </div>
           </div>
           <div>
-            <div style="font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 10px;">Специализация</div>
+            <div class="cat-label" style="margin-bottom: 10px;">Специализация</div>
             <div style="display: flex; flex-wrap: wrap; gap: 8px;">
-              <FspChip v-for="s in screen.data.value?.specs ?? []" :key="s.id" :selected="spec === s.id" locked @click="pickSpec(s.id)">{{ s.name }}</FspChip>
+              <FspChip v-for="s in openSpecs" :key="s.id" :selected="spec === s.id" locked @click="pickSpec(s.id)">{{ s.name }}</FspChip>
             </div>
+            <p style="margin: 10px 0 0; font-size: 14px; color: var(--text-muted);">Сейчас тест доступен для Backend и Frontend. Остальные направления подключим позже.</p>
           </div>
           <div>
-            <div style="font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 10px;">Грейд</div>
+            <div class="cat-label" style="margin-bottom: 10px;">Грейд</div>
             <div style="display: flex; flex-wrap: wrap; gap: 8px;">
               <FspChip v-for="g in GRADES" :key="g" :selected="grade === g" locked @click="grade = g">{{ GRADE_LABEL[g] }}</FspChip>
             </div>
           </div>
-          <FspButton icon-right="arrow-right" :disabled="busy || (eligibility?.can_start === false && !eligibility.active_attempt_id)" @click="start">Начать тест</FspButton>
+          <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 16px;">
+            <FspButton icon-right="arrow-right" :disabled="busy || !canStart || (eligibility?.can_start === false && !eligibility.active_attempt_id)" @click="start">Начать тест</FspButton>
+            <span v-if="!canStart" style="font-size: 14px; color: var(--text-muted);">{{ !industries.length ? 'Выберите хотя бы одну отрасль' : !spec ? 'Выберите специализацию' : 'Выберите грейд' }}</span>
+          </div>
         </section>
 
         <section v-else-if="step === 4 && result" style="display: flex; flex-direction: column; gap: 28px; max-width: 760px;">
@@ -292,52 +359,105 @@ const optStyle = (on: boolean) => on
           </div>
         </section>
 
-        <div v-else-if="attempt && task" style="display: flex; flex-wrap: wrap; gap: 32px; align-items: flex-start;">
-          <section style="flex: 999 1 640px; min-width: 0; display: flex; flex-direction: column; gap: 24px;">
-            <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px;">
-              <span style="font-size: 14px; color: var(--text-muted);">Задание</span>
-              <span class="fsp-display" style="font-size: 20px; line-height: 24px;">{{ attempt.progress.current }} / {{ attempt.progress.total }}</span>
-              <FspTag>{{ CAT_FORMAT_LABEL[format] || format }}</FspTag>
-              <FspTag v-if="task.time_minutes">{{ task.time_minutes }} мин</FspTag>
-              <span style="margin-left: auto; font-variant-numeric: tabular-nums;">{{ clock(remaining) }}</span>
-            </div>
-            <h1 class="fsp-display" style="font-size: 32px; line-height: 36px; margin: 0;">{{ task.title || 'Задание' }}</h1>
-            <pre style="margin: 0; white-space: pre-wrap; font: 16px/24px var(--font-sans);">{{ task.body }}</pre>
-
-            <div v-if="format === 'MCQ'" style="display: flex; flex-direction: column; gap: 8px;">
-              <button v-for="opt in task.options ?? []" :key="opt.id" type="button" :class="['fsp-cut', picked === opt.id && 'fsp-active']" :style="optStyle(picked === opt.id)" @click="picked = opt.id">{{ opt.text }}</button>
-            </div>
-            <div v-else-if="format === 'MSQ'" style="display: flex; flex-direction: column; gap: 8px;">
-              <button v-for="opt in task.options ?? []" :key="opt.id" type="button" :class="['fsp-cut', pickedMany.includes(opt.id) && 'fsp-active']" :style="optStyle(pickedMany.includes(opt.id))" @click="toggleMany(opt.id)">{{ opt.text }}</button>
-            </div>
-            <div v-else-if="format === 'CODE'" style="display: flex; flex-direction: column; gap: 12px;">
-              <div style="display: flex; flex-wrap: wrap; gap: 8px;">
-                <FspChip v-for="lang in (task.languages.length ? task.languages : ['python'])" :key="lang" :selected="language === lang" locked @click="language = lang">{{ lang }}</FspChip>
+        <div v-else-if="attempt" style="display: flex; flex-wrap: wrap; gap: 32px; align-items: flex-start;">
+          <section v-if="task" style="flex: 999 1 640px; min-width: 0; display: flex; flex-direction: column; gap: 20px;">
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+              <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px;">
+                <span class="fsp-display" style="font-size: 18px; line-height: 24px;">Задание {{ answered + 1 }}</span>
+                <span style="font-size: 14px; color: var(--text-muted);">из {{ CAT_MIN_ITEMS }}–{{ CAT_MAX_ITEMS }}</span>
+                <FspTag>{{ CAT_FORMAT_LABEL[format] || format }}</FspTag>
+                <FspTag v-if="task.time_minutes">≈ {{ task.time_minutes }} мин</FspTag>
+                <span v-if="timerOn" style="margin-left: auto; font-variant-numeric: tabular-nums;">{{ clock(remaining) }}</span>
+                <span v-else style="margin-left: auto; font-size: 14px; color: var(--text-muted);" title="Таймер пока выключен: отвечайте в своём темпе">Таймер {{ limitMinutes }} мин · выключен</span>
               </div>
-              <textarea v-model="code" aria-label="Код решения" spellcheck="false" style="box-sizing: border-box; width: 100%; min-height: 220px; padding: 16px; resize: vertical; border: 1px solid var(--line-strong); background: var(--surface); color: var(--text); font: 14px/22px ui-monospace, SFMono-Regular, Menlo, monospace;" />
-              <FspButton variant="ghost" :disabled="busy" @click="runCode">Проверить в песочнице</FspButton>
+              <div class="cat-progress" role="progressbar" :aria-valuenow="answered" aria-valuemin="0" :aria-valuemax="CAT_MAX_ITEMS" :aria-label="`Отвечено ${answered} из максимум ${CAT_MAX_ITEMS}`">
+                <div class="cat-progress-fill" :style="{ width: progressPct + '%' }" />
+                <div class="cat-progress-min" :style="{ left: (CAT_MIN_ITEMS / CAT_MAX_ITEMS * 100) + '%' }" />
+              </div>
             </div>
-            <textarea v-else v-model="written" aria-label="Ответ" style="box-sizing: border-box; width: 100%; min-height: 180px; padding: 16px; resize: vertical; border: 1px solid var(--line-strong); background: var(--surface); color: var(--text); font: 16px/24px var(--font-sans);" />
 
-            <div style="display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px;">
-              <FspButton variant="ghost" :disabled="busy" @click="send(true)">Пропустить</FspButton>
-              <FspButton :disabled="busy" @click="send(false)">Ответить</FspButton>
-            </div>
+            <h1 class="fsp-display" style="font-size: 26px; line-height: 32px; margin: 0;">{{ task.title || 'Задание' }}</h1>
+            <p style="margin: 0; white-space: pre-line; font-size: 17px; line-height: 27px;">{{ task.body }}</p>
+            <pre v-if="task.snippet" class="cat-snippet">{{ task.snippet }}</pre>
+
+            <form style="display: flex; flex-direction: column; gap: 12px;" @submit.prevent="send(false)">
+              <div v-if="mode === 'choice'" :role="multiple ? 'group' : 'radiogroup'" :aria-label="multiple ? 'Варианты, можно несколько' : 'Варианты ответа'" style="display: flex; flex-direction: column; gap: 8px;">
+                <label v-for="(opt, i) in task.options ?? []" :key="opt.id" :class="['cat-option', isPicked(opt.id) && 'is-on', multiple && 'is-multi']">
+                  <input :type="multiple ? 'checkbox' : 'radio'" name="cat-option" :value="opt.id" :checked="isPicked(opt.id)" @change="choose(opt.id)">
+                  <span class="cat-option-key" aria-hidden="true">{{ multiple && isPicked(opt.id) ? '✓' : LETTERS[i] }}</span>
+                  <span class="cat-option-text">{{ opt.text }}</span>
+                </label>
+              </div>
+
+              <input v-else-if="mode === 'short'" v-model="written" class="cat-field" type="text" autocomplete="off" aria-label="Ответ" :placeholder="task.placeholder || 'Ваш ответ'" @keydown.enter.prevent="send(false)">
+
+              <template v-else-if="mode === 'code'">
+                <div v-if="languages.length > 1" style="display: flex; flex-wrap: wrap; gap: 8px;">
+                  <FspChip v-for="lang in languages" :key="lang" :selected="language === lang" locked @click="language = lang">{{ lang }}</FspChip>
+                </div>
+                <div v-else class="cat-label">Язык: {{ languages[0] }}</div>
+                <textarea v-model="code" class="cat-field is-code" aria-label="Код решения" spellcheck="false" autocomplete="off" :placeholder="task.placeholder || 'Напишите решение'" @keydown="onCodeKey" />
+              </template>
+
+              <textarea v-else v-model="written" class="cat-field is-text" aria-label="Ответ" :placeholder="task.placeholder || 'Ваш ответ'" />
+
+              <p style="margin: 0; font-size: 14px; line-height: 20px; color: var(--text-muted);">{{ hint }}</p>
+
+              <div style="display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; margin-top: 4px;">
+                <FspButton variant="ghost" :disabled="busy" @click="send(true)">Пропустить</FspButton>
+                <FspButton type="submit" icon-right="arrow-right" :disabled="!canSubmit">{{ busy ? 'Сохраняем…' : 'Ответить' }}</FspButton>
+              </div>
+            </form>
           </section>
-          <aside style="flex: 1 1 320px; min-width: 0; display: flex; flex-direction: column; gap: 16px;">
+
+          <section v-else style="flex: 999 1 640px; min-width: 0; display: flex; flex-direction: column; gap: 16px;">
+            <h1 class="fsp-display" style="font-size: 26px; line-height: 32px; margin: 0;">Задания закончились</h1>
+            <p style="margin: 0; color: var(--text-muted); line-height: 24px;">Подходящих заданий в банке больше нет. Завершите тест, чтобы получить результат по уже данным ответам.</p>
+            <div><FspButton :disabled="busy" @click="finishNow">Завершить и посмотреть результат</FspButton></div>
+          </section>
+
+          <aside style="flex: 1 1 300px; min-width: 0; display: flex; flex-direction: column; gap: 16px;">
             <FspPlate :dots="6">
               <div style="font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--on-plate-muted);">Вы заявили</div>
-              <div class="fsp-display" style="font-size: 26px; line-height: 30px; margin: 10px 0 6px;">{{ categoryLabel(attempt.specialization, attempt.declared_grade) }}</div>
-              <div style="font-size: 14px; line-height: 20px; color: var(--on-plate-muted);">CAT подбирает следующее задание по θ. Оценка по ходу не показывается. Остановка при SE &lt; 0.30, минимум 8, максимум 20.</div>
+              <div class="fsp-display" style="font-size: 24px; line-height: 28px; margin: 10px 0 6px;">{{ categoryLabel(attempt.specialization, attempt.declared_grade) }}</div>
+              <div style="font-size: 14px; line-height: 20px; color: var(--on-plate-muted);">Тест адаптивный: следующее задание подбирается по вашим ответам. Он закончится сам, когда оценка станет точной — от {{ CAT_MIN_ITEMS }} до {{ CAT_MAX_ITEMS }} заданий.</div>
             </FspPlate>
-            <div v-if="task.tags?.length" style="display: flex; flex-wrap: wrap; gap: 8px;">
+            <div style="font-size: 14px; line-height: 20px; color: var(--text-muted);">
+              <template v-if="timerOn">На весь тест {{ limitMinutes }} минут. Когда время выйдет, тест завершится по уже данным ответам.</template>
+              <template v-else>На весь тест будет отведено {{ limitMinutes }} минут. Сейчас таймер выключен — отвечайте в своём темпе, прогресс сохраняется.</template>
+            </div>
+            <div v-if="task?.tags?.length" style="display: flex; flex-wrap: wrap; gap: 8px;">
               <FspTag v-for="tag in task.tags" :key="tag">{{ tag }}</FspTag>
             </div>
-            <FspButton variant="ghost" size="sm" :disabled="busy" @click="finishNow">Завершить досрочно</FspButton>
-            <FspButton variant="ghost" size="sm" href="/candidate/grade">Прервать тест</FspButton>
+            <div v-if="task" style="display: flex; flex-direction: column; gap: 8px;">
+              <FspButton :variant="confirmFinish ? 'decline' : 'outline'" size="sm" :disabled="busy" @click="finishNow">{{ confirmFinish ? 'Точно завершить? Нажмите ещё раз' : 'Завершить досрочно' }}</FspButton>
+              <span v-if="confirmFinish" style="font-size: 13px; line-height: 18px; color: var(--text-muted);">Результат посчитаем по {{ answered }} {{ answered === 1 ? 'ответу' : 'ответам' }}. Пересдача — через 30 дней.</span>
+            </div>
+            <FspButton variant="ghost" size="sm" href="/candidate/grade">Вернуться позже</FspButton>
           </aside>
         </div>
       </ScreenState>
     </main>
   </div>
 </template>
+
+<style>
+.cat-label { font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); }
+.cat-progress { position: relative; height: 4px; background: var(--line); }
+.cat-progress-fill { height: 100%; background: var(--primary); transition: width .3s ease; }
+.cat-progress-min { position: absolute; top: -4px; width: 2px; height: 12px; background: var(--text-muted); }
+.cat-snippet { margin: 0; padding: 16px 18px; overflow-x: auto; white-space: pre; border: 1px solid var(--line); background: color-mix(in srgb, var(--text) 6%, var(--bg)); color: var(--text); font: 14px/22px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; tab-size: 4; }
+.cat-option { position: relative; display: flex; align-items: flex-start; gap: 14px; padding: 14px 16px; border: 1px solid var(--line-strong); background: var(--surface); color: var(--text); cursor: pointer; transition: border-color .15s, background-color .15s, color .15s; }
+.cat-option:hover { border-color: var(--text); }
+.cat-option input { position: absolute; opacity: 0; pointer-events: none; }
+.cat-option:has(input:focus-visible) { outline: 2px solid var(--focus); outline-offset: 2px; }
+.cat-option.is-on { border-color: var(--plate); background: var(--plate); color: var(--on-plate); }
+.cat-option-key { flex: none; display: grid; place-items: center; width: 28px; height: 28px; border: 1px solid currentColor; border-radius: 50%; font: 600 13px/1 var(--font-sans); }
+.cat-option.is-multi .cat-option-key { border-radius: 0; }
+.cat-option.is-on .cat-option-key { border-color: var(--primary); background: var(--primary); color: var(--on-primary); }
+.cat-option-text { padding-top: 2px; font-size: 16px; line-height: 24px; overflow-wrap: anywhere; }
+.cat-field { box-sizing: border-box; width: 100%; margin: 0; padding: 14px 16px; border: 1px solid var(--line-strong); background: var(--field); color: var(--text); font: 16px/24px var(--font-sans); }
+.cat-field:focus { outline: 2px solid var(--focus); outline-offset: 1px; }
+.cat-field.is-text { min-height: 200px; resize: vertical; }
+.cat-field.is-code { min-height: 280px; resize: vertical; font: 14px/22px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; tab-size: 4; white-space: pre; overflow-x: auto; }
+</style>

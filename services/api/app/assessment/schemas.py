@@ -36,6 +36,8 @@ class TaskPublic(BaseModel):
     time_minutes: int | None = None
     tags: list[str] = Field(default_factory=list)
     multiple: bool = False
+    snippet: str | None = None
+    placeholder: str | None = None
 
 
 class AttemptProgress(BaseModel):
@@ -83,6 +85,8 @@ class AttemptView(BaseModel):
     measured_grade: Grade | None = None
     percentile: float | None = None
     message: str | None = None
+    timer_enabled: bool = True
+    time_limit_minutes: int | None = None
 
 
 class AnswerIn(BaseModel):

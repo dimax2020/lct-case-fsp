@@ -105,6 +105,28 @@ def person_row(person: LoadedPerson, breakdown: ScoreBreakdown, bucket: str, nee
         "bucket": bucket,
         "projects": list(person.projects),
         "category": category_label(features.specialization, features.grade),
+        "factors": score_factors(breakdown),
+        "must_coverage": [
+            {"skill": skill, "value": _percent(breakdown.coverages.get(skill, 0.0))} for skill in need.must_skills
+        ],
+    }
+
+
+def _percent(value: float | None) -> int:
+    return max(0, min(100, int(round((value or 0.0) * 100))))
+
+
+def score_factors(breakdown: ScoreBreakdown) -> dict[str, int]:
+    """Employer-side features of S in percent, plus the candidate-side C as «conditions»."""
+    features = breakdown.features
+    return {
+        "skills": _percent(features.get("must_cov")),
+        "experience": _percent(features.get("ef")),
+        "grade": _percent(features.get("grade_fit")),
+        "tests": _percent(features.get("skill_avg")),
+        "fsp": _percent(features.get("fsp")),
+        "fresh": _percent(features.get("fresh")),
+        "conditions": _percent(breakdown.c),
     }
 
 

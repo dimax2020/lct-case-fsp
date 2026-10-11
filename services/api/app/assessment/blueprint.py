@@ -55,10 +55,14 @@ def build_blueprint(specialization: str, grade: str | None, skills: list[str], d
     note = None
     for vacancy in vacancies():
         if str(vacancy.get("title") or "").lower().find(bank.lower()) >= 0 or str(vacancy.get("id")):
-            vac_skills = [str(row.get("tag")) for row in (vacancy.get("skills") or []) if isinstance(row, dict)]
+            skill_rows = vacancy.get("skills")
+            vac_skills: list[str] = []
+            if isinstance(skill_rows, list):
+                vac_skills = [str(row.get("tag")) for row in skill_rows if isinstance(row, dict)]
             if tokens & {item.lower() for item in vac_skills}:
                 note = str(vacancy.get("blueprint") or "")
-                sample_lines = [str(line) for line in (vacancy.get("sample") or [])]
+                sample_raw = vacancy.get("sample")
+                sample_lines = [str(line) for line in sample_raw] if isinstance(sample_raw, list) else []
                 if sample_lines and not any(_score(item.tags, tokens) > 0 for item in ranked[:4]):
                     note = f"{note} Примеры: {'; '.join(sample_lines[:4])}."
                 break
@@ -94,4 +98,9 @@ async def blueprint_for_need(session: AsyncSession, principal_company_id: UUID |
         raise AppError("need_not_found", "Потребность не найдена", status_code=404)
     grades = list(row.grades or [])
     skills = list(row.must_skills or []) + list(row.nice_skills or [])
-    return build_blueprint(str(row.specialization), str(grades[0]) if grades else None, [str(item) for item in skills], str(row.description or ""))
+    return build_blueprint(
+        str(row.specialization),
+        str(grades[0]) if grades else None,
+        [str(item) for item in skills],
+        str(row.description or ""),
+    )

@@ -1,0 +1,219 @@
+[
+ {
+  "id": "dd24d228-9383-5619-b381-e8687ae7443b",
+  "key": "need-demo-python-processing",
+  "company_id": "bee18ade-6df7-526e-8fdb-49112e58a80b",
+  "company_index": 0,
+  "title": "Backend-разработчик платёжного процессинга (Python)",
+  "specialization": "backend",
+  "grades": [
+   "middle"
+  ],
+  "salary_from": 250000,
+  "salary_to": 330000,
+  "formats": [
+   "remote",
+   "hybrid"
+  ],
+  "city": "Новосибирск",
+  "must_skills": [
+   "python",
+   "postgresql"
+  ],
+  "nice_skills": [
+   "kafka",
+   "docker"
+  ],
+  "description": "«Северная Лампа» развивает платёжный процессинг для небольших банков. Нужен backend-разработчик уровня middle+ на Python. Сервис принимает платежи от провайдеров, и провайдер присылает вебхук повторно до пяти раз — деньги не должны зачислиться дважды. Высоконагруженный PostgreSQL с партиционированием: транзакции, идемпотентность и оптимизация запросов — ежедневная работа. События о платежах уходят в Kafka, их читают антифрод и бухгалтерия. Кэш горячих справочников — в Redis. Сервисы собираются в Docker, тесты гоняются в CI. Стек: Python 3.12, FastAPI, PostgreSQL, Kafka, Redis. Два этапа: разговор с командой и профильный модуль теста на транзакции и идемпотентность.",
+  "domain": "fintech",
+  "stages": 2,
+  "status": "open",
+  "source": "tmp_bank/bank.json · V-01",
+  "requirements": [
+   {
+    "id": "306b3007-2660-5e2f-9e7a-d9e4af7606d8",
+    "task": "Сервис платёжного процессинга на Python: приём платежей, идемпотентная обработка повторных вебхуков и интеграции с внешними API.",
+    "domain": "fintech",
+    "skills": [
+     "python"
+    ],
+    "scale": "до 500 платежей в секунду",
+    "kind": "must",
+    "family": null,
+    "evidence_span": "Сервис платёжного процессинга на Python: приём платежей, идемпотентная обработка повторных вебхуков и интеграции с внешними API."
+   },
+   {
+    "id": "6ec40600-d2e8-5686-a432-ff6a59c3239c",
+    "task": "Высоконагруженный PostgreSQL с партиционированием: транзакции, оптимизация запросов и отчёты по платежам.",
+    "domain": "fintech",
+    "skills": [
+     "postgresql"
+    ],
+    "scale": "сотни миллионов строк",
+    "kind": "must",
+    "family": null,
+    "evidence_span": "Высоконагруженный PostgreSQL с партиционированием: транзакции, оптимизация запросов и отчёты по платежам."
+   },
+   {
+    "id": "0ebdeb48-d567-5d06-98e6-3e08b10a2689",
+    "task": "События о платежах уходят в Kafka, чтобы антифрод и бухгалтерия читали их без потерь и дублей.",
+    "domain": "fintech",
+    "skills": [
+     "kafka"
+    ],
+    "scale": "несколько потребителей",
+    "kind": "nice",
+    "family": null,
+    "evidence_span": "События о платежах уходят в Kafka, чтобы антифрод и бухгалтерия читали их без потерь и дублей."
+   },
+   {
+    "id": "1b463ccb-9edb-5ed5-9947-c16436d88905",
+    "task": "Сервисы собираются в Docker, тесты и выкладка идут через CI.",
+    "domain": "fintech",
+    "skills": [
+     "docker"
+    ],
+    "scale": "пять сервисов",
+    "kind": "nice",
+    "family": null,
+    "evidence_span": "Сервисы собираются в Docker, тесты и выкладка идут через CI."
+   }
+  ]
+ },
+ {
+  "id": "08894675-16f2-56bd-8b03-c6242711167b",
+  "key": "need-demo-react-cabinet",
+  "company_id": "bee18ade-6df7-526e-8fdb-49112e58a80b",
+  "company_index": 0,
+  "title": "Frontend-разработчик личного кабинета (React)",
+  "specialization": "frontend",
+  "grades": [
+   "middle"
+  ],
+  "salary_from": 200000,
+  "salary_to": 270000,
+  "formats": [
+   "remote",
+   "hybrid"
+  ],
+  "city": "Новосибирск",
+  "must_skills": [
+   "react",
+   "javascript"
+  ],
+  "nice_skills": [
+   "vue"
+  ],
+  "description": "Делаем личный кабинет клиента банка-партнёра: история платежей, переводы, выписки. Нужен frontend-разработчик уровня middle. React 18, TypeScript, TanStack Query. Важны производительность на мобильных, работа с формами и асинхронными запросами, доступность. Часть старых экранов написана на Vue — их постепенно переносим, опыт с Vue пригодится. Первые три месяца: новая форма перевода, ускорение списка операций и покрытие ключевых сценариев тестами.",
+  "domain": "fintech",
+  "stages": 2,
+  "status": "open",
+  "source": "tmp_bank/bank.json · V-02",
+  "requirements": [
+   {
+    "id": "7cb3220f-d0bf-5372-8d15-27b49b29c83c",
+    "task": "Личный кабинет клиента на React: история платежей, формы переводов и выписки, быстрый отклик на мобильных.",
+    "domain": "fintech",
+    "skills": [
+     "react"
+    ],
+    "scale": "200 тысяч клиентов в месяц",
+    "kind": "must",
+    "family": null,
+    "evidence_span": "Личный кабинет клиента на React: история платежей, формы переводов и выписки, быстрый отклик на мобильных."
+   },
+   {
+    "id": "a509c398-31cf-5e74-b9ff-687007f66791",
+    "task": "Формы и асинхронные запросы: валидация, гонки запросов, понятные сообщения об ошибках.",
+    "domain": "fintech",
+    "skills": [
+     "javascript"
+    ],
+    "scale": "десятки форм",
+    "kind": "must",
+    "family": null,
+    "evidence_span": "Формы и асинхронные запросы: валидация, гонки запросов, понятные сообщения об ошибках."
+   },
+   {
+    "id": "b0be2804-640b-58c2-ac50-a7f9553a8273",
+    "task": "Старые экраны на Vue постепенно переносим на React.",
+    "domain": "fintech",
+    "skills": [
+     "vue"
+    ],
+    "scale": "около 15 экранов",
+    "kind": "nice",
+    "family": null,
+    "evidence_span": "Старые экраны на Vue постепенно переносим на React."
+   }
+  ]
+ },
+ {
+  "id": "2bcabb7f-cca8-51aa-b4b9-504614e9c4e0",
+  "key": "need-demo-sre-platform",
+  "company_id": "bee18ade-6df7-526e-8fdb-49112e58a80b",
+  "company_index": 0,
+  "title": "DevOps / SRE-инженер платёжной платформы",
+  "specialization": "devops",
+  "grades": [
+   "senior"
+  ],
+  "salary_from": 350000,
+  "salary_to": 450000,
+  "formats": [
+   "remote",
+   "hybrid"
+  ],
+  "city": "Новосибирск",
+  "must_skills": [
+   "kubernetes",
+   "docker"
+  ],
+  "nice_skills": [
+   "go"
+  ],
+  "description": "Платёжная платформа «Северной Лампы» работает в Kubernetes в нескольких зонах. Нужен senior DevOps / SRE. Отвечаем за SLO 99,95 %, дежурства и разбор инцидентов, хранение персональных данных в РФ. Terraform, GitLab CI, Prometheus и Grafana, PostgreSQL. Внутренние утилиты и операторы пишем на Go. Первые три месяца: план отказоустойчивости для сервиса с ПДн, расчёт мощности кластера и разбор последних инцидентов.",
+  "domain": "fintech",
+  "stages": 2,
+  "status": "open",
+  "source": "tmp_bank/bank.json · V-04",
+  "requirements": [
+   {
+    "id": "921733b3-7eed-558f-83f1-517f7b51195e",
+    "task": "Kubernetes в нескольких зонах доступности: SLO 99,95 %, дежурства и разбор инцидентов.",
+    "domain": "fintech",
+    "skills": [
+     "kubernetes"
+    ],
+    "scale": "три зоны, 40 узлов",
+    "kind": "must",
+    "family": null,
+    "evidence_span": "Kubernetes в нескольких зонах доступности: SLO 99,95 %, дежурства и разбор инцидентов."
+   },
+   {
+    "id": "1f2380f3-90d0-5c1e-bfe9-ca98abca8585",
+    "task": "Сборка образов и пайплайны выкладки в GitLab CI, мониторинг на Prometheus и Grafana.",
+    "domain": "fintech",
+    "skills": [
+     "docker"
+    ],
+    "scale": "десятки выкладок в день",
+    "kind": "must",
+    "family": null,
+    "evidence_span": "Сборка образов и пайплайны выкладки в GitLab CI, мониторинг на Prometheus и Grafana."
+   },
+   {
+    "id": "4df26895-06cf-5a68-82d0-5a6f721a04ec",
+    "task": "Внутренние утилиты и операторы для кластера пишем на Go.",
+    "domain": "fintech",
+    "skills": [
+     "go"
+    ],
+    "scale": "три оператора",
+    "kind": "nice",
+    "family": null,
+    "evidence_span": "Внутренние утилиты и операторы для кластера пишем на Go."
+   }
+  ]
+ }
+]

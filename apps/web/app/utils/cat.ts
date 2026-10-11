@@ -29,6 +29,21 @@ export type CatTask = Task & {
   time_minutes?: number | null
   tags?: string[]
   multiple?: boolean
+  snippet?: string | null
+  placeholder?: string | null
+}
+
+export type CatMode = 'choice' | 'short' | 'code' | 'text'
+
+export const CAT_MIN_ITEMS = 8
+export const CAT_MAX_ITEMS = 20
+
+export function catMode(task: CatTask | null | undefined): CatMode {
+  if (task?.options?.length) return 'choice'
+  const format = catFormat(task)
+  if (format === 'CODE' || (!task?.format && task?.kind === 'code')) return 'code'
+  if (format === 'SHORT') return 'short'
+  return 'text'
 }
 
 export type CatResult = Result & {
@@ -50,6 +65,8 @@ export type CatView = View & {
   message?: string | null
   task?: CatTask | null
   result?: CatResult | null
+  timer_enabled?: boolean
+  time_limit_minutes?: number | null
 }
 
 export type Eligibility = {

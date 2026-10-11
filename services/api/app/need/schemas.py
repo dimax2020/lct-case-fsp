@@ -70,6 +70,23 @@ class FspBadge(BaseModel):
     text: str
 
 
+class MatchFactors(BaseModel):
+    """Составляющие соответствия в процентах: из чего сложился скор кандидата."""
+
+    skills: int = 0
+    experience: int = 0
+    grade: int = 0
+    tests: int = 0
+    fsp: int = 0
+    fresh: int = 0
+    conditions: int = 0
+
+
+class SkillCoverage(BaseModel):
+    skill: str
+    value: int = Field(ge=0, le=100)
+
+
 class ShortlistItemOut(BaseModel):
     position: int
     candidate_id: UUID
@@ -84,6 +101,12 @@ class ShortlistItemOut(BaseModel):
     explanations: list[str] = Field(default_factory=list)
     invitation_status: str | None = None
     favorite: bool = False
+    skills: list[str] = Field(default_factory=list)
+    tested_skills: list[str] = Field(default_factory=list)
+    formats: list[str] = Field(default_factory=list)
+    last_active_at: str | None = None
+    factors: MatchFactors | None = None
+    must_coverage: list[SkillCoverage] = Field(default_factory=list)
 
 
 class CategoryTileOut(BaseModel):

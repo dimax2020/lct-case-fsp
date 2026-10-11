@@ -93,6 +93,7 @@ services:
       UPLOAD_DIR: /data/uploads
       TAXONOMY_DIR: /srv/taxonomy/data
       ASSESSMENT_BANK: /srv/assessment/bank.json
+      ASSESSMENT_COOLDOWN: ${ASSESSMENT_COOLDOWN:-off}
     volumes:
       - ../../taxonomy:/srv/taxonomy:ro
       - ../../seed:/srv/seed:ro
@@ -128,6 +129,7 @@ services:
       UPLOAD_DIR: /data/uploads
       TAXONOMY_DIR: /srv/taxonomy/data
       ASSESSMENT_BANK: /srv/assessment/bank.json
+      ASSESSMENT_COOLDOWN: ${ASSESSMENT_COOLDOWN:-off}
     volumes:
       - ../../taxonomy:/srv/taxonomy:ro
       - ../../seed:/srv/seed:ro

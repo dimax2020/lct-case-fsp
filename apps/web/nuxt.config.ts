@@ -47,6 +47,8 @@ export default defineNuxtConfig({
         logoutUrl: `${publicBase.replace(/\/$/, '')}/realms/fsp/protocol/openid-connect/logout`,
         openIdConfiguration: `${internalBase}/realms/fsp/.well-known/openid-configuration`,
         pkce: true,
+        // Демо-вход: /auth/keycloak/login?login_hint=… подставляет почту на странице ФСП ID.
+        allowedClientAuthParameters: ['login_hint'],
         scope: ['openid', 'profile', 'email'],
         tokenValidationMode: 'strict',
         validateAccessToken: true,

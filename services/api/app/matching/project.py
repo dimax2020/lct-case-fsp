@@ -58,8 +58,12 @@ def category_tiles(specialization: str, rows: list[dict[str, Any]]) -> list[dict
         spec = row.get("specialization")
         if spec:
             counts[str(spec)] = counts.get(str(spec), 0) + 1
+    # The need's own category always comes first; fuller neighbours go before empty ones.
+    allowed = allowed_specializations(specialization)
+    own, neighbours = allowed[:1], allowed[1:]
+    neighbours.sort(key=lambda spec: -counts.get(spec, 0))
     tiles = []
-    for spec in allowed_specializations(specialization)[:NEIGHBOR_CATEGORIES]:
+    for spec in [*own, *neighbours][:NEIGHBOR_CATEGORIES]:
         tiles.append({"id": spec, "title": specialization_title(spec), "count": counts.get(spec, 0)})
     return tiles
 
@@ -79,6 +83,12 @@ def _public_item(row: dict[str, Any], position: int) -> dict[str, Any]:
         "explanations": list(row.get("explanations") or []),
         "invitation_status": row.get("invitation_status"),
         "favorite": bool(row.get("favorite")),
+        "skills": list(row.get("skills") or []),
+        "tested_skills": list(row.get("tested_skills") or []),
+        "formats": list(row.get("formats") or []),
+        "last_active_at": row.get("last_active_at"),
+        "factors": row.get("factors"),
+        "must_coverage": list(row.get("must_coverage") or []),
     }
 
 

@@ -743,6 +743,12 @@ export interface components {
             rank?: number | null;
             /** Category Size */
             category_size?: number | null;
+            theta?: number | null;
+            se?: number | null;
+            decision?: string | null;
+            measured_grade?: components["schemas"]["Grade"] | null;
+            percentile?: number | null;
+            message?: string | null;
         };
         /** AttemptView */
         AttemptView: {
@@ -770,6 +776,13 @@ export interface components {
             progress: components["schemas"]["AttemptProgress"];
             task?: components["schemas"]["TaskPublic"] | null;
             result?: components["schemas"]["AttemptResult"] | null;
+            engine?: string;
+            theta?: number | null;
+            se?: number | null;
+            decision?: string | null;
+            measured_grade?: components["schemas"]["Grade"] | null;
+            percentile?: number | null;
+            message?: string | null;
         };
         /**
          * Benefit
@@ -1699,6 +1712,44 @@ export interface components {
              * @default false
              */
             favorite: boolean;
+            /** Skills */
+            skills?: string[];
+            /** Tested Skills */
+            tested_skills?: string[];
+            /** Formats */
+            formats?: string[];
+            /** Last Active At */
+            last_active_at?: string | null;
+            factors?: components["schemas"]["MatchFactors"] | null;
+            /** Must Coverage */
+            must_coverage?: components["schemas"]["SkillCoverage"][];
+        };
+        /**
+         * MatchFactors
+         * @description Составляющие соответствия в процентах: из чего сложился скор кандидата.
+         */
+        MatchFactors: {
+            /** @default 0 */
+            skills: number;
+            /** @default 0 */
+            experience: number;
+            /** @default 0 */
+            grade: number;
+            /** @default 0 */
+            tests: number;
+            /** @default 0 */
+            fsp: number;
+            /** @default 0 */
+            fresh: number;
+            /** @default 0 */
+            conditions: number;
+        };
+        /** SkillCoverage */
+        SkillCoverage: {
+            /** Skill */
+            skill: string;
+            /** Value */
+            value: number;
         };
         /** ShortlistOut */
         ShortlistOut: {
@@ -1810,6 +1861,11 @@ export interface components {
             tests_public?: components["schemas"]["PublicTest"][] | null;
             /** Languages */
             languages?: string[];
+            title?: string | null;
+            format?: string | null;
+            time_minutes?: number | null;
+            tags?: string[];
+            multiple?: boolean;
         };
         /** ValidationError */
         ValidationError: {

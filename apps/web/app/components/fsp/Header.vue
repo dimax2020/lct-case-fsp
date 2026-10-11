@@ -10,6 +10,25 @@ const isEmployer = computed(() => route.path.startsWith('/employer'))
 const role = computed<'candidate' | 'employer'>(() => (isEmployer.value ? 'employer' : 'candidate'))
 const menu = ref<'' | 'bell' | 'user'>('')
 const root = ref<HTMLElement>()
+const brand = ref<{ $el: HTMLElement }>()
+const nav = ref<HTMLElement>()
+const actions = ref<HTMLElement>()
+const stacked = ref(false)
+let observer: ResizeObserver | undefined
+
+// Ширина самих ссылок не зависит от раскладки, поэтому шапка не мигает между режимами.
+function measure() {
+  const header = root.value
+  if (!header || !nav.value || !actions.value) return
+  const links = Array.from(nav.value.children) as HTMLElement[]
+  const navGap = parseFloat(getComputedStyle(nav.value).columnGap) || 0
+  const need = links.reduce((sum, el) => sum + el.offsetWidth, 0) + navGap * Math.max(0, links.length - 1)
+  const style = getComputedStyle(header)
+  const gap = parseFloat(style.columnGap) || 0
+  const pad = parseFloat(style.paddingLeft) + parseFloat(style.paddingRight)
+  const free = header.clientWidth - pad - (brand.value?.$el.offsetWidth ?? 0) - actions.value.offsetWidth - gap * 2
+  stacked.value = need > free
+}
 const { theme, toggle: toggleTheme } = useTheme()
 const notes = useNotifications(role)
 
@@ -33,25 +52,31 @@ onMounted(() => {
   document.addEventListener('click', onDoc)
   document.addEventListener('keydown', onKey)
   if (props.user) void notes.load()
+  measure()
+  observer = new ResizeObserver(measure)
+  if (root.value) observer.observe(root.value)
+  if (actions.value) observer.observe(actions.value)
 })
 onBeforeUnmount(() => {
   document.removeEventListener('click', onDoc)
   document.removeEventListener('keydown', onKey)
+  observer?.disconnect()
 })
 watch(() => route.fullPath, () => { menu.value = '' })
+watch(() => [props.links.length, props.user], () => nextTick(measure))
 </script>
 
 <template>
-  <header ref="root" class="fsp-header">
-    <NuxtLink class="fsp-header-brand" :to="homeHref">
+  <header ref="root" :class="['fsp-header', stacked && 'fsp-header-stacked']">
+    <NuxtLink ref="brand" class="fsp-header-brand" :to="homeHref">
       <img class="fsp-only-dark" :src="logoDark" :alt="logoAlt">
       <img class="fsp-only-light" :src="logoLight" :alt="logoAlt">
       <span v-if="product" class="fsp-header-product">{{ product }}</span>
     </NuxtLink>
-    <nav class="fsp-header-nav" aria-label="Основная навигация">
+    <nav ref="nav" class="fsp-header-nav" aria-label="Основная навигация">
       <NuxtLink v-for="l in links" :key="l.label" :to="l.href || '/'" :aria-current="isActive(l) ? 'page' : undefined">{{ l.label }}</NuxtLink>
     </nav>
-    <div class="fsp-header-actions">
+    <div ref="actions" class="fsp-header-actions">
       <slot name="actions">
         <FspButton variant="ghost" :icon="theme === 'light' ? 'moon' : 'sun'" :aria-label="theme === 'light' ? 'Тёмная тема' : 'Светлая тема'" @click="toggleTheme" />
         <span v-if="user" class="fsp-header-bell fsp-menu-anchor">

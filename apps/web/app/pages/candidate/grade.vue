@@ -55,6 +55,7 @@ onMounted(async () => {
   micros.value = inbox ?? []
 })
 const nextAt = computed(() => {
+  if (eligibility.value?.can_start && !eligibility.value.retry_at && !eligibility.value.grade_change_at) return 'Сейчас'
   const locked = eligibility.value?.retry_at || eligibility.value?.grade_change_at
   if (locked) return new Date(locked).toLocaleDateString('ru-RU')
   const last = grade.value?.history?.[0]?.finished_at
@@ -116,7 +117,7 @@ async function sendMicro() {
                   <div><div style="font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--on-plate-muted);">Грейд</div><div class="fsp-display" style="font-size: 22px; line-height: 26px; margin-top: 6px;">{{ currentGrade ? GRADE_LABEL[currentGrade] : '—' }}</div></div>
                   <div><div style="font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--on-plate-muted);">Заявлен</div><div style="font-size: 18px; font-weight: 600; margin-top: 6px;">{{ grade.declared_grade ? GRADE_LABEL[grade.declared_grade] : '—' }}</div></div>
                 </div>
-                <div style="margin-top: 20px; font-size: 14px; color: var(--on-plate-muted);">{{ grade.score ?? '—' }} из 100 · место {{ grade.rank ?? '—' }} из {{ grade.category_size ?? '—' }}<template v-if="grade.ready_for_next"> · готов к следующему</template></div>
+                <div style="margin-top: 20px; font-size: 14px; color: var(--on-plate-muted);">{{ grade.score != null ? Math.round(grade.score) : '—' }} из 100 · место {{ grade.rank ?? '—' }} из {{ grade.category_size ?? '—' }}<template v-if="grade.ready_for_next"> · готов к следующему</template></div>
               </FspPlate>
             </div>
             <div class="fsp-cut" style="flex: 1 1 360px; min-width: 0; --cut: var(--cut-l); --fill: var(--surface); --edge: var(--line-card); --bw: var(--border-card); padding: 32px; display: flex; flex-direction: column; gap: 12px;">
@@ -147,11 +148,12 @@ async function sendMicro() {
             <p v-if="retakeError" role="alert" style="margin: 12px 0 0; color: var(--danger);">{{ retakeError }}</p>
           </section>
           <section style="padding: 24px 0 0; box-shadow: inset 0 1px 0 var(--line);">
-            <h2 class="fsp-display" style="font-size: 20px; line-height: 24px; margin-bottom: 20px;">Баллы по навыкам</h2>
-            <div v-for="s in grade.skill_scores ?? []" :key="s.skill_id" style="display: grid; grid-template-columns: 180px 1fr 48px; gap: 16px; align-items: center; margin-bottom: 12px;">
+            <h2 class="fsp-display" style="font-size: 20px; line-height: 24px; margin-bottom: 8px;">Баллы по навыкам</h2>
+            <p style="margin: 0 0 20px; font-size: 14px; color: var(--text-muted);">Доля верных ответов в заданиях последнего теста, где проверялся навык. Тест адаптивный, поэтому часть навыков могла попасться всего в одном-двух заданиях.</p>
+            <div v-for="s in [...(grade.skill_scores ?? [])].sort((x, y) => y.score - x.score)" :key="s.skill_id" style="display: grid; grid-template-columns: minmax(140px, 240px) 1fr 48px; gap: 16px; align-items: center; margin-bottom: 12px;">
               <span>{{ skillLabel(s.skill_id) }}</span>
               <div style="height: 8px; background: var(--surface-hover);"><div :style="{ width: Math.min(100, s.score) + '%', height: '8px', background: scoreColor(s.score) }" /></div>
-              <b>{{ s.score }}</b>
+              <b>{{ Math.round(s.score) }}</b>
             </div>
             <p v-if="!(grade.skill_scores ?? []).length" style="color: var(--text-muted);">Баллов по навыкам пока нет.</p>
           </section>

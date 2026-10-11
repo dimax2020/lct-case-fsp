@@ -1,0 +1,666 @@
+{
+  "version": "1.0",
+  "about": "Проверенные экземпляры шаблонов bank.json для Backend и Frontend. Параметры IRT (a, b), время и теги берутся из шаблона с тем же id. options + correct — выбор (индексы с нуля); accept — точный короткий ответ; keys — группы ключевых элементов рубрики (засчитана группа, если найден любой вариант), need — сколько групп нужно для полного балла.",
+  "items": [
+    {
+      "id": "BE-J-01",
+      "format": "MCQ",
+      "prompt": "Клиент вызывает PATCH /tasks/817. Токен валиден, но задача принадлежит другому проекту, к которому у пользователя нет доступа. Какой код ответа должен вернуть сервер?",
+      "options": ["401 Unauthorized", "403 Forbidden", "404 Not Found", "409 Conflict"],
+      "correct": [1],
+      "answer": "403 Forbidden: пользователь аутентифицирован, но не авторизован на ресурс."
+    },
+    {
+      "id": "BE-J-02",
+      "format": "CODE",
+      "languages": ["python"],
+      "prompt": "Напишите функцию revenue_by_city(records: list[dict]) -> dict. Ключ результата — значение поля city, значение — сумма поля amount по этому городу. Записи без поля amount пропускать.",
+      "code": "revenue_by_city([\n    {\"city\": \"Казань\", \"amount\": 100},\n    {\"city\": \"Пермь\"},\n    {\"city\": \"Казань\", \"amount\": 50},\n])\n# → {\"Казань\": 150}",
+      "placeholder": "def revenue_by_city(records):\n    ...",
+      "keys": [["def revenue_by_city"], ["for "], ["'amount' in", "\"amount\" in", "get('amount')", "get(\"amount\")", "keyerror", "continue"], ["city"], [".get(", "defaultdict", "setdefault", "not in"], ["return"]],
+      "need": 5,
+      "answer": "Цикл по записям, пропуск записей без amount, накопление res[city] = res.get(city, 0) + amount, return res."
+    },
+    {
+      "id": "BE-J-03",
+      "format": "SHORT",
+      "prompt": "Таблица employees(id, salary) содержит строки (показаны полностью). Сколько строк вернёт запрос? Ответьте числом.",
+      "code": "-- (1, 50000), (2, NULL), (3, 70000), (4, 70000),\n-- (5, 90000), (6, NULL), (7, 40000)\nSELECT * FROM employees WHERE salary <> 70000;",
+      "placeholder": "Например: 5",
+      "accept": ["3"],
+      "answer": "3 строки (id 1, 5, 7): сравнение с NULL даёт UNKNOWN, такие строки не попадают в результат."
+    },
+    {
+      "id": "BE-J-04",
+      "format": "DEBUG",
+      "prompt": "Ожидается, что add_tag('a') каждый раз возвращает ['a']. Где ошибка и на каком сценарии она проявится?",
+      "code": "def add_tag(tag, tags=[]):   # строка 1\n    tags.append(tag)          # строка 2\n    return tags               # строка 3",
+      "options": [
+        "Строка 1: изменяемый аргумент по умолчанию — второй вызов add_tag('a') подряд вернёт ['a', 'a']",
+        "Строка 2: append возвращает None, поэтому функция всегда вернёт None",
+        "Строка 3: возвращается ссылка на список, вызывающий код не увидит изменений",
+        "Строка 1: нет проверки tag на None — add_tag(None) упадёт с TypeError"
+      ],
+      "correct": [0],
+      "answer": "Список по умолчанию создаётся один раз при определении функции и разделяется между вызовами."
+    },
+    {
+      "id": "BE-J-05",
+      "format": "MSQ",
+      "prompt": "Нужно отменить последний коммит, который ещё не отправлен, но сохранить изменения в рабочей директории. Отметьте все подходящие команды.",
+      "options": ["git reset --soft HEAD~1", "git reset --hard HEAD~1", "git revert HEAD", "git reset HEAD~1"],
+      "correct": [0, 3],
+      "answer": "git reset --soft HEAD~1 и git reset HEAD~1 (mixed). --hard удалит изменения, revert создаст новый коммит."
+    },
+    {
+      "id": "BE-J-06",
+      "format": "CODE",
+      "languages": ["sql"],
+      "prompt": "Даны таблицы customers(id, name) и orders(id, customer_id, amount). Для каждого клиента выведите name и сумму заказов, оставив только тех, у кого сумма больше 10000. Отсортируйте по убыванию суммы.",
+      "placeholder": "SELECT ...",
+      "keys": [["join"], ["sum("], ["group by"], ["having"], ["> 10000", ">10000"], ["order by"], ["desc"]],
+      "need": 6,
+      "answer": "SELECT c.name, SUM(o.amount) AS total FROM customers c JOIN orders o ON o.customer_id = c.id GROUP BY c.id, c.name HAVING SUM(o.amount) > 10000 ORDER BY total DESC;"
+    },
+    {
+      "id": "BE-M-01",
+      "format": "CODE",
+      "languages": ["sql"],
+      "prompt": "Таблица sales(id, product, region, revenue). Выведите top-3 товара по revenue в каждом region. При равенстве выручки включайте всех товаров с одинаковым значением.",
+      "placeholder": "SELECT ...",
+      "keys": [["dense_rank", "rank("], ["over"], ["partition by region", "partition by s.region"], ["order by revenue desc", "order by s.revenue desc"], ["<= 3", "<=3", "< 4", "<4"]],
+      "need": 5,
+      "answer": "SELECT region, product, revenue FROM (SELECT *, DENSE_RANK() OVER (PARTITION BY region ORDER BY revenue DESC) r FROM sales) t WHERE r <= 3;"
+    },
+    {
+      "id": "BE-M-02",
+      "format": "MCQ",
+      "prompt": "PostgreSQL, уровень изоляции REPEATABLE READ. Сейчас дежурят два врача. Две транзакции выполняются одновременно и обе делают COMMIT. Что получится?",
+      "code": "-- T1\nSELECT count(*) FROM doctors WHERE on_call;   -- 2\nUPDATE doctors SET on_call = false WHERE id = 1;\n\n-- T2 (параллельно)\nSELECT count(*) FROM doctors WHERE on_call;   -- 2\nUPDATE doctors SET on_call = false WHERE id = 2;",
+      "options": [
+        "Вторая транзакция получит ошибку сериализации и откатится",
+        "Обе зафиксируются, дежурных не останется — это write skew",
+        "Вторая транзакция дождётся первой, увидит count = 1 и не снимет дежурство",
+        "Транзакции попадут в deadlock, одна будет откатана"
+      ],
+      "correct": [1],
+      "answer": "Write skew: строки разные, конфликта записи нет. Предотвращает SERIALIZABLE или SELECT ... FOR UPDATE."
+    },
+    {
+      "id": "BE-M-03",
+      "format": "DEBUG",
+      "prompt": "GET /authors отвечает за 1,8 с при 200 авторах. В логе SQL: 1 запрос SELECT authors и 200 запросов SELECT books WHERE author_id = ?. Найдите причину и выберите исправление.",
+      "code": "data = []\nfor a in Author.objects.all():\n    data.append({\n        \"name\": a.name,\n        \"books\": [b.title for b in a.books.all()],\n    })",
+      "options": [
+        "N+1 запросов: загрузить книги заранее через prefetch_related('books')",
+        "N+1 запросов: добавить select_related('books')",
+        "Нет индекса на authors.id: создать индекс",
+        "Медленная сериализация: заменить list comprehension на обычный цикл"
+      ],
+      "correct": [0],
+      "answer": "N+1. Для обратной связи один-ко-многим нужен prefetch_related; select_related работает только для FK/OneToOne вперёд."
+    },
+    {
+      "id": "BE-M-04",
+      "format": "CODE",
+      "languages": ["python"],
+      "prompt": "Реализуйте класс SlidingWindowLimiter(limit=5, window_sec=60). Метод allow(user_id, now) возвращает True, если за последние 60 секунд (полуинтервал (now − 60, now]) у пользователя было меньше 5 разрешённых запросов, и учитывает этот запрос. Операции — O(1) амортизированно.",
+      "placeholder": "class SlidingWindowLimiter:\n    def __init__(self, limit, window_sec):\n        ...\n\n    def allow(self, user_id, now):\n        ...",
+      "keys": [["class slidingwindowlimiter"], ["def allow"], ["deque"], ["popleft", "pop(0)"], ["window"], ["limit"], ["return true"], ["return false"]],
+      "need": 6,
+      "answer": "dict user_id → deque меток; удалять из начала метки ≤ now − window; если len < limit — append(now) и True, иначе False."
+    },
+    {
+      "id": "BE-M-05",
+      "format": "MCQ",
+      "prompt": "В таблице orders создан индекс CREATE INDEX ON orders (customer_id, created_at). Какой запрос сможет эффективно использовать этот индекс?",
+      "options": [
+        "WHERE created_at > now() - interval '7 days'",
+        "WHERE customer_id = 42 ORDER BY created_at DESC LIMIT 10",
+        "WHERE date(created_at) = '2026-01-01'",
+        "WHERE customer_id::text = '42'"
+      ],
+      "correct": [1],
+      "answer": "Только второй использует левый префикс индекса и порядок по второй колонке."
+    },
+    {
+      "id": "BE-M-06",
+      "format": "REVIEW",
+      "prompt": "Проведите ревью обработчика. Перечислите проблемы: номер строки и что не так. Каждая проблема — с новой строки.",
+      "code": "@app.get('/orders/{id}')                                       # 1\nasync def get_order(id: str, user=Depends(auth)):             # 2\n    row = db.execute(f\"SELECT * FROM orders WHERE id = {id}\")  # 3\n    return row                                                 # 4",
+      "placeholder": "Строка 3 — ...",
+      "keys": [["инъекц", "injection", "параметриз"], ["синхрон", "блокир", "await", "event loop"], ["владел", "idor", "user_id", "user.id", "чужой", "чужие", "доступ"], ["404", "none", "не найден", "пуст"]],
+      "need": 3,
+      "answer": "Стр. 3 — SQL-инъекция; стр. 3 — синхронный db.execute в async; нет проверки владельца (IDOR); при отсутствии заказа нужен 404."
+    },
+    {
+      "id": "BE-S-01",
+      "format": "CASE",
+      "prompt": "Спроектируйте сервис бронирования слотов к врачам. Нагрузка: 20 000 RPS на чтение, 300 RPS на запись, 50 ГБ данных. Двойное бронирование недопустимо. Опишите хранилище и схему данных, кэширование, масштабирование и поведение при падении мастер-БД.",
+      "placeholder": "Хранилище: ...\nКэш: ...\nОтказ мастера: ...",
+      "keys": [["уникальн", "unique", "for update", "skip locked", "блокиров", "constraint"], ["кэш", "cache", "redis"], ["реплик", "replica"], ["failover", "patroni", "переключ", "резерв"], ["идемпотент", "idempot"], ["шард", "партици", "горизонтал", "масштаб"]],
+      "need": 4,
+      "answer": "Реляционная БД с уникальным ограничением на слот или SELECT … FOR UPDATE; кэш расписаний с коротким TTL и инвалидацией; чтение с реплик; автоматический failover; идемпотентный ключ запроса."
+    },
+    {
+      "id": "BE-S-02",
+      "format": "CASE",
+      "prompt": "Сервис заказов после оплаты публикует OrderPaid в Kafka сразу после commit. Потребитель начисляет бонусы. Раз в сутки бонусы начисляются дважды или не начисляются. Объясните причину и предложите решение с гарантиями доставки и поведением потребителя.",
+      "placeholder": "Причина: ...\nРешение: ...\nПотребитель: ...",
+      "keys": [["dual write", "двойн", "две системы", "после commit", "между commit", "не атомар"], ["outbox"], ["cdc", "debezium", "relay", "polling", "поллинг"], ["идемпотент", "processed", "дедуплик", "event_id", "уникальн"], ["at-least-once", "at least once", "минимум один", "хотя бы один"], ["ключ партиции", "partition key", "порядок", "order_id"], ["dlq", "dead letter", "мониторинг", "лаг", "алерт"]],
+      "need": 5,
+      "answer": "Dual write. Outbox в той же транзакции + relay/CDC; at-least-once; потребитель идемпотентен (processed_events с уникальным event_id); ключ партиции order_id; DLQ и алерт на лаг."
+    },
+    {
+      "id": "BE-S-03",
+      "format": "MCQ",
+      "prompt": "В 12:00 hit-rate кэша упал с 0,97 до 0,10 на 40 секунд, RPS к БД вырос в 25 раз, CPU БД — 100 %, затем всё восстановилось. CPU приложения ровный, пул соединений не исчерпан. Какая наиболее вероятная первопричина и первое действие?",
+      "options": [
+        "Cache stampede после одновременного истечения TTL; сделать request coalescing / блокировку на перестроение ключа и разброс TTL",
+        "Исчерпан пул соединений из-за долгой транзакции; увеличить размер пула",
+        "GC-паузы приложения из-за утечки памяти; перезапустить поды",
+        "Ретрай-шторм клиентов без backoff; включить rate limit на входе"
+      ],
+      "correct": [0],
+      "answer": "Синхронный провал hit-rate и всплеск запросов к БД при ровном CPU приложения — cache stampede."
+    },
+    {
+      "id": "BE-S-04",
+      "format": "CODE",
+      "languages": ["python"],
+      "prompt": "Реализуйте async run_limited(tasks, limit=5, retries=3, base_delay=0.1). tasks — список фабрик корутин. Одновременно выполняется не больше limit задач, каждая повторяется до retries раз с экспоненциальной задержкой и джиттером. Порядок результатов — как во входе; при окончательной ошибке на её месте возвращается исключение.",
+      "placeholder": "async def run_limited(tasks, limit=5, retries=3, base_delay=0.1):\n    ...",
+      "keys": [["semaphore"], ["async def"], ["gather"], ["return_exceptions"], ["asyncio.sleep", "await sleep"], ["2 **", "2**", "<<", "backoff"], ["random", "uniform", "jitter", "джиттер"]],
+      "need": 5,
+      "answer": "asyncio.Semaphore(limit); цикл попыток с await asyncio.sleep(base_delay * 2**i * random.uniform(0.5, 1.5)); asyncio.gather(..., return_exceptions=True)."
+    },
+    {
+      "id": "BE-S-05",
+      "format": "REVIEW",
+      "prompt": "Проведите ревью архитектурного решения (ADR). Назовите риски и что предложите взамен.",
+      "code": "ADR-014. Каждый из 6 новых сервисов читает и пишет в общую БД PostgreSQL,\nчтобы не дублировать данные. Вызовы между сервисами — синхронные HTTP\nбез таймаутов.",
+      "placeholder": "Риски: ...\nПредложение: ...",
+      "keys": [["общ", "shared", "связан", "схем", "миграц"], ["таймаут", "timeout"], ["каскад", "circuit", "breaker", "цепн"], ["монолит"], ["владен", "своя база", "свою базу", "собственн", "database per service"], ["асинхрон", "событ", "event", "очеред"]],
+      "need": 4,
+      "answer": "Связанность через общую схему, каскадные отказы без таймаутов, распределённый монолит. Владение данными на сервис, таймауты + circuit breaker, асинхронные события."
+    },
+    {
+      "id": "BE-S-06",
+      "format": "MCQ",
+      "prompt": "Cassandra, 5 узлов, RF = 3. Запись — CONSISTENCY QUORUM, чтение — ONE. Разделение сети отрезает от клиента 2 из 3 реплик ключа K. Что будет с операциями по K?",
+      "options": [
+        "Запись недоступна (нужно 2 из 3 реплик, доступна 1); чтение ONE работает, но может вернуть устаревшие данные",
+        "Запись и чтение работают: координатор сохранит hinted handoff",
+        "Запись работает, а чтение ONE недоступно",
+        "Недоступны и запись, и чтение"
+      ],
+      "correct": [0],
+      "answer": "QUORUM при RF=3 требует 2 ответа; hinted handoff не засчитывается в уровень согласованности."
+    },
+    {
+      "id": "BE-T-01",
+      "format": "MCQ",
+      "prompt": "Что выведет код?",
+      "code": "a = [1, 2]\nb = a\nb += [3]\nt = (a, 5)\nt[0].append(4)\nprint(a)",
+      "options": ["[1, 2]", "[1, 2, 3]", "[1, 2, 3, 4]", "TypeError: 'tuple' object does not support item assignment"],
+      "correct": [2],
+      "answer": "b += [3] расширяет тот же список, кортеж хранит ссылку на изменяемый список."
+    },
+    {
+      "id": "BE-T-02",
+      "format": "MSQ",
+      "prompt": "Какие из HTTP-методов идемпотентны по RFC 9110? Отметьте все.",
+      "options": ["GET", "POST", "PUT", "PATCH", "DELETE"],
+      "correct": [0, 2, 4],
+      "answer": "GET, PUT, DELETE (а также HEAD, OPTIONS). POST и PATCH — нет."
+    },
+    {
+      "id": "BE-T-03",
+      "format": "MCQ",
+      "prompt": "Какова средняя сложность проверки x in container для list и для set из n элементов?",
+      "options": ["list — O(n), set — O(1)", "list — O(log n), set — O(1)", "list — O(n), set — O(log n)", "оба — O(1)"],
+      "correct": [0],
+      "answer": "Список просматривается линейно, set — хеш-таблица."
+    },
+    {
+      "id": "BE-T-04",
+      "format": "MCQ",
+      "prompt": "В каком порядке логически выполняются части запроса?",
+      "code": "SELECT dept, COUNT(*) FROM emp\nWHERE active\nGROUP BY dept\nHAVING COUNT(*) > 5\nORDER BY 2 DESC\nLIMIT 3;",
+      "options": [
+        "FROM → WHERE → GROUP BY → HAVING → SELECT → ORDER BY → LIMIT",
+        "SELECT → FROM → WHERE → GROUP BY → HAVING → ORDER BY → LIMIT",
+        "FROM → WHERE → SELECT → GROUP BY → HAVING → ORDER BY → LIMIT",
+        "FROM → GROUP BY → WHERE → HAVING → SELECT → LIMIT → ORDER BY"
+      ],
+      "correct": [0],
+      "answer": "FROM → WHERE → GROUP BY → HAVING → SELECT → ORDER BY → LIMIT."
+    },
+    {
+      "id": "BE-T-05",
+      "format": "MCQ",
+      "prompt": "Используется стратегия write-back: запись сначала попадает в кэш, в БД изменения сбрасываются пачками раз в 5 секунд. Что произойдёт, если узел кэша упадёт до очередного сброса?",
+      "options": [
+        "Последние записи, не сброшенные в БД, потеряются",
+        "Ничего: данные уже в БД, кэш просто прогреется заново",
+        "Чтения вернут устаревшие данные, но записи не потеряются",
+        "Записи заблокируются до восстановления кэша, данные сохранятся"
+      ],
+      "correct": [0],
+      "answer": "В write-back БД отстаёт от кэша — несброшенные изменения теряются."
+    },
+    {
+      "id": "BE-T-06",
+      "format": "MCQ",
+      "prompt": "Access-токен JWT подписан RS256, живёт 7 дней, сервер не хранит сессии. Пользователь сменил пароль после утечки. Как сделать, чтобы старые токены перестали работать?",
+      "options": [
+        "Ничего не нужно: смена пароля автоматически инвалидирует JWT",
+        "Хранить у пользователя версию токенов (или jti в denylist) и проверять при каждом запросе; сократить TTL access-токена и использовать refresh",
+        "Сменить алгоритм подписи на HS256",
+        "Удалить cookie на клиенте пользователя"
+      ],
+      "correct": [1],
+      "answer": "Stateless JWT нельзя отозвать без серверного состояния: версия токенов или denylist плюс короткий TTL."
+    },
+    {
+      "id": "BE-T-07",
+      "format": "MCQ",
+      "prompt": "Нужно посчитать сложную метрику на чистом Python для 10 000 записей, уже загруженных в память (CPU-bound). Машина — 8 ядер. Что даст наибольшее ускорение?",
+      "options": ["ThreadPoolExecutor на 8 потоков", "asyncio.gather по всем записям", "ProcessPoolExecutor / multiprocessing", "Уменьшить sys.setswitchinterval"],
+      "correct": [2],
+      "answer": "GIL не даёт потокам параллелить CPU-bound код на чистом Python, нужны процессы."
+    },
+    {
+      "id": "BE-T-08",
+      "format": "MSQ",
+      "prompt": "PostgreSQL 15, таблица orders на 200 млн строк под постоянной нагрузкой. Какие операции пройдут без долгой блокировки записи в таблицу? Отметьте все.",
+      "options": [
+        "CREATE INDEX ON orders (customer_id)",
+        "CREATE INDEX CONCURRENTLY ON orders (customer_id)",
+        "ALTER TABLE orders ALTER COLUMN amount TYPE numeric(14,2)",
+        "ALTER TABLE orders ADD COLUMN status text DEFAULT 'new'",
+        "VACUUM FULL orders"
+      ],
+      "correct": [1, 3],
+      "answer": "CONCURRENTLY не блокирует запись; ADD COLUMN с константным DEFAULT с PG 11 меняет только метаданные. Смена типа и VACUUM FULL переписывают таблицу."
+    },
+    {
+      "id": "BE-T-09",
+      "format": "MCQ",
+      "prompt": "Пользователь меняет аватар и сразу открывает профиль. Чтения идут с асинхронных реплик, и иногда он видит старый аватар. Какой минимальной гарантии достаточно?",
+      "options": [
+        "Linearizability для всех запросов",
+        "Read-your-writes: читать свои данные с мастера какое-то время после записи или ждать нужный LSN на реплике",
+        "Eventual consistency — её уже достаточно",
+        "Двухфазный коммит между мастером и репликами"
+      ],
+      "correct": [1],
+      "answer": "Требование касается только собственных записей пользователя — read-your-writes."
+    },
+    {
+      "id": "BE-T-10",
+      "format": "MCQ",
+      "prompt": "Сага оформления заказа (оркестрация): 1) резерв товара, 2) списание оплаты, 3) создание доставки, 4) уведомление. Шаг 3 упал после успешного шага 2. Какие компенсации выполнить?",
+      "options": [
+        "Вернуть оплату, затем снять резерв товара",
+        "Только снять резерв товара",
+        "Откатить всё через двухфазный коммит",
+        "Повторять шаг 3, пока не получится, компенсации не нужны"
+      ],
+      "correct": [0],
+      "answer": "Компенсируются выполненные шаги в обратном порядке: 2, затем 1."
+    },
+    {
+      "id": "BE-T-11",
+      "format": "MCQ",
+      "prompt": "Таблицу событий (100 тыс. вставок/с, запросы в основном за последние сутки) шардируют диапазонами по created_at — шард на день. Какая проблема возникнет?",
+      "options": [
+        "Горячий шард: все вставки идут в шард текущего дня",
+        "Нельзя будет делать запросы по диапазону дат",
+        "Данные одного дня разойдутся по всем шардам, запросы станут scatter-gather",
+        "Никакой: диапазонное шардирование всегда равномерно"
+      ],
+      "correct": [0],
+      "answer": "Монотонный ключ концентрирует запись в одном шарде."
+    },
+    {
+      "id": "BE-T-12",
+      "format": "MCQ",
+      "prompt": "В Kafka топик с 6 партициями читает группа из 8 потребителей. Сколько потребителей простаивает и как сохраняется порядок сообщений?",
+      "options": [
+        "2 простаивают; порядок гарантирован внутри партиции",
+        "Ни один; сообщения распределятся поровну с глобальным порядком",
+        "2 простаивают; порядок гарантирован в рамках всего топика",
+        "Ни один; каждую партицию читают по два потребителя"
+      ],
+      "correct": [0],
+      "answer": "Партиция читается одним потребителем группы: max(0, 8 − 6) = 2 простаивают; порядок — внутри партиции."
+    },
+    {
+      "id": "FE-J-01",
+      "format": "SHORT",
+      "prompt": "Что выведет в консоль код? Запишите значения через пробел.",
+      "code": "const a = '7';\nconst b = 3;\nconsole.log(a - b, a + b, typeof (a * 1));",
+      "placeholder": "Например: 1 2 string",
+      "accept": ["4 73 number"],
+      "answer": "4 73 number"
+    },
+    {
+      "id": "FE-J-02",
+      "format": "CODE",
+      "languages": ["javascript", "typescript"],
+      "prompt": "Напишите activeTitles(tasks): вернуть массив title задач с done === false, отсортированных по priority по убыванию, при равенстве — по id по возрастанию. Исходный массив не менять.",
+      "code": "activeTitles([\n  { id: 2, title: 'B', priority: 1, done: false },\n  { id: 1, title: 'A', priority: 3, done: false },\n  { id: 3, title: 'C', priority: 3, done: true },\n]) // → ['A', 'B']",
+      "placeholder": "const activeTitles = (tasks) => ...",
+      "keys": [["filter"], ["done"], ["sort"], ["b.priority - a.priority", "b.priority-a.priority"], ["a.id - b.id", "a.id-b.id"], ["map"], ["title"]],
+      "need": 6,
+      "answer": "tasks.filter(t => !t.done).sort((a, b) => b.priority - a.priority || a.id - b.id).map(t => t.title)"
+    },
+    {
+      "id": "FE-J-03",
+      "format": "MCQ",
+      "prompt": "Какой цвет текста получит абзац?",
+      "code": "<p id=\"note\" class=\"msg warn\">…</p>\n\n#note        { color: blue }\n.msg.warn    { color: orange }\np.warn       { color: red !important }\n:where(#note){ color: green }",
+      "options": ["blue", "orange", "red", "green"],
+      "correct": [2],
+      "answer": "red — правило с !important побеждает независимо от специфичности."
+    },
+    {
+      "id": "FE-J-04",
+      "format": "DEBUG",
+      "prompt": "После нажатия «Добавить» список на экране не обновляется. Где ошибка и как исправить?",
+      "code": "const [items, setItems] = useState([]);                       // строка 1\nconst add = (t) => { items.push(t); setItems(items); };       // строка 2",
+      "options": [
+        "Строка 2: мутация массива состояния — ссылка не меняется; исправить на setItems(prev => [...prev, t])",
+        "Строка 1: useState нужно вызывать внутри add",
+        "Строка 2: setItems асинхронный — нужно написать await setItems(items)",
+        "Строка 2: не хватает key у элементов списка"
+      ],
+      "correct": [0],
+      "answer": "React сравнивает состояние по ссылке; нужно создать новый массив."
+    },
+    {
+      "id": "FE-J-05",
+      "format": "MSQ",
+      "prompt": "Какие изменения улучшат доступность этой разметки для скринридеров и клавиатуры? Отметьте все.",
+      "code": "<div class=\"btn\" onclick=\"save()\">Сохранить</div>\n<img src=\"logo.png\">\n<input placeholder=\"Email\">",
+      "options": [
+        "Заменить div на <button>",
+        "Добавить alt у изображения",
+        "Связать поле с <label>",
+        "Добавить tabindex=\"5\" к div",
+        "Заменить placeholder на атрибут title"
+      ],
+      "correct": [0, 1, 2],
+      "answer": "<button>, alt и <label>. Положительный tabindex ломает порядок фокуса."
+    },
+    {
+      "id": "FE-J-06",
+      "format": "CODE",
+      "languages": ["javascript", "typescript"],
+      "prompt": "Напишите validate(form), возвращающую объект ошибок {поле: сообщение}. Правила: name обязателен; password от 8 до 32 символов; confirm совпадает с password. Если ошибок нет — пустой объект.",
+      "placeholder": "function validate(form) {\n  const errors = {};\n  ...\n}",
+      "keys": [["validate"], ["name"], ["trim"], ["password"], ["length"], ["8"], ["32"], ["confirm"], ["return"]],
+      "need": 8,
+      "answer": "Проверить name.trim(), длину password в [8, 32], confirm === password; вернуть объект ошибок."
+    },
+    {
+      "id": "FE-M-01",
+      "format": "SHORT",
+      "prompt": "В каком порядке будут выведены буквы? Запишите их через пробел.",
+      "code": "console.log('A');\nsetTimeout(() => console.log('B'));\nPromise.resolve().then(() => console.log('C'));\n(async () => { console.log('D'); await null; console.log('E'); })();\nconsole.log('F');",
+      "placeholder": "Например: A B C D E F",
+      "accept": ["a d f c e b"],
+      "answer": "A D F C E B"
+    },
+    {
+      "id": "FE-M-02",
+      "format": "CODE",
+      "languages": ["javascript", "typescript"],
+      "prompt": "Реализуйте debounce(fn, ms, { leading, trailing }) с методом cancel(). Функция должна сохранять this и аргументы последнего вызова. Пример: debounce(fn, 300, { leading: true, trailing: true }), вызовы в t = 0, 100, 200 → fn вызывается в t = 0 и t = 500.",
+      "placeholder": "function debounce(fn, ms, { leading = false, trailing = true } = {}) {\n  ...\n}",
+      "keys": [["settimeout"], ["cleartimeout"], ["leading"], ["trailing"], ["cancel"], ["apply", ".call(", "...args"], ["this"]],
+      "need": 6,
+      "answer": "Замыкание с timer, lastArgs, lastThis; leading — вызов сразу без активного таймера; каждый вызов перезапускает таймер; по таймеру при trailing — отложенный вызов; cancel очищает таймер."
+    },
+    {
+      "id": "FE-M-03",
+      "format": "DEBUG",
+      "prompt": "При быстром наборе «react» иногда показываются результаты для «re». Найдите причину и выберите исправление.",
+      "code": "useEffect(() => {\n  fetch('/api/search?q=' + q)\n    .then(r => r.json())\n    .then(setResults);\n}, [q]);",
+      "options": [
+        "Гонка ответов: старый запрос приходит позже нового. AbortController и abort() в функции очистки эффекта (или флаг ignore)",
+        "q нет в массиве зависимостей — добавить [q]",
+        "fetch кэширует ответы — добавить cache: 'no-store'",
+        "setResults асинхронный — заменить состояние на useRef"
+      ],
+      "correct": [0],
+      "answer": "Ответы приходят не по порядку; предыдущий запрос нужно отменять или игнорировать в cleanup."
+    },
+    {
+      "id": "FE-M-04",
+      "format": "CODE",
+      "languages": ["typescript"],
+      "prompt": "Напишите типизированную pick(obj, keys): pick({ a: 1, b: 'x', c: true }, ['a', 'c']) имеет тип { a: number; c: boolean }, а pick(obj, ['z']) — ошибка компиляции.",
+      "placeholder": "function pick<...>(obj: ..., keys: ...): ... {\n  ...\n}",
+      "keys": [["extends keyof"], ["pick<"], ["k[]", "readonly k", "array<k>"], ["for", "reduce", "foreach", "fromentries"], ["return"]],
+      "need": 4,
+      "answer": "function pick<T, K extends keyof T>(obj: T, keys: K[]): Pick<T, K> { … }"
+    },
+    {
+      "id": "FE-M-05",
+      "format": "MSQ",
+      "prompt": "Parent хранит text в состоянии и рендерит дочерние компоненты. Пользователь вводит символ. Какие дочерние компоненты перерендерятся? Отметьте все.",
+      "code": "const f = useCallback(() => {}, []);\n\n<Memo1 value={42} />\n<Memo2 style={{ color: 'red' }} />\n<Plain />\n<Memo3 onClick={f} />",
+      "options": ["Memo1", "Memo2", "Plain", "Memo3"],
+      "correct": [1, 2],
+      "answer": "Memo2 (новый объект style каждый рендер) и Plain (не мемоизирован)."
+    },
+    {
+      "id": "FE-M-06",
+      "format": "REVIEW",
+      "prompt": "Проведите ревью фрагмента компонента. Перечислите проблемы и как их исправить.",
+      "code": "function Comments({ comment, items }) {\n  return (\n    <>\n      <div dangerouslySetInnerHTML={{ __html: comment.text }} />\n      {items.sort((a, b) => a.date - b.date).map((it, i) => <Row key={i} item={it} />)}\n    </>\n  );\n}",
+      "placeholder": "1. ...\n2. ...",
+      "keys": [["xss", "dangerouslysetinnerhtml", "санитиз", "sanitize", "dompurify"], ["key", "индекс", "index"], ["sort", "мутац", "мутир", "slice", "[...items]", "tosorted"]],
+      "need": 2,
+      "answer": "XSS через dangerouslySetInnerHTML; key={i} при сортировке; items.sort мутирует пропсы — нужен копия массива."
+    },
+    {
+      "id": "FE-S-01",
+      "format": "CASE",
+      "prompt": "Маркетплейс: 9 фронтенд-команд, ежедневные релизы, SEO критичен, большая доля мобильного трафика. Предложите архитектуру фронтенда: рендеринг, разбиение на модули, управление состоянием, дизайн-систему, релизы и тестирование.",
+      "placeholder": "Рендеринг: ...\nМодули: ...\nСостояние: ...",
+      "keys": [["ssr", "ssg", "isr", "серверн"], ["csr", "кабинет", "клиентск"], ["module federation", "микрофронт", "монорепо", "пакет", "домен"], ["tanstack", "react query", "кэш данных", "store", "состоян"], ["дизайн-систем", "design system", "ui-kit", "ui kit"], ["feature flag", "фича-флаг", "флаг", "канарееч", "canary"], ["тест", "visual", "e2e", "бюджет"]],
+      "need": 5,
+      "answer": "SSR/ISR для каталога, CSR для кабинета; модули по доменам (module federation или монорепо); серверный кэш данных; общая дизайн-система; feature flags и канареечные релизы; бюджет производительности в CI."
+    },
+    {
+      "id": "FE-S-02",
+      "format": "CASE",
+      "prompt": "Карточка товара на mid-range Android: LCP 5,1 с, INP 420 мс, CLS 0,27. В waterfall hero.jpg (1,8 МБ) грузится после bundle.js (900 КБ); баннер cookie вставляется сверху через 2 с. Назовите 3 главные причины и план улучшений.",
+      "placeholder": "LCP: ...\nINP: ...\nCLS: ...",
+      "keys": [["preload", "fetchpriority"], ["webp", "avif", "srcset", "сжат", "размер изображ"], ["code splitting", "разби", "lazy", "динамическ", "import("], ["гидратац", "long task", "длинн", "yield", "main thread", "главн"], ["width", "height", "aspect-ratio", "резерв"], ["баннер", "cookie"]],
+      "need": 4,
+      "answer": "LCP: preload/fetchpriority для hero, AVIF/WebP + srcset; INP: разбить bundle, отложить гидратацию; CLS: резерв места под баннер и изображения."
+    },
+    {
+      "id": "FE-S-03",
+      "format": "CODE",
+      "languages": ["javascript", "typescript"],
+      "prompt": "Реализуйте getVisibleRange({ scrollTop, viewportHeight, itemHeights, overscan }) для списка из 100 000 элементов разной высоты. Верните { start, end, offsetTop, totalHeight }. Поиск видимого диапазона — за O(log n) после O(n) предобработки.",
+      "code": "getVisibleRange({\n  scrollTop: 1200,\n  viewportHeight: 600,\n  itemHeights: [30, 50, 20, /* … 100 000 */],\n  overscan: 2,\n})",
+      "placeholder": "function getVisibleRange({ scrollTop, viewportHeight, itemHeights, overscan }) {\n  ...\n}",
+      "keys": [["prefix", "префикс", "offsets", "накоплен"], ["mid", "binary", "бинарн"], ["overscan"], ["math.max", "max(0"], ["math.min"], ["totalheight"]],
+      "need": 5,
+      "answer": "Префиксные суммы высот, бинарный поиск первого и последнего видимого элемента, расширение на overscan с обрезкой границ."
+    },
+    {
+      "id": "FE-S-04",
+      "format": "MCQ",
+      "prompt": "В diff heap-снимков +480 Detached HTMLDivElement; цепочка удержания: Detached HTMLDivElement ← handler ← listeners ← Window. Экран ChartView при монтировании вызывает window.addEventListener('resize', this.onResize). Какова причина утечки и исправление?",
+      "options": [
+        "Обработчик resize не удаляется при размонтировании и держит отсоединённый DOM — removeEventListener в cleanup (или AbortController)",
+        "Растёт кэш переводов i18n — очищать его при переходе",
+        "Сборщик мусора не успевает — вызывать window.gc() после перехода",
+        "Утечка в setInterval анимации — заменить на requestAnimationFrame"
+      ],
+      "correct": [0],
+      "answer": "Цепочка удержания идёт от Window через listeners к обработчику ChartView."
+    },
+    {
+      "id": "FE-S-05",
+      "format": "REVIEW",
+      "prompt": "Оцените публичный API модального окна дизайн-системы, которой пользуются 12 команд: расширяемость, доступность, обратная совместимость.",
+      "code": "<Modal isOpen isLarge isDanger hideClose onClose={...} innerClassName=\"x\" />",
+      "placeholder": "Проблемы: ...\nПредложения: ...",
+      "keys": [["size", "variant", "булев", "boolean", "флаг"], ["focus", "фокус", "trap"], ["aria", "esc", "escape", "клавиатур"], ["innerclassname", "slot", "слот", "classname"], ["deprecat", "совместим", "миграц", "codemod", "устарев"]],
+      "need": 4,
+      "answer": "Булевы флаги → size/variant; focus trap и возврат фокуса, aria-modal, Esc; slots вместо innerClassName; изменения через deprecation."
+    },
+    {
+      "id": "FE-S-06",
+      "format": "MCQ",
+      "prompt": "Сессия хранится в cookie HttpOnly; SameSite=None; Secure; CSRF-токена нет. Злоумышленник размещает на своём сайте автосабмит POST-формы на /api/transfer. Удастся ли атака и что её надёжно предотвращает?",
+      "options": [
+        "Не удастся: HttpOnly не даёт чужому сайту прочитать cookie",
+        "Удастся: cookie с SameSite=None уйдёт с кросс-сайтовым POST. Надёжно — SameSite=Lax/Strict плюс CSRF-токен или проверка Origin",
+        "Удастся; надёжно — CSP script-src 'self'",
+        "Не удастся: флаг Secure запрещает кросс-сайтовые запросы"
+      ],
+      "correct": [1],
+      "answer": "Для CSRF не нужно читать cookie — браузер сам приложит её к запросу."
+    },
+    {
+      "id": "FE-T-01",
+      "format": "MCQ",
+      "prompt": "Что будет выведено?",
+      "code": "for (var i = 0; i < 3; i++) setTimeout(() => console.log(i));\nfor (let j = 0; j < 3; j++) setTimeout(() => console.log(j));",
+      "options": ["3 3 3 0 1 2", "0 1 2 0 1 2", "0 1 2 3 3 3", "3 3 3 3 3 3"],
+      "correct": [0],
+      "answer": "var — одна переменная на цикл, let — своя на каждую итерацию."
+    },
+    {
+      "id": "FE-T-02",
+      "format": "MCQ",
+      "prompt": "Какова итоговая ширина элемента вместе с рамкой?",
+      "code": ".box {\n  box-sizing: content-box;\n  width: 200px;\n  padding: 10px;\n  border: 2px solid;\n}",
+      "options": ["200px", "212px", "220px", "224px"],
+      "correct": [3],
+      "answer": "200 + 2 × 10 + 2 × 2 = 224px."
+    },
+    {
+      "id": "FE-T-03",
+      "format": "MCQ",
+      "prompt": "Контейнер display: flex шириной 600px без отступов. Какой ширины станут элементы?",
+      "code": ".a { flex: 1 1 100px; }\n.b { flex: 2 1 100px; }",
+      "options": ["A ≈ 233px, B ≈ 367px", "A = 200px, B = 400px", "A = 300px, B = 300px", "A = 100px, B = 500px"],
+      "correct": [0],
+      "answer": "Свободные 400px делятся 1:2 сверх basis: 100 + 133 и 100 + 267."
+    },
+    {
+      "id": "FE-T-04",
+      "format": "MCQ",
+      "prompt": "Файл app.3f9c2.js отдан с заголовком Cache-Control: public, max-age=31536000, immutable. Что сделает браузер при повторном заходе через день?",
+      "options": [
+        "Возьмёт файл из кэша без запроса к серверу",
+        "Отправит условный запрос с If-None-Match и получит 304",
+        "Скачает файл заново, потому что ETag не указан",
+        "Возьмёт файл из кэша, только если есть Service Worker"
+      ],
+      "correct": [0],
+      "answer": "Ресурс свежий год, immutable отключает ревалидацию."
+    },
+    {
+      "id": "FE-T-05",
+      "format": "MCQ",
+      "prompt": "Код выполняется как ES-модуль. Что будет выведено?",
+      "code": "const obj = {\n  name: 'obj',\n  regular() { return this?.name; },\n  arrow: () => this?.name,\n};\nconst f = obj.regular;\nconsole.log(obj.regular(), obj.arrow(), f());",
+      "options": ["obj undefined undefined", "obj obj obj", "obj obj undefined", "obj undefined obj"],
+      "correct": [0],
+      "answer": "Стрелочная функция берёт this модуля (undefined), а f() вызывается без объекта."
+    },
+    {
+      "id": "FE-T-06",
+      "format": "MCQ",
+      "prompt": "Что будет выведено?",
+      "code": "class A { hi() { return 'A'; } }\nclass B extends A { hi() { return 'B' + super.hi(); } }\nconst c = Object.create(B.prototype);\nc.hi = function () { return 'C' + B.prototype.hi.call(this); };\nconsole.log(c.hi());",
+      "options": ["CBA", "CB", "CA", "TypeError"],
+      "correct": [0],
+      "answer": "super в методе B ссылается на A.prototype независимо от this."
+    },
+    {
+      "id": "FE-T-07",
+      "format": "MCQ",
+      "prompt": "В коде одна строка import { debounce } from 'lodash', но в бандл попадает вся библиотека (~70 КБ). Почему и что поможет?",
+      "options": [
+        "lodash распространяется в CommonJS, tree-shaking не работает — использовать lodash-es или импорт lodash/debounce",
+        "Не включена минификация — включить Terser",
+        "Мешают source maps — отключить их",
+        "Нужно заменить импорт на динамический import() внутри функции"
+      ],
+      "correct": [0],
+      "answer": "Tree-shaking работает с ES-модулями."
+    },
+    {
+      "id": "FE-T-08",
+      "format": "MCQ",
+      "prompt": "Список неконтролируемых инпутов рендерится с key={index}. В начало списка вставляют новый элемент. Что произойдёт с введённым текстом?",
+      "options": [
+        "Текст «сдвинется»: введённое в первую строку окажется у нового элемента — React переиспользует DOM по индексу",
+        "Всё останется на местах: React сравнивает содержимое элементов",
+        "Все инпуты очистятся, потому что список пересоздаётся",
+        "React выбросит ошибку о дублирующихся ключах"
+      ],
+      "correct": [0],
+      "answer": "Ключ по индексу привязывает DOM-узел к позиции, а не к данным."
+    },
+    {
+      "id": "FE-T-09",
+      "format": "MCQ",
+      "prompt": "Блог на 50 тыс. статей: контент меняется раз в несколько часов, нужны SEO и быстрый TTFB. Какой способ рендеринга лучше?",
+      "options": [
+        "CSR",
+        "SSR на каждый запрос",
+        "ISR — статическая генерация с периодической ревалидацией",
+        "SSG всех 50 тыс. страниц при каждом деплое"
+      ],
+      "correct": [2],
+      "answer": "ISR даёт статический TTFB без полной пересборки и обновляет страницы по расписанию."
+    },
+    {
+      "id": "FE-T-10",
+      "format": "MCQ",
+      "prompt": "В консоли предупреждение «Text content does not match server-rendered HTML». В компоненте выводится {new Date().toLocaleTimeString()}. В чём причина?",
+      "options": [
+        "Время вычисляется на сервере и на клиенте по-разному — показывать его после монтирования или передавать с сервера",
+        "Не указан key у элемента",
+        "На сервере нет объекта window",
+        "Неверная кодировка страницы"
+      ],
+      "correct": [0],
+      "answer": "Разметка сервера и клиента различается из-за недетерминированного значения в рендере."
+    },
+    {
+      "id": "FE-T-11",
+      "format": "MCQ",
+      "prompt": "Какое изменение при анимации обычно вызывает только composite, без layout и paint?",
+      "options": ["top: 10px → 20px", "width: 100px → 200px", "transform: translateX(100px)", "box-shadow: 0 0 4px → 0 0 12px"],
+      "correct": [2],
+      "answer": "transform и opacity обрабатываются на этапе композиции."
+    },
+    {
+      "id": "FE-T-12",
+      "format": "MCQ",
+      "prompt": "Хост и два remote на Module Federation, каждый тянет свой React — на странице две копии React и ошибка «Invalid hook call». Как исправить?",
+      "options": [
+        "Объявить react и react-dom в shared с singleton: true и согласовать requiredVersion",
+        "Подключать React отдельным CDN-скриптом в каждом remote",
+        "Обернуть каждый remote в iframe",
+        "Отключить StrictMode"
+      ],
+      "correct": [0],
+      "answer": "React должен быть синглтоном в shared-зависимостях федерации."
+    }
+  ]
+}

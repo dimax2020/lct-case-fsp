@@ -17,6 +17,8 @@ NEIGHBOR_CATEGORIES = 3
 
 SIM_OFFSET = 0.75
 SIM_SCALE = 0.15
+# Skill-overlap fallback (no embeddings): evidence from another domain counts with this factor.
+SKILL_SIM_OTHER_DOMAIN = 0.85
 TOP_EVIDENCE = 3
 EF_NICE_WEIGHT = 0.3
 
@@ -167,6 +169,7 @@ PROCESS_MID = 0.5
 PROCESS_NONE = 0.0
 RECENCY_BASE = 0.5
 EXPLANATION_MAX = 3
+EXPLANATION_FACT_MAX = 140
 MATCH_SCALE = 100
 
 # Sample sizes for §7.1 rank counterfactuals ("по выборке потребностей").

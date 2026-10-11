@@ -13,7 +13,7 @@ from sqlalchemy.orm.attributes import flag_modified
 
 from app.assessment import cat_engine
 from app.assessment.cat_engine import GradeDecision
-from app.assessment.item_bank import PlayableItem, item_by_id, items_for, upsert_items
+from app.assessment.item_bank import SUPPORTED, PlayableItem, item_by_id, items_for, skills_of, upsert_items
 from app.assessment.models import Attempt, AttemptAnswer, CatExposure
 from app.assessment.schemas import (
     AnswerIn,
@@ -29,6 +29,39 @@ from app.core.errors import AppError
 
 CAT_MINUTES = 90
 RETRY_DAYS = 30
+_schema_ready = False
+
+
+def timer_enabled() -> bool:
+    from os import environ
+
+    return environ.get("ASSESSMENT_TIMER", "off") == "on"
+
+
+def cooldown_enabled() -> bool:
+    from os import environ
+
+    return environ.get("ASSESSMENT_COOLDOWN", "on") != "off"
+
+
+async def ensure_schema(session: AsyncSession) -> None:
+    """Create CAT columns/tables if alembic 009 has not been applied yet."""
+    global _schema_ready
+    if _schema_ready:
+        return
+    await session.execute(text("ALTER TABLE attempts ADD COLUMN IF NOT EXISTS cat jsonb"))
+    await session.execute(
+        text(
+            """
+            CREATE TABLE IF NOT EXISTS cat_exposure (
+                template_id varchar(64) PRIMARY KEY,
+                shown integer NOT NULL DEFAULT 0
+            )
+            """
+        )
+    )
+    await session.commit()
+    _schema_ready = True
 
 
 def engine_enabled() -> bool:
@@ -50,7 +83,7 @@ def to_public(item: PlayableItem) -> TaskPublic:
     return TaskPublic(
         id=item.id,
         kind=item.kind,  # type: ignore[arg-type]
-        skills=list(item.tags),
+        skills=list(skills_of(item)),
         difficulty=item.difficulty,
         body=item.body,
         options=options,
@@ -60,7 +93,9 @@ def to_public(item: PlayableItem) -> TaskPublic:
         format=item.format,
         time_minutes=item.time,
         tags=list(item.tags),
-        multiple=item.format == "MSQ",
+        multiple=item.multiple,
+        snippet=item.snippet or None,
+        placeholder=item.placeholder or None,
     )
 
 
@@ -95,10 +130,8 @@ async def _exposure(session: AsyncSession, ids: list[str]) -> tuple[np.ndarray, 
         for row in (await session.scalars(select(CatExposure).where(CatExposure.template_id.in_(ids)))).all()
     }
     shown = np.array([float(rows.get(item_id, 0)) for item_id in ids], dtype=float)
-    tests = int(
-        await session.scalar(select(func.count()).select_from(Attempt).where(Attempt.finished_at.is_not(None), Attempt.cat.is_not(None)))
-        or 0
-    )
+    finished_cat = select(func.count()).select_from(Attempt).where(Attempt.finished_at.is_not(None), Attempt.cat.is_not(None))
+    tests = int(await session.scalar(finished_cat) or 0)
     return shown, tests
 
 
@@ -164,9 +197,8 @@ def _skill_scores(items: tuple[PlayableItem, ...], correct: dict[str, float]) ->
         item = by_id.get(item_id)
         if item is None:
             continue
-        tags = item.tags or (item.specialization,)
-        for tag in tags:
-            buckets.setdefault(tag, []).append(float(value) * 100.0)
+        for skill in skills_of(item):
+            buckets.setdefault(skill, []).append(float(value) * 100.0)
     return {tag: round(sum(values) / len(values), 2) for tag, values in buckets.items()}
 
 
@@ -230,10 +262,39 @@ def view_from(
         measured_grade=state.get("measured_grade"),
         percentile=state.get("percentile"),
         message=state.get("message"),
+        timer_enabled=timer_enabled(),
+        time_limit_minutes=CAT_MINUTES,
     )
 
 
+async def heal(session: AsyncSession, attempt: Attempt) -> None:
+    """Replace the current item if it left the playable set (bank was updated mid-attempt)."""
+    if attempt.finished_at is not None:
+        return
+    state = _state(attempt)
+    items = items_for(attempt.specialization)
+    current = state.get("current")
+    if not items or (current and any(item.id == current for item in items)):
+        return
+    await upsert_items(session, items)
+    shown, tests = await _exposure(session, [item.id for item in items])
+    nxt = _pick(items, state, shown, tests)
+    state["current"] = nxt.id if nxt else None
+    _write(attempt, state)
+    await session.commit()
+
+
+async def _drop_legacy(session: AsyncSession, candidate_id: UUID) -> None:
+    """Unfinished YAML attempts cannot continue under CAT and would block the start."""
+    await session.execute(
+        text("DELETE FROM attempts WHERE candidate_id = CAST(:id AS uuid) AND finished_at IS NULL AND cat IS NULL"),
+        {"id": str(candidate_id)},
+    )
+    await session.commit()
+
+
 async def _open_attempt(session: AsyncSession, candidate_id: UUID) -> Attempt | None:
+    await _drop_legacy(session, candidate_id)
     return await session.scalar(
         select(Attempt)
         .where(Attempt.candidate_id == candidate_id, Attempt.finished_at.is_(None))
@@ -256,6 +317,7 @@ def _aware(value: datetime | None) -> datetime | None:
 
 
 async def eligibility(session: AsyncSession, candidate_id: UUID) -> EligibilityOut:
+    await ensure_schema(session)
     open_row = await _open_attempt(session, candidate_id)
     if open_row is not None:
         return EligibilityOut(
@@ -273,18 +335,31 @@ async def eligibility(session: AsyncSession, candidate_id: UUID) -> EligibilityO
     changed = _aware(changed_at if isinstance(changed_at, datetime) else None)
     last = await _last_finished(session, candidate_id)
     finished = _aware(last.finished_at) if last else None
-    if last is not None and finished is not None and now - finished < timedelta(days=RETRY_DAYS) and not last.grade_change:
+    locked = (
+        cooldown_enabled()
+        and last is not None
+        and is_cat(last)
+        and finished is not None
+        and now - finished < timedelta(days=RETRY_DAYS)
+        and not last.grade_change
+    )
+    if locked and finished is not None:
         unlock = finished + timedelta(days=RETRY_DAYS)
         return EligibilityOut(
             can_start=False,
             reason="retry_cooldown",
             retry_at=unlock,
-            grade_change_at=changed + timedelta(days=90) if changed else None,
+            grade_change_at=changed + timedelta(days=90) if changed is not None else None,
             message="Повтор на тот же грейд — через 30 дней.",
+        )
+    if not cooldown_enabled():
+        return EligibilityOut(
+            can_start=True,
+            message="Пересдачу можно начать сразу. В рабочем режиме: повтор через 30 дней, смена грейда раз в 90.",
         )
     return EligibilityOut(
         can_start=True,
-        grade_change_at=changed + timedelta(days=90) if changed else None,
+        grade_change_at=changed + timedelta(days=90) if changed is not None else None,
         message="Можно начать адаптивный тест.",
     )
 
@@ -297,6 +372,9 @@ async def start(
     *,
     grade_change: bool = False,
 ) -> Attempt:
+    await ensure_schema(session)
+    if specialization not in SUPPORTED:
+        raise AppError("specialization_unavailable", "Тест пока доступен только для Backend и Frontend", status_code=400)
     if not grade_change:
         gate = await eligibility(session, candidate_id)
         if not gate.can_start and gate.reason == "session_active" and gate.active_attempt_id:
@@ -456,7 +534,7 @@ async def close(
     _write(attempt, state)
     await _commit_exposure(session, list(state.get("used") or []))
     changed_at = datetime.now(UTC) if attempt.grade_change else None
-    return await apply_result(
+    result = await apply_result(
         session,
         attempt,
         score=score,
@@ -465,3 +543,10 @@ async def close(
         skill_scores=skills,
         changed_at=changed_at,
     )
+    result.theta = theta
+    result.se = se
+    result.decision = decision.decision
+    result.measured_grade = decision.measured  # type: ignore[assignment]
+    result.percentile = cat_engine.theta_to_percentile(theta)
+    result.message = decision.message
+    return result

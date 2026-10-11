@@ -102,7 +102,13 @@ class Selection:
     target: float
 
 
-def allowed_mask(shown: np.ndarray, tests: int, used: list[int], cap: float = EXPOSURE_CAP, warmup: int = EXPOSURE_WARMUP) -> np.ndarray:
+def allowed_mask(
+    shown: np.ndarray,
+    tests: int,
+    used: list[int],
+    cap: float = EXPOSURE_CAP,
+    warmup: int = EXPOSURE_WARMUP,
+) -> np.ndarray:
     mask = np.ones(len(shown), dtype=bool)
     mask[used] = False
     if cap < 1 and tests >= warmup:
@@ -176,7 +182,7 @@ def decide_grade(
     else:
         decision = "passed"
 
-    if grade_change:
+    if grade_change and measured_i >= declared_i:
         assigned = declared
     elif current is None:
         assigned = measured

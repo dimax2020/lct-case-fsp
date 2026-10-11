@@ -63,6 +63,18 @@ export const SKILL_LABEL: Record<string, string> = {
   docker: 'Docker',
   pytorch: 'PyTorch',
   vue: 'Vue',
+  typescript: 'TypeScript',
+  sql: 'SQL',
+  http: 'HTTP и API',
+  git: 'Git',
+  algorithms: 'Алгоритмы',
+  system_design: 'Проектирование систем',
+  security: 'Безопасность',
+  debugging: 'Отладка и ревью кода',
+  css: 'CSS и вёрстка',
+  html: 'HTML, формы и доступность',
+  web_performance: 'Браузер и производительность',
+  fe_architecture: 'Архитектура фронтенда',
 }
 
 export function skillLabel(id: string) {

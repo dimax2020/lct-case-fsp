@@ -6,6 +6,37 @@ import { boostUntilLabel, type DailyStory, type DailyTask } from '~/utils/daily'
 import { levelColor, type PsychState } from '~/utils/psych'
 
 type Profile = components['schemas']['CandidateProfile'] & { soft_skills?: string[]; daily_stories?: DailyStory[] }
+type Hint = components['schemas']['CandidateHint']
+
+const HINT_RESERVE: Hint[] = [
+  {
+    id: 'soon:skill',
+    type: 'skill',
+    title: 'Подтвердите навык мини-тестом — балл увидят работодатели',
+    effect_text: 'навык с баллом',
+    action_label: 'Мини-тест 10 мин',
+    action_href: '/candidate/test',
+    priority: 0,
+  },
+  {
+    id: 'soon:project',
+    type: 'project',
+    title: 'Добавьте проект со стеком вакансии — карточка станет конкретнее',
+    effect_text: 'карточка конкретнее',
+    action_label: 'Добавить проект',
+    action_href: '/candidate/profile/edit#projects',
+    priority: 0,
+  },
+  {
+    id: 'soon:daily',
+    type: 'activity',
+    title: 'Выполните ежедневную задачу — буст в подборках на следующий день',
+    effect_text: 'буст на день',
+    action_label: 'К задаче',
+    action_href: '/candidate/profile',
+    priority: 0,
+  },
+]
 
 useHead({ title: 'Профиль кандидата — Карьера ФСП' })
 
@@ -63,7 +94,12 @@ async function submitDaily() {
 
 const profile = computed(() => (screen.data.value?.profile ?? null) as Profile | null)
 const stories = computed(() => daily.value?.stories ?? profile.value?.daily_stories ?? [])
-const hints = computed(() => [...(screen.data.value?.hints ?? [])].sort((a, b) => b.priority - a.priority).slice(0, 3))
+const hints = computed(() => {
+  const live = [...(screen.data.value?.hints ?? [])].sort((a, b) => b.priority - a.priority)
+  const used = new Set(live.map(item => item.type))
+  const extra = HINT_RESERVE.filter(item => !used.has(item.type))
+  return [...live, ...extra].slice(0, 3)
+})
 const incoming = computed(() => (screen.data.value?.invites.items ?? []).filter(i => i.status === 'sent' || i.status === 'viewed'))
 const tested = computed(() => (profile.value?.skills ?? []).filter(s => s.source === 'test' && s.score != null))
 const unverified = computed(() => (profile.value?.skills ?? []).filter(s => s.source !== 'test' || s.score == null))
@@ -175,14 +211,14 @@ async function downloadPdf() {
             </div>
           </section>
 
-          <section v-if="hints.length" aria-label="Как подняться в выдаче" class="fsp-cut" style="--cut: var(--cut-l); --fill: var(--surface); --edge: var(--accent-mark); --bw: var(--border-card); padding: 28px;">
+          <section aria-label="Как подняться в выдаче" class="fsp-cut" style="--cut: var(--cut-l); --fill: var(--surface); --edge: var(--accent-mark); --bw: var(--border-card); padding: 28px;">
             <h2 class="fsp-display" style="font-size: 20px; line-height: 24px; margin-bottom: 18px;">Как подняться в выдаче · топ-3</h2>
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: 12px;">
               <div v-for="(h, i) in hints" :key="h.id" class="fsp-cut" style="--cut: var(--cut-m); --fill: var(--surface-hover); padding: 20px; display: flex; flex-direction: column; gap: 8px;">
                 <span class="fsp-display" style="font-size: 13px; color: #ffffff; background: var(--accent-mark); width: 34px; height: 24px; display: inline-grid; place-items: center;">0{{ i + 1 }}</span>
                 <b style="font-size: 16px; line-height: 22px;">{{ h.title }}</b>
                 <span class="fsp-display" style="font-size: 22px; line-height: 28px;">{{ h.effect_text }}</span>
-                <div style="margin-top: auto; padding-top: 8px;"><FspButton size="sm" :href="h.action_href">{{ h.action_label }}</FspButton></div>
+                <div style="margin-top: auto; padding-top: 8px;"><FspButton size="sm" disabled>{{ h.action_label }}</FspButton></div>
               </div>
             </div>
           </section>
@@ -192,10 +228,10 @@ async function downloadPdf() {
               <section v-if="tested.length || unverified.length" class="fsp-section">
                 <h2 class="fsp-display u-h3 u-mb-20">Навыки</h2>
                 <div v-if="tested.length" style="display: flex; flex-direction: column; gap: 14px;">
-                  <div v-for="s in tested" :key="s.skill_id + s.source" style="display: grid; grid-template-columns: 160px 1fr 48px; gap: 16px; align-items: center; font-size: 15px;">
+                  <div v-for="s in tested" :key="s.skill_id + s.source" style="display: grid; grid-template-columns: minmax(120px, 220px) 1fr 48px; gap: 16px; align-items: center; font-size: 15px;">
                     <span>{{ skillLabel(s.skill_id) }}</span>
                     <div class="fsp-meter"><div :style="{ width: Math.min(100, s.score || 0) + '%', height: '8px', background: scoreColor(s.score || 0) }" /></div>
-                    <b class="u-right">{{ s.score }}</b>
+                    <b class="u-right">{{ Math.round(s.score || 0) }}</b>
                   </div>
                 </div>
                 <div v-if="unverified.length" style="display: flex; flex-wrap: wrap; gap: 8px;" :style="tested.length ? 'margin-top: 24px; padding-top: 20px; box-shadow: inset 0 1px 0 var(--line);' : ''">

@@ -6,6 +6,7 @@ import { apiFetch, asList } from '~/utils/raw'
 type Short = components['schemas']['ShortlistOut']
 type Hint = components['schemas']['EmployerHint']
 type Item = components['schemas']['ShortlistItemOut']
+type Need = components['schemas']['NeedOut']
 
 useHead({ title: 'Подборка кандидатов — Карьера ФСП' })
 const route = useRoute()
@@ -29,6 +30,8 @@ const phase = ref<'loading' | 'ready' | 'error'>('loading')
 const error = ref('')
 const companyName = ref('Компания')
 const needTitle = ref('Подборка')
+const need = ref<Need | null>(null)
+const needs = ref<Need[]>([])
 let stackTimer: ReturnType<typeof setTimeout> | undefined
 
 type BankPerson = {
@@ -93,12 +96,16 @@ async function load() {
   phase.value = 'loading'
   error.value = ''
   try {
-    const [need, company] = await Promise.all([
+    const [current, company, all] = await Promise.all([
       read(api.GET('/api/v1/needs/{id}', { params: { path: { id: needId.value } } })),
       read(api.GET('/api/v1/companies/me')),
+      read(api.GET('/api/v1/needs')).catch(() => [] as Need[]),
     ])
-    needTitle.value = need.title
+    need.value = current
+    needs.value = all
+    needTitle.value = current.title
     companyName.value = company.name
+    rememberNeed(current.id)
     hints.value = await read(api.GET('/api/v1/needs/{id}/hints', { params: { path: { id: needId.value } } }))
     await reloadList()
     phase.value = 'ready'
@@ -138,7 +145,13 @@ async function reloadList() {
   const next = await read(api.GET('/api/v1/needs/{id}/shortlist', {
     params: { path: { id: needId.value }, query },
   }))
-  if (!category.value && next.categories?.[0]) category.value = next.categories[0].id
+  if (!category.value) {
+    const first = next.categories?.find(c => c.count > 0) ?? next.categories?.[0]
+    if (first && tab.value === 'pool') {
+      category.value = first.id
+      return reloadList()
+    }
+  }
   shortlist.value = next
 }
 
@@ -159,6 +172,29 @@ watch(stackQ, () => { if (phase.value === 'ready') queueReload() })
 watch(needId, load, { immediate: false })
 onMounted(load)
 onBeforeUnmount(() => clearTimeout(stackTimer))
+
+function pickNeed(id: string) {
+  if (id === needId.value) return
+  rememberNeed(id)
+  pickedNeed.value = id
+  category.value = ''
+  hintId.value = ''
+  navigateTo({ query: { ...route.query, need: id } })
+}
+
+const summary = computed(() => {
+  const items = shortlist.value?.items ?? []
+  if (!items.length) return null
+  const avg = Math.round(items.reduce((sum, i) => sum + i.match, 0) / items.length)
+  return {
+    total: shortlist.value?.total ?? items.length,
+    best: Math.max(...items.map(i => i.match)),
+    avg,
+    fsp: items.filter(i => i.fsp_badge).length,
+    strong: items.filter(i => i.match >= 60).length,
+    shown: items.length,
+  }
+})
 
 function applyHint(h: Hint) {
   hintId.value = hintId.value === h.id ? '' : h.id
@@ -192,10 +228,26 @@ const discs = [
   <div class="fsp-shell">
     <FspHeader product="Для компаний" :user="companyName" :links="employerLinks" />
     <main class="fsp-page">
-      <div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 16px; align-items: flex-end; margin-bottom: 24px;">
-        <div>
-          <div class="fsp-eyebrow u-mb-8">Подборка</div>
+      <div v-if="needs.length > 1" class="pool-needs" role="tablist" aria-label="Потребности компании">
+        <button v-for="n in needs" :key="n.id" type="button" role="tab" :aria-selected="n.id === needId" :class="['fsp-cut', 'pool-need', n.id === needId && 'fsp-active']" @click="pickNeed(n.id)">
+          <span class="pool-need-spec">{{ categoryLabel(n.specialization, n.grades[0]) }}</span>
+          <span class="pool-need-title">{{ n.title }}</span>
+        </button>
+      </div>
+      <div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 16px; align-items: flex-end; margin-bottom: 20px;">
+        <div style="min-width: 0;">
+          <div class="fsp-eyebrow u-mb-8">Подборка кандидатов</div>
           <h1 class="fsp-display" style="font-size: 36px; line-height: 40px;">{{ needTitle }}</h1>
+          <div v-if="need" class="pool-need-meta">
+            <span>{{ need.grades.map(g => GRADE_LABEL[g as 'middle'] || g).join(' / ') }}</span>
+            <span>{{ salaryRange(need.salary_from, need.salary_to) }}</span>
+            <span v-if="need.city">{{ need.city }}</span>
+            <span>{{ need.formats.map(f => FORMAT_LABEL[f]).join(' · ') }}</span>
+          </div>
+          <div v-if="need" class="u-row-wrap u-mt-12">
+            <FspTag v-for="sk in need.must_skills" :key="sk" style="font-weight: 600;">{{ skillLabel(sk) }}</FspTag>
+            <FspTag v-for="sk in need.nice_skills ?? []" :key="'n' + sk" style="opacity: .7;">+ {{ skillLabel(sk) }}</FspTag>
+          </div>
         </div>
         <FspButton variant="outline" size="sm" href="/employer/need">Изменить описание</FspButton>
       </div>
@@ -269,38 +321,14 @@ const discs = [
                 </article>
               </template>
               <template v-else>
+              <div v-if="summary" class="pool-stats">
+                <div class="pool-stat"><b class="fsp-display">{{ summary.total }}</b><span>кандидатов прошли фильтры</span></div>
+                <div class="pool-stat"><b class="fsp-display" :style="{ color: scoreColor(summary.best) }">{{ summary.best }}%</b><span>лучшее совпадение</span></div>
+                <div class="pool-stat"><b class="fsp-display">{{ summary.avg }}%</b><span>среднее в топ-{{ summary.shown }}</span></div>
+                <div class="pool-stat"><b class="fsp-display">{{ summary.fsp }}</b><span>с достижениями ФСП</span></div>
+              </div>
               <p v-if="!(shortlist?.items ?? []).length" style="margin: 0; padding: 32px 0; color: var(--text-muted);">Под эти условия никто не подходит — снимите часть уточнений.</p>
-              <article v-for="c in shortlist?.items ?? []" :key="c.candidate_id" style="padding: 24px 0; box-shadow: inset 0 1px 0 var(--line); display: flex; flex-wrap: wrap; gap: 24px;">
-                <div class="fsp-display" style="font-size: 28px; width: 48px; color: var(--text-muted);">{{ String(c.position).padStart(2, '0') }}</div>
-                <div style="flex: 999 1 380px; min-width: 0; display: flex; flex-direction: column; gap: 14px;">
-                  <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center;">
-                    <FspCompanyLogo :name="c.display_name" :size="48" />
-                    <div>
-                      <div class="u-lead">{{ c.display_name }}</div>
-                      <div class="u-note-sm">{{ c.category }}<template v-if="c.experience_years != null"> · опыт {{ c.experience_years }}</template><template v-if="c.city"> · {{ c.city }}</template></div>
-                    </div>
-                    <FspDisciplineBadge v-if="c.fsp_badge" :discipline="c.fsp_badge.discipline">{{ c.fsp_badge.text }}</FspDisciplineBadge>
-                    <FspTag v-else>Нет истории ФСП</FspTag>
-                  </div>
-                  <div style="display: grid; grid-template-columns: 140px 1fr 44px; gap: 12px; align-items: center; font-size: 14px;">
-                    <span class="u-muted">Соответствие</span>
-                    <div class="fsp-meter"><div :style="{ width: c.match + '%', height: '8px', background: scoreColor(c.match) }" /></div>
-                    <b>{{ c.match }}%</b>
-                  </div>
-                  <ul style="margin: 0; padding: 0 0 0 18px; display: flex; flex-direction: column; gap: 4px; font-size: 14px;">
-                    <li v-for="w in (c.explanations ?? []).slice(0, 3)" :key="w">{{ w }}</li>
-                  </ul>
-                </div>
-                <div style="flex: 1 1 200px; display: flex; flex-direction: column; gap: 8px;">
-                  <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <FspStatusBadge v-if="c.invitation_status" :status="inviteTone(c.invitation_status)">{{ inviteLabel(c.invitation_status) }}</FspStatusBadge>
-                    <span v-else class="u-small">Контакты — после принятия</span>
-                    <FspButton variant="ghost" size="sm" :icon="c.favorite ? 'bookmark-fill' : 'bookmark'" :aria-label="c.favorite ? 'Убрать из избранного' : 'В избранное'" @click="toggleSave(c)" />
-                  </div>
-                  <FspButton v-if="!c.invitation_status" :block="true" :href="`/employer/candidate?need=${needId}&candidate=${c.candidate_id}`">Пригласить</FspButton>
-                  <FspButton :block="true" variant="ghost" size="sm" :href="`/employer/candidate?need=${needId}&candidate=${c.candidate_id}`">Открыть профиль</FspButton>
-                </div>
-              </article>
+              <FspMatchCard v-for="c in shortlist?.items ?? []" :key="c.candidate_id" :item="c" :need-id="needId" :top="c.position === 1 && c.match >= 60" @save="toggleSave" />
               </template>
             </section>
           </div>
@@ -311,6 +339,21 @@ const discs = [
 </template>
 
 <style>
+.pool-needs { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 6px; margin-bottom: 24px; scrollbar-width: thin; }
+.pool-need {
+  --cut: var(--cut-m); --fill: var(--surface); --edge: var(--line-strong); --bw: 1px;
+  flex: 0 0 auto; max-width: 280px; padding: 12px 16px; text-align: left; cursor: pointer; font: inherit; color: var(--text);
+  display: flex; flex-direction: column; gap: 4px;
+}
+.pool-need:hover { --fill: var(--surface-hover); }
+.pool-need.fsp-active:hover { --fill: var(--plate); }
+.pool-need-spec { font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .04em; }
+.pool-need-title { font-size: 14px; font-weight: 600; line-height: 18px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pool-need-meta { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 10px; color: var(--text-muted); font-size: 14px; }
+.pool-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+.pool-stat { padding: 16px 18px; background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); display: flex; flex-direction: column; gap: 4px; }
+.pool-stat b { font-size: 28px; line-height: 32px; }
+.pool-stat span { font-size: 13px; color: var(--text-muted); }
 .pool-bank-actions { flex: 0 0 220px; display: flex; flex-direction: column; gap: 8px; }
 @media (max-width: 640px) { .pool-bank-actions { flex-basis: 100%; } }
 </style>

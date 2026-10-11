@@ -20,6 +20,42 @@ function target() {
   return `/auth/role?pick=${role.value}&next=${encodeURIComponent(next)}`
 }
 
+// Демо-аккаунты из infra/keycloak/realm-export.json; профили заполняет `make seed`.
+const DEMO = [
+  {
+    role: 'candidate' as const,
+    title: 'Кандидат',
+    who: 'Алексей Кузнецов · Backend · Middle',
+    about: 'Заполненный профиль: тест на грейд, опыт, проекты, 1 место на хакатоне ФСП, резюме PDF',
+    email: 'candidate@demo.fsp',
+    password: 'candidate-demo',
+  },
+  {
+    role: 'employer' as const,
+    title: 'Работодатель',
+    who: '«Северная Лампа» · финтех, Новосибирск',
+    about: '5 открытых потребностей (Backend, Frontend, DevOps), подборка с объяснениями, приглашения и чат',
+    email: 'employer@demo.fsp',
+    password: 'employer-demo',
+  },
+]
+const copied = ref('')
+
+async function copy(text: string) {
+  try {
+    await navigator.clipboard.writeText(text)
+    copied.value = text
+    setTimeout(() => { if (copied.value === text) copied.value = '' }, 1500)
+  } catch {
+    copied.value = ''
+  }
+}
+
+function demoLogin(email: string) {
+  going.value = true
+  location.href = `/auth/keycloak/login?callbackRedirectUrl=${encodeURIComponent('/auth/role?next=/cabinet')}&login_hint=${encodeURIComponent(email)}`
+}
+
 function go() {
   error.value = ''
   if (mode.value === 'register' && !agree.value) {
@@ -76,6 +112,28 @@ function go() {
             {{ mode === 'register' ? 'Продолжить в ФСП ID' : 'Войти через ФСП ID' }}
           </FspButton>
         </form>
+        <section class="fsp-cut demo-box" aria-labelledby="demo-title">
+          <div class="u-between" style="gap: 12px; flex-wrap: wrap;">
+            <h2 id="demo-title" class="fsp-display" style="font-size: 18px;">Демо-доступ</h2>
+            <span class="u-small">Тестовые аккаунты с заполненными профилями</span>
+          </div>
+          <div class="demo-grid">
+            <div v-for="d in DEMO" :key="d.email" class="demo-card">
+              <div class="fsp-eyebrow">{{ d.title }}</div>
+              <div class="u-strong-16">{{ d.who }}</div>
+              <p class="u-note" style="margin: 0;">{{ d.about }}</p>
+              <dl class="demo-cred">
+                <dt>Почта</dt>
+                <dd><code>{{ d.email }}</code><button type="button" class="demo-copy" :aria-label="`Скопировать почту ${d.email}`" @click="copy(d.email)">{{ copied === d.email ? 'Скопировано' : 'Копировать' }}</button></dd>
+                <dt>Пароль</dt>
+                <dd><code>{{ d.password }}</code><button type="button" class="demo-copy" :aria-label="`Скопировать пароль для ${d.email}`" @click="copy(d.password)">{{ copied === d.password ? 'Скопировано' : 'Копировать' }}</button></dd>
+              </dl>
+              <FspButton size="sm" :block="true" variant="outline" icon-right="arrow-right" :disabled="going" @click="demoLogin(d.email)">Войти</FspButton>
+            </div>
+          </div>
+          <p class="u-small" style="margin: 0;">Почта подставится на странице ФСП ID — останется ввести пароль.</p>
+        </section>
+
         <p class="u-note" style="margin: 20px 0 0;">
           ФСП ID работает на Keycloak. На его странице можно создать аккаунт, восстановить пароль и подтвердить почту.
           Связать результаты соревнований ФСП можно потом в профиле.
@@ -96,3 +154,14 @@ function go() {
     </main>
   </div>
 </template>
+
+<style>
+.demo-box { --cut: var(--cut-l); --fill: var(--surface); --edge: var(--accent-mark); --bw: 2px; margin-top: 28px; padding: 20px; display: flex; flex-direction: column; gap: 16px; }
+.demo-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 12px; }
+.demo-card { padding: 16px; background: var(--surface-hover); display: flex; flex-direction: column; gap: 8px; }
+.demo-cred { margin: 4px 0; display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; align-items: center; font-size: 14px; }
+.demo-cred dt { color: var(--text-muted); }
+.demo-cred dd { margin: 0; display: flex; gap: 8px; align-items: center; justify-content: space-between; min-width: 0; }
+.demo-cred code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; overflow-wrap: anywhere; }
+.demo-copy { border: 0; background: none; padding: 2px 0; font: inherit; font-size: 12px; color: var(--link); cursor: pointer; text-decoration: underline; text-underline-offset: 3px; flex: none; }
+</style>

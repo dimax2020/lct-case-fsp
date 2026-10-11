@@ -146,6 +146,8 @@ function attemptView(rec: AttemptRec): S['AttemptView'] {
     engine: cat ? 'cat' : 'yaml',
     theta: cat?.theta ?? null,
     se: cat?.se ?? null,
+    timer_enabled: !cat,
+    time_limit_minutes: cat ? 90 : 40,
   } as S['AttemptView']
 }
 
@@ -1176,7 +1178,7 @@ async function route(db: Db, method: string, path: string, url: URL, req: Reques
       rec.cat.correct[body.task_id] = ok ? 1 : 0
       rec.cat.theta = Math.max(-3, Math.min(3, rec.cat.theta + (ok ? 0.35 : -0.35)))
       rec.cat.se = Math.max(0.22, rec.cat.se * 0.85)
-      const done = rec.cat.used.length >= 8 && rec.cat.se < 0.3 || rec.cat.used.length >= 20
+      const done = (rec.cat.used.length >= 8 && rec.cat.se < 0.3) || rec.cat.used.length >= 20
       if (done) {
         rec.result = scoreCat(rec)
         rec.finished_at = new Date().toISOString()
@@ -1306,6 +1308,19 @@ async function route(db: Db, method: string, path: string, url: URL, req: Reques
       explanations: p.explanations.slice(0, 3),
       invitation_status: invitationStatus(db, p.candidate_id, need.id),
       favorite: db.favorites.includes(p.candidate_id),
+      skills: p.skills,
+      tested_skills: p.skills.slice(0, 2),
+      formats: p.formats,
+      factors: {
+        skills: Math.min(100, p.match + 8),
+        experience: Math.max(0, p.match - 22),
+        grade: p.grade === need.grades[0] ? 100 : 50,
+        tests: Math.round(p.test_score),
+        fsp: p.fsp_badge ? 100 : 0,
+        fresh: p.active_30d ? 90 : 30,
+        conditions: 88,
+      },
+      must_coverage: need.must_skills.map(skill => ({ skill, value: p.skills.includes(skill) ? Math.min(100, p.match + 5) : 0 })),
     }))
     const primary = `${need.specialization}:${need.grades[0]}`
     const tiles = [primary, need.grades[1] ? `${need.specialization}:${need.grades[1]}` : '', 'frontend:middle']

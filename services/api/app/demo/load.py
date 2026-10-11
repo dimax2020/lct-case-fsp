@@ -94,6 +94,9 @@ async def load_seed() -> dict[str, int]:
     candidates = _read(root, "data/candidates.json")
     companies = _read(root, "data/companies.json")
     needs = _read(root, "data/needs.json")
+    # Дополнительные потребности демо-работодателя (по вакансиям из tmp_bank/bank.json); генератор их не трогает.
+    if (root / "data/needs_extra.json").is_file():
+        needs = [*needs, *_read(root, "data/needs_extra.json")]
     invitations = _read(root, "data/invitations.json")
     users = _read(root, "data/users.json")
     pdf_path = _resume_path(root, "seed/demo/candidate.pdf")

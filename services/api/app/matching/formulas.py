@@ -19,6 +19,7 @@ from app.matching.config import (
     DOMAIN_NEUTRAL,
     E_WEIGHTS,
     EF_NICE_WEIGHT,
+    EXPLANATION_FACT_MAX,
     EXPLANATION_MAX,
     FORMAT_EXACT,
     FORMAT_HYBRID_REMOTE,
@@ -44,6 +45,7 @@ from app.matching.config import (
     SALARY_FULL_RATIO,
     SIM_OFFSET,
     SIM_SCALE,
+    SKILL_SIM_OTHER_DOMAIN,
     STACK_DISLIKE_PENALTY,
     TEST_SCORE_MAX,
     TOP_EVIDENCE,
@@ -258,6 +260,28 @@ def _nearest(requirement: RequirementView, evidence: list[EvidenceFeature]) -> l
     return ranked[:TOP_EVIDENCE]
 
 
+def skill_similarity(requirement: RequirementView, evidence: EvidenceFeature) -> float:
+    """Fallback similarity without vectors: share of requirement skills found in the evidence.
+
+    The API image is built without the ML extra, so embeddings stay NULL there. Skill tags on
+    both sides come from the same taxonomy, so their overlap is a fair proxy for the cosine.
+    """
+    wanted = set(requirement.skills)
+    if not wanted:
+        return 0.0
+    hit = len(wanted & set(evidence.skills)) / len(wanted)
+    if requirement.domain and requirement.domain != evidence.domain:
+        hit *= SKILL_SIM_OTHER_DOMAIN
+    return clip(hit)
+
+
+def _nearest_by_skills(requirement: RequirementView, evidence: list[EvidenceFeature]) -> list[tuple[float, EvidenceFeature]]:
+    ranked = [(skill_similarity(requirement, item), item) for item in evidence]
+    ranked = [pair for pair in ranked if pair[0] > 0.0]
+    ranked.sort(key=lambda pair: (-pair[0], pair[1].id))
+    return ranked[:TOP_EVIDENCE]
+
+
 def _pair_text(requirement: RequirementView, evidence: EvidenceFeature) -> str:
     labels = {
         "project": "Проект",
@@ -269,8 +293,8 @@ def _pair_text(requirement: RequirementView, evidence: EvidenceFeature) -> str:
     }
     label = labels.get(evidence.origin, "Опыт")
     fact = (evidence.evidence_span or evidence.task or "").strip()
-    if len(fact) > 180:
-        fact = fact[:177] + "..."
+    if len(fact) > EXPLANATION_FACT_MAX:
+        fact = fact[: EXPLANATION_FACT_MAX - 1].rstrip(" ,.;:") + "…"
     return f"{label}: {fact} ↔ {requirement.task}"
 
 
@@ -280,20 +304,28 @@ def experience_fit(
     today: date,
 ) -> tuple[float, list[PairExplanation]]:
     requirements = list(need.requirements)
-    if not requirements or not any(usable_embedding(item.embedding) for item in requirements):
+    if not requirements:
+        return 0.0, []
+    vectors = any(usable_embedding(item.embedding) for item in requirements) and any(
+        usable_embedding(item.embedding) for item in candidate.evidence
+    )
+    if not vectors and not any(item.skills for item in requirements):
         return 0.0, []
 
     best_pairs: list[PairExplanation] = []
     must_values: list[float] = []
     nice_values: list[float] = []
     for requirement in requirements:
-        nearest = _nearest(requirement, candidate.evidence)
+        if vectors:
+            nearest = [(similarity_from_cosine(value), item) for value, item in _nearest(requirement, candidate.evidence)]
+        else:
+            nearest = _nearest_by_skills(requirement, candidate.evidence)
         strengths: list[float] = []
         scored: list[tuple[float, EvidenceFeature]] = []
-        for cos_value, evidence in nearest:
+        for sim_value, evidence in nearest:
             years = years_between(evidence.date, today)
             strength = pair_strength(
-                similarity_from_cosine(cos_value),
+                sim_value,
                 evidence.trust,
                 recency_factor(years),
                 depth_factor(evidence.role),
@@ -454,9 +486,12 @@ def build_explanations(
     pairs: list[PairExplanation],
 ) -> list[str]:
     lines: list[str] = []
+    shown: set[str] = set()
     for pair in sorted(pairs, key=lambda item: (-item.score, item.requirement_id, item.evidence_id)):
-        if pair.score <= 0:
+        # One fact backs several requirements: show it once, against its strongest requirement.
+        if pair.score <= 0 or pair.evidence_id in shown:
             continue
+        shown.add(pair.evidence_id)
         lines.append(pair.text)
         if len(lines) == EXPLANATION_MAX:
             return lines

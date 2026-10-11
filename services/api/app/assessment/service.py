@@ -218,6 +218,20 @@ async def _candidate_state(session: AsyncSession, candidate_id: UUID) -> tuple[s
     )
 
 
+async def _held_grade(session: AsyncSession, candidate_id: UUID, attempt: Attempt) -> str | None:
+    """A grade earned in another specialization does not carry over to this one."""
+    current, _, _ = await _candidate_state(session, candidate_id)
+    if current is None:
+        return None
+    previous = await session.scalar(
+        select(Attempt.specialization)
+        .where(Attempt.candidate_id == candidate_id, Attempt.finished_at.is_not(None), Attempt.id != attempt.id)
+        .order_by(Attempt.finished_at.desc())
+        .limit(1)
+    )
+    return current if previous in (None, attempt.specialization) else None
+
+
 async def _owned_attempt(session: AsyncSession, attempt_id: UUID, candidate_id: UUID) -> Attempt:
     attempt = await session.get(Attempt, attempt_id)
     if attempt is None or attempt.candidate_id != candidate_id:
@@ -256,6 +270,7 @@ def _result_from(attempt: Attempt, rank: int | None, size: int | None) -> Attemp
 
 async def _view(session: AsyncSession, attempt: Attempt) -> AttemptView:
     if cat_service.is_cat(attempt):
+        await cat_service.heal(session, attempt)
         result = None
         if attempt.finished_at is not None:
             rank, size = await _rank_of(session, attempt.candidate_id)
@@ -296,6 +311,8 @@ def _ensure_open(attempt: Attempt) -> None:
 
 
 def _ensure_deadline(attempt: Attempt) -> None:
+    if cat_service.is_cat(attempt) and not cat_service.timer_enabled():
+        return
     if datetime.now(UTC) > _aware(attempt.deadline_at):
         raise AppError("attempt_expired", "Время попытки истекло", status_code=409)
 
@@ -467,7 +484,7 @@ async def retake(session: AsyncSession, principal: Principal, body: RetakeIn) ->
     grade, specialization, changed_at = await _candidate_state(session, candidate_id)
     if grade is None:
         raise AppError("grade_required", "Сначала получите грейд", status_code=409)
-    if cooldown_active(changed_at, datetime.now(UTC)):
+    if cat_service.cooldown_enabled() and cooldown_active(changed_at, datetime.now(UTC)):
         raise AppError("grade_cooldown", "Грейд можно сменить не чаще одного раза в 90 дней", status_code=409)
     if specialization is None:
         raise AppError("specialization_required", "Сначала выберите специализацию", status_code=409)
@@ -498,7 +515,7 @@ async def save_answer(session: AsyncSession, principal: Principal, attempt_id: U
     if cat_service.is_cat(attempt):
         attempt, done = await cat_service.answer(session, attempt, body)
         if done:
-            current, _, _ = await _candidate_state(session, candidate_id)
+            current = await _held_grade(session, candidate_id, attempt)
             await cat_service.close(session, attempt, _apply_result, current_grade=current)
             attempt = await _owned_attempt(session, attempt_id, candidate_id)
         return await _view(session, attempt)
@@ -552,7 +569,7 @@ async def finish_attempt(session: AsyncSession, principal: Principal, attempt_id
     attempt = await _owned_attempt(session, attempt_id, candidate_id)
     _ensure_open(attempt)
     if cat_service.is_cat(attempt):
-        current, _, _ = await _candidate_state(session, candidate_id)
+        current = await _held_grade(session, candidate_id, attempt)
         return await cat_service.close(session, attempt, _apply_result, current_grade=current)
     specs = _specs_for(attempt.specialization)
     answers = await _answers(session, attempt.id)
