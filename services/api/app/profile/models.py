@@ -36,6 +36,9 @@ class Candidate(Base):
     last_active_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     phone: Mapped[str | None] = mapped_column(String(32))
     contact_email: Mapped[str | None] = mapped_column(String(320))
+    consent_processing: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="false")
+    consent_publication: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="false")
+    soft_skills: Mapped[list[str]] = mapped_column(ARRAY(Text), nullable=False, default=list, server_default="{}")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 

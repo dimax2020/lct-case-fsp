@@ -59,11 +59,17 @@ class CandidateUpdate(BaseModel):
     blocked_domains: list[str] | None = None
     phone: str | None = None
     contact_email: str | None = None
+    consent_processing: bool | None = None
+    consent_publication: bool | None = None
+    soft_skills: list[str] | None = None
 
 
 class CandidateSettings(BaseModel):
     visible: bool
     hidden_company_ids: list[UUID] = Field(default_factory=list)
+    consent_processing: bool = False
+    consent_publication: bool = False
+    soft_skills: list[str] = Field(default_factory=list)
 
 
 class CandidateProfile(BaseModel):
@@ -89,10 +95,26 @@ class CandidateProfile(BaseModel):
     last_active_at: datetime | None = None
     phone: str | None = None
     contact_email: str | None = None
+    consent_processing: bool = False
+    consent_publication: bool = False
+    soft_skills: list[str] = Field(default_factory=list)
     skills: list[SkillOut] = Field(default_factory=list)
     projects: list[ProjectOut] = Field(default_factory=list)
     experiences: list[ExperienceOut] = Field(default_factory=list)
     fsp_achievements: list[FspAchievementOut] = Field(default_factory=list)
+
+
+class CandidateBankItem(BaseModel):
+    """Employer bank card. Contacts stay off this payload."""
+
+    id: UUID
+    display_name: str
+    specialization: str | None = None
+    grade: str | None = None
+    city: str | None = None
+    skills: list[str] = Field(default_factory=list)
+    has_fsp: bool
+    test_score: float | None = None
 
 
 class SkillScore(BaseModel):
