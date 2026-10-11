@@ -5,6 +5,7 @@ import yaml
 from app.assessment import models as assessment_models  # noqa: F401
 from app.chat import models as chat_models  # noqa: F401
 from app.company import models as company_models  # noqa: F401
+from app.core.auth import Principal, get_principal
 from app.core.db import EMBEDDING_DIM, Base
 from app.core.models import Job, User  # noqa: F401
 from app.embeddings.service import embed
@@ -20,13 +21,26 @@ from app.profile.service import get_candidate_features
 from app.resume import models as resume_models  # noqa: F401
 from httpx import ASGITransport, AsyncClient
 from pydantic import ValidationError
+from starlette.requests import Request
 
 
 @pytest.fixture
 async def client():
+    async def debug_principal(request: Request) -> Principal:
+        role = request.headers.get("x-debug-role", "candidate")
+        sub = request.headers.get("x-debug-sub", "stub-candidate")
+        email = request.headers.get("x-debug-email")
+        if role not in {"candidate", "employer", "admin"}:
+            role = "candidate"
+        return Principal(sub=sub, role=role, email=email)
+
+    app.dependency_overrides[get_principal] = debug_principal
     transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as http:
-        yield http
+    try:
+        async with AsyncClient(transport=transport, base_url="http://test") as http:
+            yield http
+    finally:
+        app.dependency_overrides.pop(get_principal, None)
 
 
 async def test_health(client: AsyncClient) -> None:
