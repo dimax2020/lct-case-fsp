@@ -1,8 +1,19 @@
-"""Public profile API. Other modules import only this file."""
+"""Public profile API. Other modules import only this file.
 
+ORM details live in app.profile.storage, which the profile router imports.
+That keeps this module free of profile.models so neighbours can depend on it.
+"""
+
+from collections.abc import AsyncIterator
 from dataclasses import dataclass, field
 from datetime import date, datetime
+from typing import Any
 from uuid import UUID
+
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core import db
+from app.core.auth import Principal
 
 
 @dataclass
@@ -59,37 +70,53 @@ class CandidateFeatures:
     experience_years: float | None = None
 
 
-def _stub_features(candidate_id: UUID) -> CandidateFeatures:
-    return CandidateFeatures(
-        candidate_id=str(candidate_id),
-        full_name="Алексей Кузнецов",
-        display_name="Алексей К.",
-        specialization="backend",
-        grade="middle",
-        grade_score=82,
-        min_salary=250_000,
-        formats=["remote"],
-        status="seeking",
-        visible=True,
-        city="Новосибирск",
-        liked_skills=["go", "postgresql"],
-        disliked_skills=[],
-        liked_domains=["fintech"],
-        blocked_domains=[],
-        last_active_at=None,
-        skills=[SkillFeature(skill_id="go", score=82, source="test")],
-        evidence=[],
-        fsp=[],
-        open_invites=0,
-        experience_years=4,
-    )
+_storage: Any = None
+
+
+def bind(storage: Any) -> None:
+    global _storage
+    _storage = storage
+
+
+def _api() -> Any:
+    if _storage is None:
+        raise RuntimeError("profile storage is not configured")
+    return _storage
+
+
+async def get_db() -> AsyncIterator[AsyncSession]:
+    async with db.SessionLocal() as session:
+        try:
+            yield session
+            await session.commit()
+        except Exception:
+            await session.rollback()
+            raise
 
 
 async def get_candidate_features(candidate_id: UUID) -> CandidateFeatures:
-    """Phase-0 stub with a fixed shape. Agent B reads the database."""
-    return _stub_features(candidate_id)
+    """Read matching features from the database. A missing row is an empty profile."""
+    return await _api().get_candidate_features(candidate_id)
 
 
 async def ensure_candidate(user_id: UUID) -> UUID:
-    """Hook target for first login. Agent B creates the candidate row."""
-    return user_id
+    """Create the candidate row for a user and return its id."""
+    return await _api().ensure_candidate(user_id)
+
+
+async def current_candidate(session: AsyncSession, principal: Principal) -> Any:
+    return await _api().current_candidate(session, principal)
+
+
+async def apply_confirmed_resume(
+    session: AsyncSession,
+    candidate_id: UUID,
+    payload: dict[str, Any],
+    raw_text: str,
+) -> dict[str, Any]:
+    """Store resume rows that have a quote in the source text, then rebuild evidence."""
+    return await _api().apply_confirmed_resume(session, candidate_id, payload, raw_text)
+
+
+async def finish_evidence(session: AsyncSession, candidate_id: UUID) -> None:
+    await _api().finish_evidence(session, candidate_id)
