@@ -1,7 +1,8 @@
 from datetime import datetime
+from typing import Any
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_serializer
 
 from app.core.enums import ContactChannel, DeclineReason, InvitationStatus
 
@@ -9,12 +10,12 @@ from app.core.enums import ContactChannel, DeclineReason, InvitationStatus
 class InvitationCreate(BaseModel):
     need_id: UUID
     candidate_id: UUID
-    title: str = Field(min_length=1)
+    title: str = Field(min_length=1, max_length=200)
     message: str = ""
     salary_from: int = Field(ge=0)
     salary_to: int = Field(ge=0)
     contact_channel: ContactChannel
-    contact_value: str = Field(min_length=1)
+    contact_value: str = Field(min_length=1, max_length=320)
     deadline: datetime | None = None
 
 
@@ -37,6 +38,13 @@ class InvitationOut(BaseModel):
     candidate_email: str | None = None
     candidate_phone: str | None = None
     recruiter_contact: str | None = None
+
+    @model_serializer(mode="wrap")
+    def _hide_nulls(self, handler: Any) -> Any:
+        data = handler(self)
+        if isinstance(data, dict):
+            return {key: value for key, value in data.items() if value is not None}
+        return data
 
 
 class InvitationList(BaseModel):
