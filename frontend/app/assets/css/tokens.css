@@ -1,0 +1,129 @@
+/* Чемпионат России — generated from tokens.json */
+:root, [data-theme="dark"] {
+  --brand-black: #1b1c21;
+  --gray-bright: #2d2e37;
+  --gray-middle: #3a3c46;
+  --gray-light-2: #9b9c9e;
+  --gray-light: #d9d9d9;
+  --brand-white: #ededed;
+  --brand-blue: #402fff;
+  --brand-red: #ec1d35;
+  --logo-light-bg: #c8c9ca;
+  --brand-digital: #0a006b;
+  --status-green: #06e065;
+  --status-yellow: #f7d935;
+  --disc-product: #8f1bf4;
+  --disc-algo: var(--disc-product);
+  --disc-uav: var(--disc-product);
+  --disc-robot: var(--disc-product);
+  --disc-infosec: var(--disc-product);
+  --disc-cross: var(--disc-product);
+  --on-disc-product: #ffffff;
+  --on-disc-algo: #ffffff;
+  --on-disc-uav: #ffffff;
+  --on-disc-robot: #ffffff;
+  --on-disc-infosec: #ffffff;
+  --on-disc-cross: #ffffff;
+  --tint-blue-90: #3c2de9;
+  --tint-red-90: #d71d33;
+  --tint-red-75: #b81d30;
+  --tint-green-90: #08cc5e;
+  --tint-green-45: #127440;
+  --tint-yellow-45: #7e712a;
+  --bg: var(--brand-black);
+  --surface: var(--brand-black);
+  --surface-hover: var(--gray-bright);
+  --field: var(--brand-black);
+  --line: var(--gray-middle);
+  --line-strong: var(--gray-light-2);
+  --line-card: var(--line-strong);
+  --text: var(--brand-white);
+  --text-muted: var(--gray-light-2);
+  --plate: var(--brand-white);
+  --on-plate: var(--brand-black);
+  --on-plate-muted: var(--gray-middle);
+  --primary: var(--brand-blue);
+  --primary-hover: var(--tint-blue-90);
+  --on-primary: #ffffff;
+  --accept: var(--status-green);
+  --accept-hover: var(--tint-green-90);
+  --on-accept: var(--brand-black);
+  --decline: var(--tint-red-90);
+  --decline-hover: var(--tint-red-75);
+  --on-decline: #ffffff;
+  --active-field: #ffffff;
+  --active-raised: var(--gray-light);
+  --active-line: #1b1c2126;
+  --active-logo: var(--brand-black);
+  --on-active-logo: var(--brand-white);
+  --active-success: var(--tint-green-45);
+  --active-warning: var(--tint-yellow-45);
+  --active-danger: var(--tint-red-90);
+  --active-info: var(--disc-product);
+  --active-focus: var(--brand-blue);
+  --accent-mark: var(--disc-product);
+  --link: var(--brand-white);
+  --link-underline: var(--brand-blue);
+  --focus: var(--brand-white);
+  --success: var(--status-green);
+  --warning: var(--status-yellow);
+  --danger: var(--brand-red);
+  --info: var(--disc-product);
+}
+[data-theme="light"] {
+  --bg: var(--brand-white);
+  --surface: var(--brand-white);
+  --surface-hover: var(--gray-light);
+  --field: #ffffff;
+  --line: var(--logo-light-bg);
+  --line-strong: var(--gray-middle);
+  --line-card: var(--line-strong);
+  --text: var(--brand-black);
+  --text-muted: var(--gray-middle);
+  --plate: var(--brand-black);
+  --on-plate: var(--brand-white);
+  --on-plate-muted: var(--gray-light-2);
+  --active-field: var(--brand-black);
+  --active-raised: var(--gray-bright);
+  --active-line: #ededed29;
+  --active-logo: var(--brand-white);
+  --on-active-logo: var(--brand-black);
+  --active-success: var(--status-green);
+  --active-warning: var(--status-yellow);
+  --active-danger: var(--brand-red);
+  --active-focus: var(--brand-white);
+  --link: var(--brand-black);
+  --focus: var(--brand-blue);
+  --success: var(--tint-green-45);
+  --warning: var(--tint-yellow-45);
+  --danger: var(--tint-red-90);
+}
+:root {
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --radius-0: 0px;
+  --radius-sm: 4px;
+  --radius-pill: 999px;
+  --cut-s: 6px;
+  --cut-m: 12px;
+  --cut-l: 20px;
+  --cut-xl: 40px;
+  --container: 1240px;
+  --header-h: 72px;
+  --control-h: 48px;
+  --control-h-lg: 56px;
+  --border-card: 2px;
+  --font-display: Wadik, "Arial Black", sans-serif;
+  --font-sans: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@font-face { font-family: 'Inter'; src: url('/fonts/Inter-Regular.woff2') format('woff2'); font-weight: 400; font-display: swap; }
+@font-face { font-family: 'Inter'; src: url('/fonts/Inter-Medium.woff2') format('woff2'); font-weight: 500; font-display: swap; }
+@font-face { font-family: 'Inter'; src: url('/fonts/Inter-SemiBold.woff2') format('woff2'); font-weight: 600; font-display: swap; }
+@font-face { font-family: 'Inter'; src: url('/fonts/Inter-Bold.woff2') format('woff2'); font-weight: 700; font-display: swap; }
+@font-face { font-family: 'Wadik'; src: url('/fonts/Wadik-Bold.woff2') format('woff2'); font-weight: 700; font-display: swap; }

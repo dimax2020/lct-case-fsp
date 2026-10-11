@@ -1,0 +1,253 @@
+/* ФСП · Чемпионат России — компоненты платформы вакансий. Все значения — из tokens.css. */
+
+.fsp-root, .fsp-root * { box-sizing: border-box; }
+body { background: var(--bg); color: var(--text); font-family: var(--font-sans); margin: 0; }
+
+/* ---------- Скошенный угол (cut) ----------
+   Элемент без собственного фона; ::before рисует обводку/фокус, ::after — заливку.
+   Срезаны левый верхний и правый нижний углы, как у плашек постера Чемпионата. */
+.fsp-cut {
+  --cut: var(--cut-m); --fill: var(--surface); --edge: transparent; --bw: 0px;
+  position: relative; isolation: isolate; background: none; border: 0;
+}
+.fsp-cut::before, .fsp-cut::after { content: ""; position: absolute; pointer-events: none; }
+/* ::before — кольцо обводки толщиной --r (evenodd: внешний контур минус внутренний) */
+.fsp-cut::before {
+  --c: var(--cut); --r: var(--bw); --k: calc(var(--r) * 0.4142);
+  inset: 0; z-index: -1; background: var(--edge);
+  clip-path: polygon(evenodd,
+    var(--c) 0, 100% 0, 100% calc(100% - var(--c)), calc(100% - var(--c)) 100%, 0 100%, 0 var(--c), var(--c) 0,
+    calc(var(--c) + var(--k)) var(--r), calc(100% - var(--r)) var(--r), calc(100% - var(--r)) calc(100% - var(--c) - var(--k)),
+    calc(100% - var(--c) - var(--k)) calc(100% - var(--r)), var(--r) calc(100% - var(--r)), var(--r) calc(var(--c) + var(--k)), calc(var(--c) + var(--k)) var(--r));
+}
+/* ::after — заливка внутри обводки */
+.fsp-cut::after {
+  --c: calc(var(--cut) - var(--bw) * 0.4142);
+  inset: var(--bw); z-index: -2; background: var(--fill);
+  clip-path: polygon(var(--c) 0, 100% 0, 100% calc(100% - var(--c)), calc(100% - var(--c)) 100%, 0 100%, 0 var(--c));
+}
+.fsp-cut:focus-visible { outline: none; }
+.fsp-cut:focus-visible::before { --c: calc(var(--cut) + 1.25px); --r: calc(var(--bw) + 3px); inset: -3px; background: var(--focus); }
+
+/* ---------- Иконки ---------- */
+.fsp-icon { width: 1em; height: 1em; flex: none; display: inline-block; vertical-align: -0.125em; }
+
+/* ---------- Кнопка ---------- */
+.fsp-btn {
+  --cut: var(--cut-m);
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2);
+  height: var(--control-h); padding: 0 var(--space-6);
+  font-family: var(--font-display); font-weight: 700; font-size: 14px; line-height: 16px;
+  letter-spacing: 0.04em; text-transform: uppercase; text-decoration: none; white-space: nowrap;
+  color: var(--text); cursor: pointer; user-select: none;
+  transition: color .12s;
+}
+.fsp-btn .fsp-icon { font-size: 18px; }
+.fsp-btn::after { transition: background-color .12s; }
+.fsp-btn-sm { --cut: var(--cut-s); height: 36px; padding: 0 var(--space-4); font-size: 12px; }
+.fsp-btn-sm .fsp-icon { font-size: 16px; }
+.fsp-btn-lg { height: var(--control-h-lg); padding: 0 var(--space-8); font-size: 16px; }
+.fsp-btn-block { display: flex; width: 100%; }
+.fsp-btn-icononly { padding: 0; width: var(--control-h); }
+.fsp-btn-sm.fsp-btn-icononly { width: 36px; }
+.fsp-btn-lg.fsp-btn-icononly { width: var(--control-h-lg); }
+
+.fsp-btn-primary { --fill: var(--primary); color: var(--on-primary); }
+.fsp-btn-primary:hover { --fill: var(--primary-hover); }
+.fsp-btn-plate { --fill: var(--plate); color: var(--on-plate); }
+.fsp-btn-plate:hover { color: var(--on-plate-muted); }
+.fsp-btn-outline { --fill: transparent; --edge: var(--line-strong); --bw: 1.5px; }
+.fsp-btn-outline:hover { --fill: var(--surface-hover); }
+.fsp-btn-ghost { --fill: transparent; }
+.fsp-btn-ghost:hover { --fill: var(--surface-hover); }
+.fsp-btn-accept { --fill: var(--accept); color: var(--on-accept); }
+.fsp-btn-accept:hover { --fill: var(--accept-hover); }
+.fsp-btn-decline { --fill: var(--decline); color: var(--on-decline); }
+.fsp-btn-decline:hover { --fill: var(--decline-hover); }
+.fsp-btn[disabled], .fsp-btn[aria-disabled="true"] { opacity: .45; cursor: not-allowed; pointer-events: none; }
+
+/* ---------- Поле ввода ---------- */
+.fsp-field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.fsp-field-label { font: 600 12px/16px var(--font-sans); letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); }
+.fsp-field-hint { font: 400 12px/16px var(--font-sans); color: var(--text-muted); }
+.fsp-field-error .fsp-field-hint { color: var(--danger); }
+.fsp-input {
+  --cut: var(--cut-m); --fill: var(--field); --edge: var(--line-strong); --bw: 1px;
+  display: flex; align-items: center; gap: var(--space-2);
+  height: var(--control-h); padding: 0 var(--space-4); color: var(--text-muted);
+}
+.fsp-input:hover { --edge: var(--text-muted); }
+.fsp-input:focus-within::before { --c: calc(var(--cut) + 0.83px); --r: calc(var(--bw) + 2px); inset: -2px; background: var(--focus); }
+.fsp-field-error .fsp-input { --edge: var(--danger); }
+.fsp-input .fsp-icon { font-size: 20px; }
+.fsp-input input {
+  flex: 1; min-width: 0; height: 100%; border: 0; outline: 0; background: transparent;
+  font: 400 16px/24px var(--font-sans); color: var(--text);
+}
+.fsp-input input::placeholder { color: var(--text-muted); opacity: 1; }
+.fsp-input-suffix { font: 500 14px/20px var(--font-sans); color: var(--text-muted); }
+
+/* ---------- Поисковая строка ---------- */
+.fsp-search { --cut: var(--cut-l); --fill: var(--plate); display: flex; align-items: stretch; gap: var(--space-2); padding: var(--space-2); }
+.fsp-search .fsp-input { --fill: #fff0; --edge: transparent; height: var(--control-h-lg); color: var(--on-plate-muted); }
+.fsp-search .fsp-input input { color: var(--on-plate); font-size: 17px; }
+.fsp-search .fsp-input input::placeholder { color: var(--on-plate-muted); }
+.fsp-search-query { flex: 1 1 60%; }
+.fsp-search-place { flex: 1 1 32%; }
+.fsp-search-sep { width: 1px; align-self: center; height: 32px; background: var(--on-plate-muted); opacity: .5; flex: none; }
+
+/* ---------- Чип фильтра ---------- */
+.fsp-chip {
+  --cut: var(--cut-s); --fill: transparent; --edge: var(--line-strong); --bw: 1px;
+  display: inline-flex; align-items: center; gap: var(--space-2); height: 36px; padding: 0 var(--space-3);
+  font: 500 14px/20px var(--font-sans); color: var(--text); cursor: pointer; white-space: nowrap;
+}
+.fsp-chip:hover { --fill: var(--surface-hover); }
+.fsp-chip[aria-pressed="true"] { --fill: var(--primary); --edge: var(--primary); color: var(--on-primary); }
+.fsp-chip-count { font: 500 12px/16px var(--font-sans); opacity: .75; font-variant-numeric: tabular-nums; }
+.fsp-chip .fsp-icon { font-size: 16px; }
+
+/* ---------- Бейдж дисциплины ---------- */
+.fsp-disc {
+  --cut: var(--cut-s);
+  display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 10px;
+  font: 600 12px/16px var(--font-sans); letter-spacing: .06em; text-transform: uppercase; white-space: nowrap;
+}
+.fsp-disc-lg { height: 32px; padding: 0 14px; font-size: 13px; }
+.fsp-disc-product { --fill: var(--disc-product); color: var(--on-disc-product); }
+.fsp-disc-algo { --fill: var(--disc-algo); color: var(--on-disc-algo); }
+.fsp-disc-uav { --fill: var(--disc-uav); color: var(--on-disc-uav); }
+.fsp-disc-robot { --fill: var(--disc-robot); color: var(--on-disc-robot); }
+.fsp-disc-infosec { --fill: var(--disc-infosec); color: var(--on-disc-infosec); }
+.fsp-disc-cross { --fill: var(--disc-cross); color: var(--on-disc-cross); }
+
+/* ---------- Тег навыка ---------- */
+.fsp-tag {
+  display: inline-flex; align-items: center; height: 28px; padding: 0 10px; border-radius: var(--radius-sm);
+  background: var(--surface-hover); color: var(--text); font: 500 13px/16px var(--font-sans); white-space: nowrap;
+}
+.fsp-tag-match { box-shadow: inset 0 0 0 1.5px var(--accent-mark); }
+
+/* ---------- Статус отклика ---------- */
+.fsp-status { display: inline-flex; align-items: center; gap: var(--space-2); font: 500 14px/20px var(--font-sans); color: var(--text); white-space: nowrap; }
+.fsp-status-dot { width: 10px; height: 10px; border-radius: var(--radius-pill); background: currentColor; flex: none; }
+.fsp-status-new .fsp-status-dot { color: var(--info); }
+.fsp-status-review .fsp-status-dot { color: var(--warning); }
+.fsp-status-invite .fsp-status-dot, .fsp-status-offer .fsp-status-dot { color: var(--success); }
+.fsp-status-reject .fsp-status-dot { color: var(--danger); }
+.fsp-status-archived .fsp-status-dot { color: var(--text-muted); }
+
+/* ---------- Чекбокс ---------- */
+.fsp-check { display: flex; align-items: center; gap: var(--space-3); min-height: 32px; cursor: pointer; font: 400 15px/20px var(--font-sans); color: var(--text); }
+.fsp-check input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.fsp-check-box {
+  width: 20px; height: 20px; flex: none; display: grid; place-items: center; border-radius: var(--radius-0);
+  box-shadow: inset 0 0 0 1.5px var(--line-strong); color: transparent; font-size: 14px;
+}
+.fsp-check:hover .fsp-check-box { box-shadow: inset 0 0 0 1.5px var(--text-muted); }
+.fsp-check input:checked + .fsp-check-box { background: var(--primary); box-shadow: none; color: var(--on-primary); }
+.fsp-check input:focus-visible + .fsp-check-box { outline: 2px solid var(--focus); outline-offset: 2px; }
+.fsp-check-swatch { width: 8px; height: 8px; flex: none; }
+.fsp-check-label { flex: 1; }
+.fsp-check-count { font: 500 12px/16px var(--font-sans); color: var(--text-muted); font-variant-numeric: tabular-nums; }
+
+/* ---------- Вкладки ---------- */
+.fsp-tabs { display: flex; gap: var(--space-6); box-shadow: inset 0 -1px 0 var(--line); overflow-x: auto; }
+.fsp-tab {
+  position: relative; display: inline-flex; align-items: center; gap: var(--space-2); height: 48px; padding: 0;
+  border: 0; background: none; cursor: pointer; white-space: nowrap;
+  font-family: var(--font-display); font-weight: 700; font-size: 13px; letter-spacing: .04em; text-transform: uppercase;
+  color: var(--text-muted);
+}
+.fsp-tab:hover { color: var(--text); }
+.fsp-tab[aria-selected="true"] { color: var(--text); }
+.fsp-tab[aria-selected="true"]::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: var(--accent-mark); }
+.fsp-tab:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.fsp-tab-count { font: 500 12px/16px var(--font-sans); letter-spacing: 0; font-variant-numeric: tabular-nums; }
+
+/* ---------- Логотип компании ---------- */
+.fsp-logo {
+  --cut: var(--cut-s); --fill: var(--plate);
+  display: inline-grid; place-items: center; flex: none; overflow: hidden;
+  font-family: var(--font-display); font-weight: 700; color: var(--on-plate); text-transform: uppercase;
+}
+.fsp-logo img { width: 72%; height: 72%; object-fit: contain; }
+
+/* ---------- Плашка ---------- */
+.fsp-plate { --cut: var(--cut-l); --fill: var(--plate); color: var(--on-plate); padding: var(--space-8); }
+.fsp-plate-xl { --cut: var(--cut-xl); padding: var(--space-12); }
+.fsp-plate-dots { position: absolute; top: 14px; right: calc(var(--cut) + 18px); display: flex; gap: 6px; }
+.fsp-plate-dots i { width: 8px; height: 8px; border-radius: var(--radius-pill); background: currentColor; opacity: .9; }
+.fsp-plate .fsp-muted { color: var(--on-plate-muted); }
+
+/* ---------- Карточка вакансии ---------- */
+.fsp-vacancy {
+  --cut: var(--cut-l); --fill: var(--surface); --edge: var(--line-card); --bw: var(--border-card);
+  display: flex; flex-direction: column; gap: var(--space-4); padding: var(--space-6); color: var(--text);
+}
+.fsp-vacancy:hover { --fill: var(--surface-hover); }
+.fsp-vacancy:hover .fsp-tag { background: var(--bg); }
+.fsp-vacancy-top { display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; }
+.fsp-vacancy-posted { margin-left: auto; font: 500 12px/16px var(--font-sans); color: var(--text-muted); }
+.fsp-vacancy-hot { display: inline-flex; align-items: center; gap: 6px; font: 600 12px/16px var(--font-sans); letter-spacing: .06em; text-transform: uppercase; color: var(--text); }
+.fsp-vacancy-hot::before { content: ""; width: 8px; height: 8px; background: var(--accent-mark); transform: rotate(45deg); }
+.fsp-vacancy-head { display: flex; gap: var(--space-4); align-items: flex-start; }
+.fsp-vacancy-title { margin: 0; font: 600 20px/28px var(--font-sans); color: var(--text); }
+.fsp-vacancy-title a { color: inherit; text-decoration: none; }
+.fsp-vacancy-title a:hover { text-decoration: underline; text-decoration-color: var(--link-underline); text-decoration-thickness: 2px; text-underline-offset: 4px; }
+.fsp-vacancy-company { margin-top: 2px; font: 600 15px/22px var(--font-sans); color: var(--text-muted); }
+.fsp-vacancy-salary { font: 700 20px/28px var(--font-sans); font-variant-numeric: tabular-nums; color: var(--text); }
+.fsp-vacancy-salary span { font-weight: 400; font-size: 14px; color: var(--text-muted); }
+.fsp-vacancy-meta { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-4); font: 400 14px/20px var(--font-sans); color: var(--text-muted); }
+.fsp-vacancy-meta > span { display: inline-flex; align-items: center; gap: 6px; }
+.fsp-vacancy-meta .fsp-icon { font-size: 16px; }
+.fsp-vacancy-tags { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.fsp-vacancy-foot { display: flex; align-items: center; gap: var(--space-2); padding-top: var(--space-4); box-shadow: inset 0 1px 0 var(--line); }
+.fsp-vacancy-foot .fsp-status { margin-right: auto; }
+.fsp-vacancy-foot > .fsp-spacer { margin-right: auto; }
+
+.fsp-vacancy-row { --edge: transparent; --bw: 0px; --fill: transparent; padding: var(--space-6) 0; box-shadow: inset 0 -1px 0 var(--line); }
+.fsp-vacancy-row:hover { --fill: transparent; }
+.fsp-vacancy-row:hover .fsp-tag { background: var(--surface-hover); }
+.fsp-vacancy-row .fsp-vacancy-foot { box-shadow: none; padding-top: 0; }
+
+/* ---------- Раздел без рамки: только линия сверху ---------- */
+.fsp-section { padding-top: var(--space-6); box-shadow: inset 0 1px 0 var(--line); }
+
+/* ---------- Карточки: пассивная (контур) и активная (светлая плашка) ---------- */
+.fsp-card { --cut: var(--cut-l); --fill: var(--surface); --edge: var(--line-card); --bw: var(--border-card); }
+.fsp-card:is(a, button):hover { --fill: var(--surface-hover); }
+.fsp-active, .fsp-cut.fsp-active {
+  --fill: var(--plate); --edge: transparent; --bw: 0px;
+  --text: var(--on-plate); --text-muted: var(--on-plate-muted);
+  --line: var(--active-line); --line-strong: var(--on-plate-muted); --surface-hover: var(--active-raised);
+  --success: var(--active-success); --warning: var(--active-warning); --danger: var(--active-danger); --info: var(--active-info);
+  --focus: var(--active-focus); --field: var(--active-field);
+  color: var(--on-plate);
+}
+.fsp-vacancy.fsp-active:hover, .fsp-card.fsp-active:hover { --fill: var(--plate); }
+.fsp-vacancy.fsp-active:hover .fsp-tag { background: var(--active-raised); }
+.fsp-active .fsp-logo { --fill: var(--active-logo); color: var(--on-active-logo); }
+
+/* ---------- Шапка ---------- */
+.fsp-header { height: var(--header-h); display: flex; align-items: center; gap: var(--space-8); padding: 0 var(--space-8); background: var(--bg); box-shadow: inset 0 -1px 0 var(--line); }
+.fsp-header-brand { display: flex; align-items: center; gap: var(--space-4); text-decoration: none; color: var(--text); flex: none; }
+.fsp-header-brand img { height: 36px; display: block; }
+.fsp-header-product { font-family: var(--font-display); font-weight: 700; font-size: 13px; letter-spacing: .04em; text-transform: uppercase; padding-left: var(--space-4); box-shadow: inset 1px 0 0 var(--line-strong); line-height: 28px; }
+.fsp-header-nav { display: flex; gap: var(--space-6); flex: 1; }
+.fsp-header-nav a { position: relative; font: 500 15px/var(--header-h) var(--font-sans); color: var(--text-muted); text-decoration: none; }
+.fsp-header-nav a:hover { color: var(--text); }
+.fsp-header-nav a[aria-current="page"] { color: var(--text); }
+.fsp-header-nav a[aria-current="page"]::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: var(--accent-mark); }
+.fsp-header-actions { display: flex; align-items: center; gap: var(--space-2); }
+.fsp-header-bell { position: relative; }
+.fsp-header-bell i { position: absolute; top: 10px; right: 10px; width: 8px; height: 8px; border-radius: var(--radius-pill); background: var(--accent-mark); }
+
+/* темы: логотип для тёмной/светлой подложки */
+[data-theme="light"] .fsp-only-dark { display: none !important; }
+:root:not([data-theme="light"]) .fsp-only-light, [data-theme="dark"] .fsp-only-light { display: none !important; }
+
+/* ---------- Текстовые утилиты ---------- */
+.fsp-display { font-family: var(--font-display); font-weight: 700; text-transform: uppercase; letter-spacing: .01em; margin: 0; }
+.fsp-muted { color: var(--text-muted); }
+.fsp-link { color: var(--link); text-decoration: underline; text-decoration-color: var(--link-underline); text-decoration-thickness: 2px; text-underline-offset: 4px; }
