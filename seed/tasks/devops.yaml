@@ -1,0 +1,297 @@
+# Skill ids are the 10-skill sample in taxonomy/data/skills.yaml:
+# python, go, javascript, postgresql, kafka, kubernetes, react, docker, pytorch, vue.
+# `solutions` is a reference only. The loader does not copy it into tasks_bank.
+- id: devops-mcq-01
+  specialization: devops
+  kind: mcq
+  skills:
+  - docker
+  difficulty: 1
+  body: Чем образ Docker отличается от контейнера?
+  options:
+  - id: a
+    text: Это одно и то же
+  - id: b
+    text: Образ — шаблон файловой системы и команды, контейнер — запущенный экземпляр
+  - id: c
+    text: Контейнер хранится в registry, образ всегда только в памяти
+  - id: d
+    text: Образ нельзя использовать для запуска больше одного контейнера
+  answer: b
+  languages: []
+- id: devops-mcq-02
+  specialization: devops
+  kind: mcq
+  skills:
+  - docker
+  difficulty: 3
+  body: Что означает docker run -p 8080:80 ?
+  options:
+  - id: a
+    text: Порт 80 на хосте пробрасывается в порт 8080 контейнера
+  - id: b
+    text: Порт 8080 на хосте пробрасывается в порт 80 контейнера
+  - id: c
+    text: Открываются оба порта только внутри контейнера
+  - id: d
+    text: Контейнер публикуется в сеть 8080.80.0.0/16
+  answer: b
+  languages: []
+- id: devops-mcq-03
+  specialization: devops
+  kind: mcq
+  skills:
+  - docker
+  difficulty: 2
+  body: Чем COPY в Dockerfile отличается от bind-mount при запуске?
+  options:
+  - id: a
+    text: Ничем, оба читают каталог хоста при каждом запросе
+  - id: b
+    text: COPY кладёт файлы в образ на сборке, bind-mount подменяет каталог уже у запущенного контейнера
+  - id: c
+    text: COPY работает только для каталогов больше 1 ГБ
+  - id: d
+    text: Bind-mount меняет слои образа в registry
+  answer: b
+  languages: []
+- id: devops-mcq-04
+  specialization: devops
+  kind: mcq
+  skills:
+  - kubernetes
+  difficulty: 2
+  body: Что в Kubernetes считается наименьшей запускаемой единицей?
+  options:
+  - id: a
+    text: Deployment
+  - id: b
+    text: Pod
+  - id: c
+    text: Service
+  - id: d
+    text: Namespace
+  answer: b
+  languages: []
+- id: devops-mcq-05
+  specialization: devops
+  kind: mcq
+  skills:
+  - kubernetes
+  difficulty: 3
+  body: Чем Deployment управляет напрямую?
+  options:
+  - id: a
+    text: Списком Service
+  - id: b
+    text: ReplicaSet, который держит нужное число Pod
+  - id: c
+    text: Только ConfigMap
+  - id: d
+    text: Сертификатами etcd
+  answer: b
+  languages: []
+- id: devops-mcq-06
+  specialization: devops
+  kind: mcq
+  skills:
+  - kubernetes
+  difficulty: 4
+  body: Чем readinessProbe отличается от livenessProbe?
+  options:
+  - id: a
+    text: Readiness при неудаче перезапускает контейнер, liveness снимает Pod с Service
+  - id: b
+    text: Readiness решает, можно ли слать Pod трафик, liveness — перезапускать ли контейнер
+  - id: c
+    text: Обе пробы делают одно и то же
+  - id: d
+    text: Liveness проверяет только Service, readiness — только Ingress
+  answer: b
+  languages: []
+- id: devops-mcq-07
+  specialization: devops
+  kind: mcq
+  skills:
+  - kubernetes
+  difficulty: 5
+  body: Какой тип Service используется по умолчанию и даёт виртуальный IP только внутри кластера?
+  options:
+  - id: a
+    text: NodePort
+  - id: b
+    text: LoadBalancer
+  - id: c
+    text: ClusterIP
+  - id: d
+    text: ExternalName
+  answer: c
+  languages: []
+- id: devops-mcq-08
+  specialization: devops
+  kind: mcq
+  skills:
+  - go
+  difficulty: 2
+  body: В каком порядке выполнятся несколько defer в одной функции Go?
+  options:
+  - id: a
+    text: В порядке объявления, как очередь
+  - id: b
+    text: В обратном порядке, как стек
+  - id: c
+    text: Параллельно
+  - id: d
+    text: Только последний defer, остальные отбрасываются
+  answer: b
+  languages: []
+- id: devops-mcq-09
+  specialization: devops
+  kind: mcq
+  skills:
+  - go
+  difficulty: 3
+  body: Что верно про горутину в Go?
+  options:
+  - id: a
+    text: Каждая горутина — отдельный поток операционной системы
+  - id: b
+    text: Горутины мультиплексируются на потоки ОС рантаймом Go
+  - id: c
+    text: Горутину нельзя запустить из функции main
+  - id: d
+    text: go func() блокирует вызывающего, пока функция не завершится
+  answer: b
+  languages: []
+- id: devops-code-01
+  specialization: devops
+  kind: code
+  skills:
+  - go
+  - docker
+  difficulty: 2
+  body: 'На стандартный ввод подаются два целых числа — число реплик двух сервисов. Напечатайте их сумму. Язык: Python или
+    Go.'
+  tests_public:
+  - stdin: '2 2
+
+      '
+    expected: '4
+
+      '
+  tests_hidden:
+  - stdin: '7 8
+
+      '
+    expected: '15
+
+      '
+  - stdin: '-1 6
+
+      '
+    expected: '5
+
+      '
+  languages:
+  - python
+  - go
+  solutions:
+    python: 'import sys
+
+      a, b = map(int, sys.stdin.read().split())
+
+      print(a + b)
+
+      '
+    go: "package main\n\nimport \"fmt\"\n\nfunc main() {\n    var a, b int\n    fmt.Scan(&a, &b)\n    fmt.Println(a + b)\n\
+      }\n"
+- id: devops-code-02
+  specialization: devops
+  kind: code
+  skills:
+  - kubernetes
+  difficulty: 3
+  body: 'Первая строка — целое n. Вторая — n целых, лимиты CPU в милликорах. Напечатайте максимум. Язык: Python или Go.'
+  tests_public:
+  - stdin: '3
+
+      100 250 150
+
+      '
+    expected: '250
+
+      '
+  tests_hidden:
+  - stdin: '4
+
+      5 5 5 4
+
+      '
+    expected: '5
+
+      '
+  - stdin: '2
+
+      -10 -3
+
+      '
+    expected: '-3
+
+      '
+  languages:
+  - python
+  - go
+  solutions:
+    python: 'import sys
+
+      data = [int(part) for part in sys.stdin.read().split()]
+
+      count = data[0]
+
+      print(max(data[1 : 1 + count]))
+
+      '
+    go: "package main\n\nimport \"fmt\"\n\nfunc main() {\n    var n int\n    fmt.Scan(&n)\n    var best int\n    for i :=\
+      \ 0; i < n; i++ {\n        var value int\n        fmt.Scan(&value)\n        if i == 0 || value > best {\n          \
+      \  best = value\n        }\n    }\n    fmt.Println(best)\n}\n"
+- id: devops-code-03
+  specialization: devops
+  kind: code
+  skills:
+  - docker
+  - kubernetes
+  difficulty: 5
+  body: 'На стандартный ввод подаётся одно слово — имя Service. Напечатайте его задом наперёд. Язык: Python или Go.'
+  tests_public:
+  - stdin: 'gateway
+
+      '
+    expected: 'yawetag
+
+      '
+  tests_hidden:
+  - stdin: 'ingress
+
+      '
+    expected: 'ssergni
+
+      '
+  - stdin: 'kubelet
+
+      '
+    expected: 'telebuk
+
+      '
+  languages:
+  - python
+  - go
+  solutions:
+    python: 'import sys
+
+      print(sys.stdin.readline().rstrip(''\r\n'')[::-1])
+
+      '
+    go: "package main\n\nimport (\n    \"bufio\"\n    \"fmt\"\n    \"os\"\n    \"strings\"\n)\n\nfunc main() {\n    reader\
+      \ := bufio.NewReader(os.Stdin)\n    line, _ := reader.ReadString('\\n')\n    line = strings.TrimRight(line, \"\\r\\\
+      n\")\n    chars := []rune(line)\n    for i, j := 0, len(chars)-1; i < j; i, j = i+1, j-1 {\n        chars[i], chars[j]\
+      \ = chars[j], chars[i]\n    }\n    fmt.Println(string(chars))\n}\n"
