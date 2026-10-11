@@ -38,6 +38,7 @@ class Attempt(Base):
     skill_scores: Mapped[dict | None] = mapped_column(JSONB)
     result_grade: Mapped[str | None] = mapped_column(String(32))
     ready_for_next: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
+    grade_change: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
 
 
 class AttemptAnswer(Base):
@@ -55,3 +56,25 @@ class AttemptAnswer(Base):
     total: Mapped[int | None] = mapped_column(Integer)
     skipped: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+
+class MicroTask(Base):
+    __tablename__ = "micro_tasks"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    title: Mapped[str] = mapped_column(Text, nullable=False)
+    body: Mapped[str] = mapped_column(Text, nullable=False)
+    need_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("needs.id", ondelete="SET NULL"))
+    is_open: Mapped[bool] = mapped_column("open", Boolean, nullable=False, default=True, server_default="true")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class MicroAnswer(Base):
+    __tablename__ = "micro_answers"
+    __table_args__ = (UniqueConstraint("task_id", "candidate_id", name="uq_micro_answer"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    task_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("micro_tasks.id", ondelete="CASCADE"), index=True)
+    candidate_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("candidates.id", ondelete="CASCADE"), index=True)
+    answer: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

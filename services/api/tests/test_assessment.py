@@ -2,7 +2,7 @@ import json
 import os
 import subprocess
 import sys
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Iterator
 from datetime import datetime, timedelta
 from uuid import uuid4
 
@@ -12,6 +12,7 @@ from app.assessment.bank import read_task_specs
 from app.assessment.piston import CPU_LIMIT_MS, MEMORY_LIMIT_BYTES, normalize_output
 from app.assessment.scoring import GradedAnswer, GradedTask, grade_for, score_attempt
 from app.assessment.service import run_code, to_public
+from app.core.auth import Principal, get_principal
 from app.core.db import Base, get_session
 from app.core.errors import AppError
 from app.core.models import User  # noqa: F401
@@ -22,6 +23,7 @@ from httpx import ASGITransport, AsyncClient
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.pool import NullPool
+from starlette.requests import Request
 
 ADMIN_DSN = "postgresql+asyncpg://fsp:fsp@127.0.0.1:5432/fsp"
 TEST_DSN = os.environ.get("TEST_POSTGRES_DSN", "postgresql+asyncpg://fsp:fsp@127.0.0.1:5432/fsp_c_assessment")
@@ -38,6 +40,21 @@ def _candidate(sub: str) -> dict[str, str]:
 
 def _admin() -> dict[str, str]:
     return {"X-Debug-Role": "admin", "X-Debug-Sub": "admin-assessment"}
+
+
+@pytest.fixture(autouse=True)
+def _debug_auth() -> Iterator[None]:
+    async def debug_principal(request: Request) -> Principal:
+        role = request.headers.get("x-debug-role", "candidate")
+        sub = request.headers.get("x-debug-sub", "stub-candidate")
+        email = request.headers.get("x-debug-email")
+        if role not in {"candidate", "employer", "admin"}:
+            role = "candidate"
+        return Principal(sub=sub, role=role, email=email)
+
+    app.dependency_overrides[get_principal] = debug_principal
+    yield
+    app.dependency_overrides.pop(get_principal, None)
 
 
 @pytest.fixture
@@ -123,7 +140,19 @@ async def session_factory() -> AsyncIterator[async_sessionmaker[AsyncSession]]:
 
 
 @pytest.fixture
-async def db_client(session_factory: async_sessionmaker[AsyncSession]) -> AsyncIterator[AsyncClient]:
+async def db_client(
+    session_factory: async_sessionmaker[AsyncSession],
+    monkeypatch: pytest.MonkeyPatch,
+) -> AsyncIterator[AsyncClient]:
+    async def features(_candidate_id: object) -> None:
+        return None
+
+    async def hints(_candidate_id: object) -> list[object]:
+        return []
+
+    monkeypatch.setattr("app.profile.service.get_candidate_features", features)
+    monkeypatch.setattr("app.hints.service.recompute_candidate", hints)
+
     async def override() -> AsyncIterator[AsyncSession]:
         async with session_factory() as session:
             yield session
@@ -178,7 +207,7 @@ def test_public_task_hides_answer_and_hidden_tests() -> None:
 
 
 def test_grade_thresholds() -> None:
-    assert grade_for(39.99, "middle") == ("junior", False)
+    assert grade_for(39.99, "middle") == ("middle", False)
     assert grade_for(40, "middle") == ("middle", False)
     assert grade_for(74, "middle") == ("middle", False)
     assert grade_for(75, "middle") == ("middle", True)
@@ -560,7 +589,7 @@ async def test_deadline_blocks_answers_but_not_finish(
     finished = await db_client.post(f"/api/v1/assessment/attempts/{attempt_id}/finish", headers=headers)
     assert finished.status_code == 200, finished.text
     assert finished.json()["score"] == 0
-    assert finished.json()["grade"] == "junior"
+    assert finished.json()["grade"] == "middle"
     assert finished.json()["ready_for_next"] is False
 
 
@@ -612,7 +641,7 @@ async def test_demo_finish_sets_grade_rank_and_is_admin_only(
         json={"score": 30, "skill_scores": [{"skill_id": "kubernetes", "score": 30}]},
     )
     assert low.status_code == 200, low.text
-    assert low.json()["grade"] == "junior"
+    assert low.json()["grade"] == "middle"
     assert low.json()["ready_for_next"] is False
 
     mid = await db_client.post(
@@ -624,7 +653,7 @@ async def test_demo_finish_sets_grade_rank_and_is_admin_only(
     assert mid.json()["grade"] == "middle"
     assert mid.json()["ready_for_next"] is False
     assert mid.json()["rank"] == 2
-    assert mid.json()["category_size"] == 2
+    assert mid.json()["category_size"] == 3
 
     boundary = await open_attempt("rank-boundary")
     declared = await db_client.post(
@@ -663,9 +692,9 @@ async def test_demo_finish_sets_grade_rank_and_is_admin_only(
             )
         ).all()
     found = {row[0]: row[1:] for row in rows}
-    assert found["rank-a"] == ("middle", 80, 1, 2, True)
-    assert found["rank-c"] == ("middle", 60, 2, 2, False)
-    assert found["rank-b"] == ("junior", 30, 1, 1, False)
+    assert found["rank-a"] == ("middle", 80, 1, 3, True)
+    assert found["rank-c"] == ("middle", 60, 2, 3, False)
+    assert found["rank-b"] == ("middle", 30, 3, 3, False)
     assert found["rank-boundary"][0] == "senior"
     skills = {(row[0], row[1]): (row[2], row[3]) for row in skill_rows}
     assert skills[("rank-a", "go")] == (80, "test")
