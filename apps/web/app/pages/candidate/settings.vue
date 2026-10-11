@@ -48,7 +48,7 @@ function addHidden() {
 }
 async function toggleFsp() {
   if (fspLinked.value) {
-    show('Отвязка ФСП ID в контракте не предусмотрена')
+    show('Отвязка ФСП ID ещё не реализована в рамках MVP')
     return
   }
   try {
@@ -142,13 +142,13 @@ async function togglePublish() {
               <FspCheckbox v-model="consentPublication" label="Согласие на публикацию профиля работодателям" />
               <div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; padding-bottom: 16px; box-shadow: inset 0 -1px 0 var(--line);">
                 <div style="flex: 1 1 360px;"><div style="font-weight: 600;">Обработка персональных данных (152-ФЗ)</div><div style="font-size: 14px; color: var(--text-muted); margin-top: 4px;">Обязательно для работы сервиса · дано 10.10.2026</div></div>
-                <a href="#" class="fsp-link" style="font-size: 14px;" @click.prevent="show('Текст согласия откроется в PDF')">Текст согласия</a>
+                <span style="font-size: 14px; color: var(--text-muted);">Текст согласия ещё не реализован в рамках MVP</span>
               </div>
               <div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; padding-bottom: 16px; box-shadow: inset 0 -1px 0 var(--line);">
                 <div style="flex: 1 1 360px;"><div style="font-weight: 600;">Публикация профиля для работодателей</div><div style="font-size: 14px; color: var(--text-muted); margin-top: 4px;">{{ published ? 'Профиль участвует в подборках' : 'Отозвано — профиль не участвует в подборках' }}</div></div>
                 <FspButton size="sm" :variant="published ? 'ghost' : 'primary'" @click="togglePublish">{{ published ? 'Отозвать' : 'Дать согласие' }}</FspButton>
               </div>
-              <FspCheckbox label="Получать письма о новых приглашениях и заданиях" />
+              <p style="margin: 0; font-size: 14px; color: var(--text-muted);">Письма о приглашениях ещё не реализованы в рамках MVP</p>
             </div>
           </section>
 
@@ -157,7 +157,8 @@ async function togglePublish() {
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 16px; align-items: end;">
               <FspInput v-model="email" label="Почта" hint="Из аккаунта" />
               <div style="display: flex; gap: 8px; flex-wrap: wrap; padding-bottom: 22px;">
-                <FspButton size="sm" variant="ghost" @click="show('Удаление аккаунта в контракте API нет')">Удалить аккаунт</FspButton>
+                <FspButton size="sm" variant="ghost" disabled>Удалить аккаунт</FspButton>
+                <span style="font-size: 14px; color: var(--text-muted); align-self: center;">Ещё не реализовано в рамках MVP</span>
               </div>
             </div>
           </section>

@@ -107,11 +107,13 @@ def profile_lines(profile: CandidateProfile) -> list[str]:
 
 
 def _font_candidates() -> list[Path]:
-    repo = Path(__file__).resolve().parents[4] / "apps" / "web" / "public" / "fonts"
     found: list[Path] = []
-    if repo.is_dir():
-        found.extend(sorted(repo.rglob("*.ttf")))
-        found.extend(sorted(repo.rglob("*.otf")))
+    here = Path(__file__).resolve()
+    if len(here.parents) > 4:
+        repo = here.parents[4] / "apps" / "web" / "public" / "fonts"
+        if repo.is_dir():
+            found.extend(sorted(repo.rglob("*.ttf")))
+            found.extend(sorted(repo.rglob("*.otf")))
     system = [
         Path("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"),
         Path("/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf"),

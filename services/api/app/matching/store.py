@@ -502,9 +502,9 @@ async def _experience_years(session: AsyncSession, candidate_ids: list[UUID]) ->
         text(
             """
             SELECT candidate_id,
-                   EXTRACT(EPOCH FROM (
+                   (
                      COALESCE(MAX(COALESCE(e."end", CURRENT_DATE)), CURRENT_DATE) - MIN(e.start)
-                   )) / 31557600.0 AS years
+                   )::float8 / 365.25 AS years
             FROM experiences e
             WHERE e.candidate_id = ANY(:ids) AND e.start IS NOT NULL
             GROUP BY candidate_id

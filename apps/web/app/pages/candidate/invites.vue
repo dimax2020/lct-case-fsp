@@ -6,6 +6,7 @@ type Inv = components['schemas']['InvitationOut']
 type Reason = components['schemas']['DeclineReason']
 
 useHead({ title: 'Приглашения кандидата — Карьера ФСП' })
+const cabinetUser = useCabinetUser('Кандидат')
 const { show } = useToast()
 const api = useApi()
 const screen = useScreen(async () => {
@@ -89,7 +90,7 @@ const reasonName = (id?: string | null) => screen.data.value?.reasons.find(r => 
 
 <template>
   <div style="background: var(--bg); color: var(--text); font-family: var(--font-sans); min-height: 100vh;">
-    <FspHeader product="Карьера" user="Кандидат" :links="candidateLinks" />
+    <FspHeader product="Карьера" :user="cabinetUser" :links="candidateLinks" />
     <main style="max-width: 1240px; margin: 0 auto; padding: 40px 32px 64px;">
       <h1 class="fsp-display" style="font-size: 40px; line-height: 44px; margin-bottom: 8px;">Приглашения</h1>
       <p style="margin: 0 0 24px; font-size: 16px; color: var(--text-muted);">Контакты компании открываются только после принятия.</p>

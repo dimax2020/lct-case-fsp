@@ -12,7 +12,8 @@ const route = useRoute()
 const { show } = useToast()
 const api = useApi()
 
-const needId = computed(() => String(route.query.need || rememberedNeed() || ''))
+const pickedNeed = ref('')
+const needId = computed(() => String(route.query.need || pickedNeed.value || rememberedNeed() || ''))
 const tab = ref('pool')
 const category = ref('')
 const onlyFsp = ref(false)
@@ -62,6 +63,17 @@ const refines = computed(() => {
 
 async function load() {
   if (!needId.value) {
+    try {
+      const needs = await read(api.GET('/api/v1/needs'))
+      const first = needs[0]
+      if (first) {
+        rememberNeed(first.id)
+        pickedNeed.value = first.id
+        return
+      }
+    } catch {
+      // The empty state below asks the employer to describe a need.
+    }
     if (tab.value !== 'bank') {
       phase.value = 'ready'
       shortlist.value = null
@@ -87,7 +99,6 @@ async function load() {
     ])
     needTitle.value = need.title
     companyName.value = company.name
-    if (!category.value && need.grades[0]) category.value = `${need.specialization}:${need.grades[0]}`
     hints.value = await read(api.GET('/api/v1/needs/{id}/hints', { params: { path: { id: needId.value } } }))
     await reloadList()
     phase.value = 'ready'

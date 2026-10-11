@@ -51,6 +51,7 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-sans);
 .fsp-btn-icononly { padding: 0; width: var(--control-h); }
 .fsp-btn-sm.fsp-btn-icononly { width: 36px; }
 .fsp-btn-lg.fsp-btn-icononly { width: var(--control-h-lg); }
+.fsp-btn-disabled, .fsp-btn:disabled { opacity: .55; cursor: not-allowed; pointer-events: none; }
 
 .fsp-btn-primary { --fill: var(--primary); color: var(--on-primary); }
 .fsp-btn-primary:hover { --fill: var(--primary-hover); }

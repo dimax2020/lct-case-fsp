@@ -44,7 +44,7 @@ export async function assignRealmRole(userId: string, role: AssignableRole): Pro
     signal: AbortSignal.timeout(10000)
   })
   if (!roleResponse.ok) {
-    throw createError({ statusCode: 502, statusMessage: 'Не удалось прочитать роль Keycloak' })
+    throw createError({ statusCode: 502, statusMessage: `Keycloak не отдал роль (${roleResponse.status})` })
   }
   const roleBody = await roleResponse.json() as { id?: unknown, name?: unknown }
   if (typeof roleBody.id !== 'string' || typeof roleBody.name !== 'string') {
@@ -57,6 +57,6 @@ export async function assignRealmRole(userId: string, role: AssignableRole): Pro
     signal: AbortSignal.timeout(10000)
   })
   if (!mapResponse.ok) {
-    throw createError({ statusCode: 502, statusMessage: 'Не удалось назначить роль' })
+    throw createError({ statusCode: 502, statusMessage: `Keycloak не назначил роль (${mapResponse.status})` })
   }
 }

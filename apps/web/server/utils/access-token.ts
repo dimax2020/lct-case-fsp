@@ -12,6 +12,7 @@ interface EncryptedToken {
 
 interface PersistentSession {
   accessToken?: EncryptedToken
+  idToken?: EncryptedToken
 }
 
 export function jwtPayload(token: string): Record<string, unknown> {
@@ -42,19 +43,28 @@ export function businessRole(token: string): BusinessRole | null {
 
 export function tokenSubject(token: string): string | null {
   const sub = jwtPayload(token).sub
-  return typeof sub === 'string' && /^[0-9a-fA-F-]{8,80}$/.test(sub) ? sub : null
+  return typeof sub === 'string' && sub.length > 0 && sub.length < 128 && !/\s/.test(sub) ? sub : null
 }
 
-export async function readAccessToken(event: H3Event): Promise<string | undefined> {
+async function readStoredToken(event: H3Event, field: 'accessToken' | 'idToken'): Promise<string | undefined> {
   if (!getCookie(event, SESSION_COOKIE)) return undefined
   const key = process.env.NUXT_OIDC_TOKEN_KEY
   if (!key) return undefined
   const sessionId = await getUserSessionId(event)
   const stored = await useStorage<PersistentSession>('oidc').getItem(sessionId)
-  if (!stored?.accessToken) return undefined
+  const encrypted = stored?.[field]
+  if (!encrypted) return undefined
   try {
-    return await decryptToken(stored.accessToken, key)
+    return await decryptToken(encrypted, key)
   } catch {
     return undefined
   }
+}
+
+export async function readAccessToken(event: H3Event): Promise<string | undefined> {
+  return readStoredToken(event, 'accessToken')
+}
+
+export async function readIdToken(event: H3Event): Promise<string | undefined> {
+  return readStoredToken(event, 'idToken')
 }

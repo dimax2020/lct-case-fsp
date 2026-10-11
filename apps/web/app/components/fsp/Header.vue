@@ -12,17 +12,6 @@ const root = ref<HTMLElement>()
 const hasUnread = ref(props.unread ?? true)
 const { show } = useToast()
 
-const notes = computed(() => isEmployer.value
-  ? [
-      { text: 'Алексей Кузнецов принял приглашение', to: '/employer/chat' },
-      { text: 'Мария С. просмотрела приглашение', to: '/employer/invites' },
-      { text: 'В подборке «Backend · Middle» 12 новых кандидатов', to: '/employer/pool' }
-    ]
-  : [
-      { text: 'Код Сибири пригласил вас на Backend (Go)', to: '/candidate/invites' },
-      { text: 'Новое задание от работодателя — +баллы к рейтингу', to: '/candidate/grade' },
-      { text: 'Вы поднялись на 3 место в категории', to: '/candidate/grade' }
-    ])
 const userMenu = computed(() => isEmployer.value
   ? [{ label: 'Профиль компании', to: '/employer/company' }, { label: 'Приглашения', to: '/employer/invites' }]
   : [{ label: 'Мой профиль', to: '/candidate/profile' }, { label: 'Настройки и приватность', to: '/candidate/settings' }])
@@ -35,9 +24,6 @@ function isActive(l: NavLink) {
 function toggle(m: 'bell' | 'user') {
   menu.value = menu.value === m ? '' : m
   if (m === 'bell') hasUnread.value = false
-}
-function previewRole(role: 'candidate' | 'employer') {
-  if (import.meta.client) sessionStorage.setItem('fsp-mock-role', role)
 }
 function onDoc(e: MouseEvent) { if (root.value && !root.value.contains(e.target as Node)) menu.value = '' }
 onMounted(() => document.addEventListener('click', onDoc))
@@ -55,7 +41,7 @@ watch(() => route.fullPath, () => { menu.value = '' })
     <nav class="fsp-header-nav" aria-label="Основная навигация">
       <template v-for="l in links" :key="l.label">
         <NuxtLink v-if="l.href && l.href.startsWith('/')" :to="l.href" :aria-current="isActive(l) ? 'page' : undefined">{{ l.label }}</NuxtLink>
-        <a v-else href="#" @click.prevent="show('Раздел «' + l.label + '» появится в следующей версии')">{{ l.label }}</a>
+        <a v-else href="#" @click.prevent="show('Раздел «' + l.label + '» ещё не реализован в рамках MVP')">{{ l.label }}</a>
       </template>
     </nav>
     <div class="fsp-header-actions">
@@ -65,15 +51,15 @@ watch(() => route.fullPath, () => { menu.value = '' })
           <i v-if="hasUnread" aria-hidden="true" />
           <div v-if="menu === 'bell'" class="fsp-menu fsp-cut" role="menu">
             <div class="fsp-menu-title">Уведомления</div>
-            <NuxtLink v-for="n in notes" :key="n.text" :to="n.to" class="fsp-menu-item" role="menuitem">{{ n.text }}</NuxtLink>
+            <div class="fsp-menu-item" role="menuitem">Ещё не реализовано в рамках MVP</div>
           </div>
         </span>
         <span v-if="user" class="fsp-menu-anchor">
           <FspButton variant="outline" size="sm" icon="user" :aria-expanded="menu === 'user'" @click.stop="toggle('user')">{{ user }}</FspButton>
           <div v-if="menu === 'user'" class="fsp-menu fsp-cut" role="menu">
             <NuxtLink v-for="m in userMenu" :key="m.to" :to="m.to" class="fsp-menu-item" role="menuitem">{{ m.label }}</NuxtLink>
-            <NuxtLink :to="isEmployer ? '/candidate/profile' : '/employer/need'" class="fsp-menu-item" role="menuitem" @click="previewRole(isEmployer ? 'candidate' : 'employer')">{{ isEmployer ? 'Перейти в кабинет кандидата' : 'Перейти в кабинет компании' }}</NuxtLink>
-            <NuxtLink to="/" class="fsp-menu-item" role="menuitem">Выйти</NuxtLink>
+            <button type="button" class="fsp-menu-item" role="menuitem" disabled style="opacity:.55; cursor:not-allowed; background:transparent; border:0; text-align:left; width:100%; color:inherit; font:inherit;">Смена кабинета ещё не реализована в рамках MVP</button>
+            <a href="/auth/keycloak/logout" class="fsp-menu-item" role="menuitem">Выйти</a>
           </div>
         </span>
         <FspButton v-else variant="plate" size="sm" href="/auth">Войти</FspButton>

@@ -47,6 +47,7 @@ watch(screen.data, (bundle) => {
   const need = bundle?.needs.find(n => n.id === saved) ?? bundle?.needs[0]
   if (!need) return
   needId.value = need.id
+  rememberNeed(need.id)
   title.value = need.title
   spec.value = need.specialization
   grades.value = need.grades.filter((g): g is Grade => GRADES.includes(g as Grade))

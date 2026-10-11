@@ -22,8 +22,10 @@ function esc(value: string): string {
   }[char] ?? char))
 }
 
-export function rolePickerHtml(next: string): string {
-  const hidden = esc(next)
+export function rolePickerHtml(next: string, error = ''): string {
+  const candidateHref = `/auth/role?pick=candidate&next=${encodeURIComponent(next)}`
+  const employerHref = `/auth/role?pick=employer&next=${encodeURIComponent(next)}`
+  const errorBlock = error ? `<p role="alert" style="color:#ff8d8d;">${esc(error)}</p>` : ''
   return `<!doctype html>
 <html lang="ru" data-theme="dark">
 <head>
@@ -38,10 +40,10 @@ export function rolePickerHtml(next: string): string {
     h1 { font-size: 40px; line-height: 1.1; margin: 28px 0 12px; }
     p { color: #9b9c9e; font-size: 16px; line-height: 1.5; }
     form { display: grid; gap: 12px; margin-top: 28px; }
-    button { text-align: left; background: #1b1c21; color: #ededed; border: 1px solid #9b9c9e; padding: 20px; font: inherit; cursor: pointer; }
-    button strong { display: block; font-size: 16px; }
-    button span { display: block; margin-top: 4px; color: #9b9c9e; font-size: 14px; }
-    button:hover { border-color: #402fff; }
+    form a { text-align: left; background: #1b1c21; color: #ededed; border: 1px solid #9b9c9e; padding: 20px; font: inherit; cursor: pointer; text-decoration: none; }
+    form a strong { display: block; font-size: 16px; }
+    form a span { display: block; margin-top: 4px; color: #9b9c9e; font-size: 14px; }
+    form a:hover { border-color: #402fff; }
     a { color: #ededed; }
   </style>
 </head>
@@ -50,10 +52,11 @@ export function rolePickerHtml(next: string): string {
     <a href="/"><img src="/brand/championship-logo-white.svg" alt="Чемпионат России — на главную"></a>
     <h1>Кто вы?</h1>
     <p>Аккаунт создан. Роль выбирается один раз и попадает в токен Keycloak. Демо-пользователи уже имеют роль и эту страницу не видят.</p>
-    <form method="post" action="/auth/role">
-      <input type="hidden" name="next" value="${hidden}">
-      <button type="submit" name="role" value="candidate"><strong>Я кандидат</strong><span>Пройду тест на грейд и буду получать приглашения</span></button>
-      <button type="submit" name="role" value="employer"><strong>Я работодатель</strong><span>Ищу специалистов и отправляю приглашения</span></button>
+    <p><a href="/">На главную</a> · <a href="/auth/keycloak/logout">Выйти</a></p>
+    ${errorBlock}
+    <form>
+      <a href="${esc(candidateHref)}"><strong>Я кандидат</strong><span>Пройду тест на грейд и буду получать приглашения</span></a>
+      <a href="${esc(employerHref)}"><strong>Я работодатель</strong><span>Ищу специалистов и отправляю приглашения</span></a>
     </form>
   </main>
 </body>

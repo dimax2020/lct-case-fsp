@@ -9,6 +9,7 @@ type Task = components['schemas']['TaskPublic']
 type Run = components['schemas']['RunOut']
 
 useHead({ title: 'Опрос и тест на грейд — Карьера ФСП' })
+const cabinetUser = useCabinetUser('Кандидат')
 
 const { show } = useToast()
 const api = useApi()
@@ -186,7 +187,7 @@ const optStyle = (on: boolean) => on
 
 <template>
   <div style="background: var(--bg); color: var(--text); font-family: var(--font-sans); min-height: 100vh;">
-    <FspHeader product="Карьера" user="Кандидат" :links="candidateLinks" />
+    <FspHeader product="Карьера" :user="cabinetUser" :links="candidateLinks" />
     <main style="max-width: 1240px; margin: 0 auto; padding: 40px 32px 64px;">
       <ScreenState :phase="screen.phase.value" :error="screen.error.value" @retry="screen.load">
         <nav aria-label="Шаги онбординга" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: 8px; margin-bottom: 40px;">

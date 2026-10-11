@@ -53,18 +53,22 @@ def tasks_directory() -> Path:
     override = os.environ.get("SEED_TASKS_DIR")
     if override:
         return Path(override)
-    repo = Path(__file__).resolve().parents[4] / "seed" / "tasks"
-    if (repo / "backend.yaml").is_file():
-        return repo
     docker = Path("/srv/seed/tasks")
     if (docker / "backend.yaml").is_file():
         return docker
-    return repo
+    here = Path(__file__).resolve()
+    if len(here.parents) > 4:
+        repo = here.parents[4] / "seed" / "tasks"
+        if (repo / "backend.yaml").is_file():
+            return repo
+    return docker
 
 
 def _skills_file() -> Path | None:
-    repo = Path(__file__).resolve().parents[4] / "taxonomy" / "data" / "skills.yaml"
-    candidates = (repo, Path("/srv/taxonomy/data/skills.yaml"), Path("taxonomy/data/skills.yaml"))
+    candidates = [Path("/srv/taxonomy/data/skills.yaml"), Path.cwd() / "taxonomy" / "data" / "skills.yaml"]
+    here = Path(__file__).resolve()
+    if len(here.parents) > 4:
+        candidates.insert(0, here.parents[4] / "taxonomy" / "data" / "skills.yaml")
     for path in candidates:
         if path.is_file():
             return path

@@ -12,7 +12,10 @@ def achievements_path() -> Path:
     packaged = Path("/srv/seed/fsp_achievements.json")
     if packaged.is_file():
         return packaged
-    return Path(__file__).resolve().parents[4] / "seed" / "fsp_achievements.json"
+    here = Path(__file__).resolve()
+    if len(here.parents) > 4:
+        return here.parents[4] / "seed" / "fsp_achievements.json"
+    return packaged
 
 
 def load_achievements(sub: str, email: str | None) -> list[dict[str, Any]]:

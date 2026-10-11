@@ -60,9 +60,10 @@ def taxonomy_dir() -> Path:
     cwd_path = Path.cwd() / configured
     if cwd_path.is_dir():
         return cwd_path
-    repo_path = Path(__file__).resolve().parents[4] / configured
-    if repo_path.is_dir():
-        return repo_path
+    for parent in Path(__file__).resolve().parents:
+        repo_path = parent / configured
+        if repo_path.is_dir():
+            return repo_path
     if configured.is_dir():
         return configured
     raise FileNotFoundError(f"Каталог онтологии не найден: {configured}")

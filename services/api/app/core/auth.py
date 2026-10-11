@@ -8,6 +8,7 @@ provision_user is imported inside get_principal so this module does not cycle
 with app.core.provision at import time.
 """
 
+import logging
 import os
 import time
 from dataclasses import dataclass
@@ -20,6 +21,8 @@ from starlette.requests import Request
 
 from app.core.errors import AppError
 from app.core.settings import get_settings
+
+logger = logging.getLogger("app.auth")
 
 _BUSINESS_ROLES = ("admin", "employer", "candidate")
 _JWKS_CACHE_SECONDS = 600
@@ -90,7 +93,21 @@ def _claims(token: str) -> dict[str, Any]:
             issuer=settings.keycloak_issuer,
             options={"require": ["exp", "iss", "aud", "sub"]},
         )
-    except (jwt.PyJWTError, PyJWKClientError, ValueError):
+    except (jwt.PyJWTError, PyJWKClientError, ValueError) as exc:
+        try:
+            unverified = jwt.decode(token, options={"verify_signature": False, "verify_aud": False})
+        except jwt.PyJWTError:
+            unverified = {}
+        logger.warning(
+            "jwt rejected %s (%s) iss=%s aud=%s azp=%s sub=%s exp=%s",
+            type(exc).__name__,
+            exc,
+            unverified.get("iss") if isinstance(unverified, dict) else None,
+            unverified.get("aud") if isinstance(unverified, dict) else None,
+            unverified.get("azp") if isinstance(unverified, dict) else None,
+            "yes" if isinstance(unverified, dict) and unverified.get("sub") else "no",
+            "yes" if isinstance(unverified, dict) and unverified.get("exp") else "no",
+        )
         raise _unauthorized() from None
     if not isinstance(decoded, dict):
         raise _unauthorized()

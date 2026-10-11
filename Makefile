@@ -19,7 +19,7 @@ logs:
 	$(COMPOSE) logs -f
 
 migrate:
-	$(COMPOSE) exec -T api alembic upgrade head
+	$(COMPOSE) exec -T api alembic upgrade heads
 
 seed:
 	$(COMPOSE) exec -T api python -m app.demo.seed

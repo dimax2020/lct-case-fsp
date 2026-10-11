@@ -2,6 +2,7 @@
 import { ApiError, read } from '~/utils/read'
 import { apiFetch } from '~/utils/raw'
 useHead({ title: 'Категория и грейд — Карьера ФСП' })
+const cabinetUser = useCabinetUser('Кандидат')
 const { show } = useToast()
 const api = useApi()
 const screen = useScreen(async () => read(api.GET('/api/v1/candidates/me/grade')))
@@ -46,7 +47,7 @@ const nextAt = computed(() => {
 
 <template>
   <div style="background: var(--bg); color: var(--text); font-family: var(--font-sans); min-height: 100vh;">
-    <FspHeader product="Карьера" user="Кандидат" :links="candidateLinks" logo-dark="/brand/championship-logo-white.svg" logo-light="/brand/championship-logo-navy.svg" />
+    <FspHeader product="Карьера" :user="cabinetUser" :links="candidateLinks" logo-dark="/brand/championship-logo-white.svg" logo-light="/brand/championship-logo-navy.svg" />
     <main style="max-width: 1240px; margin: 0 auto; padding: 40px 32px 64px; display: flex; flex-direction: column; gap: 32px;">
       <div>
         <h1 class="fsp-display" style="font-size: 40px; line-height: 44px; margin-bottom: 8px;">Категория и грейд</h1>

@@ -6,7 +6,6 @@ const v = reactive((() => {
 })())
 
 const route = useRoute()
-const { show } = useToast()
 const role = ref<'candidate' | 'employer'>(route.query.role === 'employer' ? 'employer' : 'candidate')
 const mode = ref<'register' | 'login'>(route.query.mode === 'login' ? 'login' : 'register')
 const email = ref('')
@@ -28,9 +27,6 @@ function submit() {
   if (mode.value === 'login' && !password.value) errors.password = 'Введите пароль'
   errors.agree = mode.value === 'register' && !agree.value ? 'Нужно согласие на обработку данных' : ''
   if (errors.email || errors.password || errors.agree) return
-  keycloakLogin()
-}
-function fspId() {
   keycloakLogin()
 }
 </script>
@@ -68,14 +64,14 @@ function fspId() {
             <FspCheckbox v-model="agree" label="Согласен на обработку персональных данных по 152-ФЗ и с условиями публикации профиля" />
             <div v-if="errors.agree" style="margin-top: -8px; font-size: 13px; color: var(--danger);">{{ errors.agree }}</div>
           </template>
-          <a v-else href="#" class="fsp-link" style="font-size: 14px; align-self: flex-start;" @click.prevent="show('Ссылка для восстановления отправлена на почту')">Забыли пароль?</a>
+          <span v-else style="font-size: 14px; align-self: flex-start; color: var(--text-muted);">Восстановление пароля ещё не реализовано в рамках MVP</span>
           <FspButton size="lg" :block="v.yes" type="submit">{{ mode === 'register' ? 'Создать аккаунт' : 'Войти' }}</FspButton>
         </form>
 
         <div style="display: flex; align-items: center; gap: 16px; margin: 24px 0; color: var(--text-muted); font-size: 14px;">
           <span style="flex: 1; height: 1px; background: var(--line);"></span>или<span style="flex: 1; height: 1px; background: var(--line);"></span>
         </div>
-        <FspButton size="lg" variant="outline" :block="v.yes" @click="fspId">Войти через ФСП ID</FspButton>
+        <p style="margin: 0; font-size: 14px; line-height: 20px; color: var(--text-muted);">Вход через ФСП ID ещё не реализован в рамках MVP. Связать достижения можно в профиле.</p>
         <p style="margin: 12px 0 0; font-size: 13px; line-height: 18px; color: var(--text-muted);">Вход через ФСП ID сразу подтянет ваши результаты соревнований в профиль.</p>
       </section>
 

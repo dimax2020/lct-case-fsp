@@ -1,14 +1,14 @@
 """Grade policy and short employer tasks.
 
 Revision ID: 003_grade_policy
-Revises: 001_initial
+Revises: 002_vacancies
 Create Date: 2026-10-11
 """
 
 from alembic import op
 
 revision = "003_grade_policy"
-down_revision = "001_initial"
+down_revision = "002_vacancies"
 branch_labels = None
 depends_on = None
 

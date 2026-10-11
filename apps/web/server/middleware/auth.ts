@@ -1,9 +1,10 @@
-import { defineEventHandler, getCookie, getQuery, getRequestHeader, getRequestURL, proxyRequest, readBody, sendRedirect, setResponseHeader, setResponseStatus, type H3Event } from 'h3'
+import { defineEventHandler, deleteCookie, getCookie, getQuery, getRequestHeader, getRequestURL, proxyRequest, readBody, sendRedirect, setResponseHeader, setResponseStatus, type H3Event } from 'h3'
 import { useRuntimeConfig } from '#imports'
 import { getUserSession, refreshUserSession } from 'nuxt-oidc-auth/runtime/server/utils/session.js'
 import { afterRole, forbiddenHtml, rolePickerHtml, safeNext } from '../utils/auth-pages'
-import { businessRole, readAccessToken, tokenSubject, type BusinessRole } from '../utils/access-token'
+import { businessRole, readAccessToken, readIdToken, tokenSubject, type BusinessRole } from '../utils/access-token'
 import { assignRealmRole } from '../utils/keycloak-admin'
+import { publicSession } from '../utils/public-session'
 
 const SESSION_COOKIE = 'nuxt-oidc-auth'
 
@@ -22,6 +23,21 @@ function loginUrl(nextPath: string): string {
   return `/auth/keycloak/login?callbackRedirectUrl=${encodeURIComponent(nextPath)}`
 }
 
+async function sessionRole(event: H3Event, accessToken: string | undefined): Promise<BusinessRole | null> {
+  const fromAccess = accessToken ? businessRole(accessToken) : null
+  if (fromAccess) return fromAccess
+  const idToken = await readIdToken(event)
+  return idToken ? businessRole(idToken) : null
+}
+
+function roleError(error: unknown): string {
+  if (error && typeof error === 'object' && 'statusMessage' in error && typeof error.statusMessage === 'string' && error.statusMessage) {
+    return error.statusMessage
+  }
+  if (error instanceof Error && error.message) return error.message
+  return 'Не удалось назначить роль'
+}
+
 function sameOrigin(event: H3Event): boolean {
   const origin = getRequestHeader(event, 'origin')
   if (!origin) return true
@@ -38,7 +54,10 @@ export default defineEventHandler(async (event) => {
   const nextPath = `${pathname}${url.search}`
 
   if (pathname === '/api' || pathname.startsWith('/api/')) {
-    if (pathname.startsWith('/api/_auth')) return
+    if (event.method === 'GET' && (pathname === '/api/_auth/session' || pathname === '/api/bff/session')) {
+      return publicSession(event)
+    }
+    if (pathname.startsWith('/api/_auth') || pathname.startsWith('/api/bff')) return
     const config = useRuntimeConfig()
     const targetBase = String(config.apiProxyTarget || 'http://api:8000').replace(/\/$/, '')
     const headers: Record<string, string> = {}
@@ -64,8 +83,29 @@ export default defineEventHandler(async (event) => {
       return sendRedirect(event, loginUrl(`/auth/role${url.search}`), 302)
     }
     const token = await readAccessToken(event)
-    const role = token ? businessRole(token) : null
-    const queryNext = safeNext(getQuery(event).next)
+    const role = await sessionRole(event, token)
+    const query = getQuery(event)
+    const queryNext = safeNext(query.next)
+    const queryPick = query.pick
+    if (event.method === 'GET' && (queryPick === 'candidate' || queryPick === 'employer')) {
+      if (role === 'candidate' || role === 'employer') {
+        return sendRedirect(event, afterRole(role, queryNext), 302)
+      }
+      const idToken = await readIdToken(event)
+      const sub = (token && tokenSubject(token)) || (idToken && tokenSubject(idToken))
+      if (!sub) {
+        setResponseHeader(event, 'content-type', 'text/html; charset=utf-8')
+        return rolePickerHtml(queryNext, 'Сессия без идентификатора пользователя. Нажмите «Выйти» и войдите снова.')
+      }
+      try {
+        await assignRealmRole(sub, queryPick)
+      } catch (error) {
+        setResponseHeader(event, 'content-type', 'text/html; charset=utf-8')
+        return rolePickerHtml(queryNext, roleError(error))
+      }
+      deleteCookie(event, SESSION_COOKIE, { path: '/' })
+      return sendRedirect(event, loginUrl(afterRole(queryPick, queryNext)), 302)
+    }
     if (event.method === 'GET') {
       if (role === 'candidate' || role === 'employer') {
         return sendRedirect(event, afterRole(role, queryNext), 302)
@@ -115,26 +155,24 @@ export default defineEventHandler(async (event) => {
   }
 
   const cabinet = isCabinet(pathname, 'candidate') || isCabinet(pathname, 'employer')
-  if (!cabinet && !getCookie(event, SESSION_COOKIE)) return
+  if (!cabinet) return
 
   if (!getCookie(event, SESSION_COOKIE)) {
-    if (cabinet) return sendRedirect(event, loginUrl(nextPath), 302)
-    return
+    return sendRedirect(event, loginUrl(nextPath), 302)
   }
 
   try {
     await getUserSession(event)
   } catch {
-    if (cabinet) return sendRedirect(event, loginUrl(nextPath), 302)
-    return
+    return sendRedirect(event, loginUrl(nextPath), 302)
   }
 
   const token = await readAccessToken(event)
-  const role = token ? businessRole(token) : null
+  const role = await sessionRole(event, token)
   if (!role) {
     return sendRedirect(event, `/auth/role?next=${encodeURIComponent(nextPath)}`, 302)
   }
-  if (cabinet && !allows(pathname, role)) {
+  if (!allows(pathname, role)) {
     setResponseStatus(event, 403)
     setResponseHeader(event, 'content-type', 'text/html; charset=utf-8')
     return forbiddenHtml()

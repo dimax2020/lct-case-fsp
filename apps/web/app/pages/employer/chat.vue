@@ -7,6 +7,7 @@ type Msg = components['schemas']['MessageOut']
 type Stage = components['schemas']['HiringStage']
 
 useHead({ title: 'Переписка с кандидатом — Карьера ФСП' })
+const cabinetUser = useCabinetUser('Компания')
 const route = useRoute()
 const { show } = useToast()
 const api = useApi()
@@ -115,7 +116,7 @@ const dot = (i: number) => (i < stageIndex.value || stage.value === 'offer'
 
 <template>
   <div style="background: var(--bg); color: var(--text); font-family: var(--font-sans); min-height: 100vh;">
-    <FspHeader product="Для компаний" user="Компания" :links="employerLinks" />
+    <FspHeader product="Для компаний" :user="cabinetUser" :links="employerLinks" />
     <main style="max-width: 1240px; margin: 0 auto; padding: 32px 32px 64px;">
       <div style="display: flex; flex-wrap: wrap; align-items: baseline; gap: 12px; margin-bottom: 24px;">
         <NuxtLink to="/employer/invites" style="font-size: 14px; color: var(--text-muted); text-decoration: none;">Приглашения</NuxtLink>

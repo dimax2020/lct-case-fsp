@@ -18,13 +18,13 @@ class SpecInfo:
 
 def _taxonomy_file(name: str) -> Path:
     configured = Path(get_settings().taxonomy_dir)
-    root = Path(__file__).resolve().parents[4]
-    candidates = []
+    candidates: list[Path] = []
     if configured.is_absolute():
         candidates.append(configured / name)
     else:
-        candidates.append(root / configured / name)
         candidates.append(Path.cwd() / configured / name)
+        for parent in Path(__file__).resolve().parents:
+            candidates.append(parent / configured / name)
     for path in candidates:
         if path.is_file():
             return path

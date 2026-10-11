@@ -5,6 +5,18 @@ const v = reactive((() => {
   return { dots: 6 };
 })())
 const { show } = useToast()
+const mvp = () => show('Ещё не реализовано в рамках MVP')
+const { data: sessionData, refresh: refreshSession } = await useFetch('/api/bff/session', {
+  default: () => ({ authenticated: false as boolean, role: null as string | null, name: null as string | null }),
+  credentials: 'include',
+})
+const session = computed(() => sessionData.value ?? { authenticated: false, role: null, name: null })
+onMounted(() => { void refreshSession() })
+const cabinetHref = computed(() => {
+  if (session.value.role === 'employer') return '/employer/need'
+  if (session.value.role === 'candidate') return '/candidate/profile'
+  return '/auth/role?next=/candidate/profile'
+})
 </script>
 
 <template>
@@ -22,8 +34,14 @@ const { show } = useToast()
         <a href="#fsp" style="font-size: 15px; font-weight: 500; color: var(--text-muted); text-decoration: none;">Достижения ФСП</a>
       </nav>
       <div style="display: flex; gap: 8px;">
-        <FspButton variant="ghost" size="sm" href="/auth?mode=login">Войти</FspButton>
-        <FspButton size="sm" href="/auth">Регистрация</FspButton>
+        <template v-if="session.authenticated">
+          <FspButton variant="ghost" size="sm" :href="cabinetHref">В кабинет</FspButton>
+          <FspButton size="sm" href="/auth/keycloak/logout">Выйти</FspButton>
+        </template>
+        <template v-else>
+          <FspButton variant="ghost" size="sm" href="/auth?mode=login">Войти</FspButton>
+          <FspButton size="sm" href="/auth">Регистрация</FspButton>
+        </template>
       </div>
     </header>
 
@@ -36,8 +54,11 @@ const { show } = useToast()
           <h1 class="fsp-display" style="font-size: 64px; line-height: 66px;">Покажи, что ты лучший</h1>
           <p style="margin: 24px 0 32px; font-size: 18px; line-height: 28px; color: var(--text-muted); max-width: 640px;">Здесь решает не резюме, а результат. Подтверди грейд тестом, добавь победы на соревнованиях ФСП — и поднимайся в рейтинге своей категории. Компании видят лучших первыми и сами приходят с предложением и вилкой.</p>
           <div style="display: flex; flex-wrap: wrap; gap: 12px;">
-            <FspButton size="lg" icon-right="arrow-right" href="/auth">Пройти тест на грейд</FspButton>
-            <FspButton size="lg" variant="plate" href="/auth?role=employer">Я нанимаю</FspButton>
+            <FspButton v-if="session.authenticated" size="lg" icon-right="arrow-right" :href="cabinetHref">В кабинет</FspButton>
+            <template v-else>
+              <FspButton size="lg" icon-right="arrow-right" href="/auth">Пройти тест на грейд</FspButton>
+              <FspButton size="lg" variant="plate" href="/auth?role=employer">Я нанимаю</FspButton>
+            </template>
           </div>
         </div>
         <div style="flex: 1 1 380px; min-width: 0;">
@@ -214,9 +235,9 @@ const { show } = useToast()
       <div style="max-width: 1240px; margin: 0 auto; display: flex; flex-wrap: wrap; gap: 24px; align-items: center; justify-content: space-between;">
         <img src="/brand/fsp-logo-full-dark.svg" alt="Федерация спортивного программирования России" style="height: 36px;">
         <div style="display: flex; flex-wrap: wrap; gap: 24px; font-size: 14px;">
-          <a href="#" class="fsp-link" @click.prevent="show('«Политика обработки данных» — документ будет опубликован к запуску')">Политика обработки данных</a>
-          <a href="#" class="fsp-link" @click.prevent="show('«Пользовательское соглашение» — документ будет опубликован к запуску')">Пользовательское соглашение</a>
-          <a href="#" class="fsp-link" @click.prevent="show('«Поддержка» — документ будет опубликован к запуску')">Поддержка</a>
+          <a href="#" class="fsp-link" @click.prevent="mvp">Политика обработки данных</a>
+          <a href="#" class="fsp-link" @click.prevent="mvp">Пользовательское соглашение</a>
+          <a href="#" class="fsp-link" @click.prevent="mvp">Поддержка</a>
         </div>
       </div>
     </footer>

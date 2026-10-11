@@ -21,7 +21,7 @@ services:
       context: ../../apps/web
       dockerfile: Dockerfile
     environment:
-      NUXT_PUBLIC_API_MOCKS: ${NUXT_PUBLIC_API_MOCKS:-1}
+      NUXT_PUBLIC_API_MOCKS: ${NUXT_PUBLIC_API_MOCKS:-0}
       # Demo-only secrets. nuxt-oidc-auth ignores a session secret shorter than 48 chars.
       NUXT_OIDC_SESSION_SECRET: ${NUXT_OIDC_SESSION_SECRET:-demo-only-oidc-session-secret-not-a-production-key}
       NUXT_OIDC_AUTH_SESSION_SECRET: ${NUXT_OIDC_AUTH_SESSION_SECRET:-demo-only-oidc-auth-session-secret-not-a-production-key}
@@ -50,6 +50,10 @@ services:
       - traefik.http.routers.web.priority=1
       - traefik.http.routers.web.entrypoints=web
       - traefik.http.services.web.loadbalancer.server.port=3000
+      - traefik.http.routers.web-auth.rule=PathPrefix(`/auth/keycloak`) || PathPrefix(`/auth/role`)
+      - traefik.http.routers.web-auth.priority=200
+      - traefik.http.routers.web-auth.entrypoints=web
+      - traefik.http.routers.web-auth.service=web
     networks: [web]
     depends_on:
       api:
@@ -89,12 +93,6 @@ services:
       - ../../taxonomy:/srv/taxonomy:ro
       - ../../seed:/srv/seed:ro
       - uploads:/data/uploads
-    labels:
-      - traefik.enable=true
-      - traefik.http.routers.api.rule=PathPrefix(`/api`)
-      - traefik.http.routers.api.priority=100
-      - traefik.http.routers.api.entrypoints=web
-      - traefik.http.services.api.loadbalancer.server.port=8000
     networks: [web, sandbox]
     depends_on:
       postgres:
@@ -179,7 +177,7 @@ services:
       - ../keycloak/realm-export.json:/opt/keycloak/data/import/realm-export.json:ro
     labels:
       - traefik.enable=true
-      - traefik.http.routers.auth.rule=PathPrefix(`/auth`)
+      - traefik.http.routers.auth.rule=PathPrefix(`/auth/realms`) || PathPrefix(`/auth/resources`) || PathPrefix(`/auth/admin`) || PathPrefix(`/auth/js`) || PathPrefix(`/auth/health`)
       - traefik.http.routers.auth.priority=100
       - traefik.http.routers.auth.entrypoints=web
       - traefik.http.services.auth.loadbalancer.server.port=8080

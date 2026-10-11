@@ -1,52 +1,20 @@
 <script setup lang="ts">
-import type * as Monaco from 'monaco-editor'
-
 const props = defineProps<{ language: string; modelValue: string }>()
 const emit = defineEmits<{ 'update:modelValue': [string] }>()
-const host = ref<HTMLElement | null>(null)
-let editor: Monaco.editor.IStandaloneCodeEditor | null = null
-let monacoApi: typeof Monaco | null = null
 
-function monacoLang(lang: string) {
-  return lang === 'go' ? 'go' : 'python'
+function onInput(event: Event) {
+  const target = event.target
+  if (target instanceof HTMLTextAreaElement) emit('update:modelValue', target.value)
 }
-
-onMounted(async () => {
-  const workerMod = await import('monaco-editor/esm/vs/editor/editor.worker?worker')
-  const monaco = await import('monaco-editor')
-  await import('monaco-editor/esm/vs/basic-languages/python/python.contribution')
-  await import('monaco-editor/esm/vs/basic-languages/go/go.contribution')
-  monacoApi = monaco
-  const env = globalThis as typeof globalThis & { MonacoEnvironment?: { getWorker: () => Worker } }
-  env.MonacoEnvironment = { getWorker: () => new workerMod.default() }
-  if (!host.value) return
-  editor = monaco.editor.create(host.value, {
-    value: props.modelValue,
-    language: monacoLang(props.language),
-    theme: 'vs-dark',
-    minimap: { enabled: false },
-    fontSize: 14,
-    automaticLayout: true,
-    scrollBeyondLastLine: false,
-  })
-  editor.onDidChangeModelContent(() => {
-    if (!editor) return
-    emit('update:modelValue', editor.getValue())
-  })
-})
-
-watch(() => props.modelValue, (value) => {
-  if (editor && editor.getValue() !== value) editor.setValue(value)
-})
-
-watch(() => props.language, (lang) => {
-  const model = editor?.getModel()
-  if (model && monacoApi) monacoApi.editor.setModelLanguage(model, monacoLang(lang))
-})
-
-onBeforeUnmount(() => editor?.dispose())
 </script>
 
 <template>
-  <div ref="host" style="height: 280px; border: 1px solid var(--line-strong);" />
+  <textarea
+    :value="props.modelValue"
+    :aria-label="props.language === 'go' ? 'Код на Go' : 'Код на Python'"
+    spellcheck="false"
+    autocomplete="off"
+    style="box-sizing: border-box; width: 100%; min-height: 280px; margin: 0; padding: 16px; resize: vertical; border: 1px solid var(--line-strong); background: var(--plate); color: var(--on-plate); font: 14px/22px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;"
+    @input="onInput"
+  />
 </template>
