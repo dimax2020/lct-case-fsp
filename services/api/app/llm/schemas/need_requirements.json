@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "NeedRequirementsExtraction",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["requirements"],
+  "properties": {
+    "requirements": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["task", "skills", "kind", "evidence_span"],
+        "properties": {
+          "task": {"type": "string"},
+          "domain": {"type": ["string", "null"]},
+          "skills": {"type": "array", "items": {"type": "string"}},
+          "scale": {"type": ["string", "null"]},
+          "kind": {"type": "string", "enum": ["must", "nice"]},
+          "evidence_span": {"type": "string", "minLength": 1}
+        }
+      }
+    }
+  }
+}

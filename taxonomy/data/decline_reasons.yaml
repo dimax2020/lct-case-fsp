@@ -1,0 +1,5 @@
+- {id: salary, name: Не подходит вилка}
+- {id: stack, name: Не подходит стек}
+- {id: format, name: Не подходит формат}
+- {id: found_job, name: Уже нашёл работу}
+- {id: other, name: Другое}

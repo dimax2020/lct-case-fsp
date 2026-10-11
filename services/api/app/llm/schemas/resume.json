@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ResumeExtraction",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["experiences", "skills", "projects"],
+  "properties": {
+    "experiences": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["company", "role", "description", "evidence_span"],
+        "properties": {
+          "company": {"type": "string"},
+          "role": {"type": "string"},
+          "start": {"type": ["string", "null"]},
+          "end": {"type": ["string", "null"]},
+          "description": {"type": "string"},
+          "evidence_span": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "skills": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "evidence_span"],
+        "properties": {
+          "name": {"type": "string"},
+          "evidence_span": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "projects": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["task", "evidence_span"],
+        "properties": {
+          "task": {"type": "string"},
+          "role": {"type": "string"},
+          "skills": {"type": "array", "items": {"type": "string"}},
+          "outcome": {"type": ["string", "null"]},
+          "evidence_span": {"type": "string", "minLength": 1}
+        }
+      }
+    }
+  }
+}

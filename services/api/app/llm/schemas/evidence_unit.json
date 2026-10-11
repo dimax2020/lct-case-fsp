@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "EvidenceUnitExtraction",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["task", "skills", "role", "evidence_span"],
+  "properties": {
+    "task": {"type": "string"},
+    "domain": {"type": ["string", "null"]},
+    "skills": {"type": "array", "items": {"type": "string"}},
+    "role": {"type": "string", "enum": ["owner", "contributor", "participant"]},
+    "date": {"type": ["string", "null"]},
+    "scale": {"type": ["string", "null"]},
+    "evidence_span": {"type": "string", "minLength": 1}
+  }
+}

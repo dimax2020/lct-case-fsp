@@ -1,0 +1,141 @@
+[project]
+name = "fsp-api"
+version = "0.1.0"
+description = "Карьера ФСП API"
+requires-python = ">=3.12"
+dependencies = [
+  "fastapi>=0.115",
+  "uvicorn[standard]>=0.32",
+  "sqlalchemy[asyncio]>=2.0.36",
+  "asyncpg>=0.30",
+  "alembic>=1.14",
+  "pydantic>=2.10",
+  "pydantic-settings>=2.6",
+  "pgvector>=0.3.6",
+  "redis>=5.2",
+  "taskiq>=0.11.10",
+  "taskiq-redis>=1.0.2",
+  "httpx>=0.28",
+  "pyjwt[crypto]>=2.10",
+  "pymupdf>=1.25",
+  "openai>=1.57",
+  "pyyaml>=6.0",
+  "python-multipart>=0.0.18",
+  "numpy>=2.1",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.3",
+  "pytest-asyncio>=0.24",
+  "ruff>=0.8",
+  "mypy>=1.13",
+  "import-linter>=2.1",
+]
+# CPU embeddings. Same image as the API; install with `.[ml]`.
+ml = [
+  "sentence-transformers>=3.3.1",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["app"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"app/llm/schemas" = "app/llm/schemas"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 130
+target-version = "py312"
+src = ["app", "tests", "alembic"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]
+
+[tool.ruff.lint.per-file-ignores]
+"alembic/**" = ["E501", "I001"]
+
+[tool.mypy]
+python_version = "3.12"
+packages = ["app"]
+ignore_missing_imports = true
+check_untyped_defs = true
+warn_unused_ignores = false
+no_implicit_optional = true
+
+[tool.importlinter]
+root_packages = ["app"]
+include_external_packages = false
+
+[[tool.importlinter.contracts]]
+name = "Profile internals stay inside profile"
+type = "forbidden"
+source_modules = ["app.taxonomy", "app.resume", "app.company", "app.need", "app.assessment", "app.matching", "app.hints", "app.invitation", "app.chat", "app.llm", "app.embeddings", "app.demo"]
+forbidden_modules = ["app.profile.models", "app.profile.router", "app.profile.schemas"]
+
+[[tool.importlinter.contracts]]
+name = "Resume internals stay inside resume"
+type = "forbidden"
+source_modules = ["app.taxonomy", "app.profile", "app.company", "app.need", "app.assessment", "app.matching", "app.hints", "app.invitation", "app.chat", "app.llm", "app.embeddings", "app.demo"]
+forbidden_modules = ["app.resume.models", "app.resume.router", "app.resume.schemas"]
+
+[[tool.importlinter.contracts]]
+name = "Company internals stay inside company"
+type = "forbidden"
+source_modules = ["app.taxonomy", "app.profile", "app.resume", "app.need", "app.assessment", "app.matching", "app.hints", "app.invitation", "app.chat", "app.llm", "app.embeddings", "app.demo"]
+forbidden_modules = ["app.company.models", "app.company.router", "app.company.schemas"]
+
+[[tool.importlinter.contracts]]
+name = "Need internals stay inside need"
+type = "forbidden"
+source_modules = ["app.taxonomy", "app.profile", "app.resume", "app.company", "app.assessment", "app.matching", "app.hints", "app.invitation", "app.chat", "app.llm", "app.embeddings", "app.demo"]
+forbidden_modules = ["app.need.models", "app.need.router", "app.need.schemas"]
+
+[[tool.importlinter.contracts]]
+name = "Assessment internals stay inside assessment"
+type = "forbidden"
+source_modules = ["app.taxonomy", "app.profile", "app.resume", "app.company", "app.need", "app.matching", "app.hints", "app.invitation", "app.chat", "app.llm", "app.embeddings", "app.demo"]
+forbidden_modules = ["app.assessment.models", "app.assessment.router", "app.assessment.schemas"]
+
+[[tool.importlinter.contracts]]
+name = "Matching config stays inside matching"
+type = "forbidden"
+source_modules = ["app.taxonomy", "app.profile", "app.resume", "app.company", "app.need", "app.assessment", "app.hints", "app.invitation", "app.chat", "app.llm", "app.embeddings", "app.demo"]
+forbidden_modules = ["app.matching.config"]
+
+[[tool.importlinter.contracts]]
+name = "Hints internals stay inside hints"
+type = "forbidden"
+source_modules = ["app.taxonomy", "app.profile", "app.resume", "app.company", "app.need", "app.assessment", "app.matching", "app.invitation", "app.chat", "app.llm", "app.embeddings", "app.demo"]
+forbidden_modules = ["app.hints.router", "app.hints.schemas"]
+
+[[tool.importlinter.contracts]]
+name = "Invitation internals stay inside invitation"
+type = "forbidden"
+source_modules = ["app.taxonomy", "app.profile", "app.resume", "app.company", "app.need", "app.assessment", "app.matching", "app.hints", "app.chat", "app.llm", "app.embeddings", "app.demo"]
+forbidden_modules = ["app.invitation.models", "app.invitation.router", "app.invitation.schemas"]
+
+[[tool.importlinter.contracts]]
+name = "Chat internals stay inside chat"
+type = "forbidden"
+source_modules = ["app.taxonomy", "app.profile", "app.resume", "app.company", "app.need", "app.assessment", "app.matching", "app.hints", "app.invitation", "app.llm", "app.embeddings", "app.demo"]
+forbidden_modules = ["app.chat.models", "app.chat.router", "app.chat.schemas"]
+
+[[tool.importlinter.contracts]]
+name = "Taxonomy internals stay inside taxonomy"
+type = "forbidden"
+source_modules = ["app.profile", "app.resume", "app.company", "app.need", "app.assessment", "app.matching", "app.hints", "app.invitation", "app.chat", "app.llm", "app.embeddings", "app.demo"]
+forbidden_modules = ["app.taxonomy.router", "app.taxonomy.schemas"]
+
+[[tool.importlinter.contracts]]
+name = "Demo internals stay inside demo"
+type = "forbidden"
+source_modules = ["app.taxonomy", "app.profile", "app.resume", "app.company", "app.need", "app.assessment", "app.matching", "app.hints", "app.invitation", "app.chat", "app.llm", "app.embeddings"]
+forbidden_modules = ["app.demo.router", "app.demo.schemas", "app.demo.seed"]

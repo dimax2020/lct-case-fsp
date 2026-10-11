@@ -1,0 +1,51 @@
+# Ten examples. Agent B expands this to about 150 skills.
+- id: python
+  name: Python
+  decay: fundamental
+  specializations: [backend, data_ml]
+  synonyms: [python, питон, py]
+- id: go
+  name: Go
+  decay: fundamental
+  specializations: [backend, devops]
+  synonyms: [go, golang, го]
+- id: javascript
+  name: JavaScript
+  decay: fundamental
+  specializations: [frontend]
+  synonyms: [javascript, js, джаваскрипт]
+- id: postgresql
+  name: PostgreSQL
+  decay: fundamental
+  specializations: [backend, data_ml]
+  synonyms: [postgresql, postgres, постгрес]
+- id: kafka
+  name: Kafka
+  decay: framework
+  specializations: [backend, data_ml]
+  synonyms: [kafka, кафка, apache kafka]
+- id: kubernetes
+  name: Kubernetes
+  decay: framework
+  specializations: [devops, backend]
+  synonyms: [kubernetes, k8s, кубер]
+- id: react
+  name: React
+  decay: framework
+  specializations: [frontend]
+  synonyms: [react, reactjs, реакт]
+- id: docker
+  name: Docker
+  decay: framework
+  specializations: [devops, backend]
+  synonyms: [docker, докер]
+- id: pytorch
+  name: PyTorch
+  decay: framework
+  specializations: [data_ml]
+  synonyms: [pytorch, torch, пайторч]
+- id: vue
+  name: Vue
+  decay: framework
+  specializations: [frontend]
+  synonyms: [vue, vuejs, вью]

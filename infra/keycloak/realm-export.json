@@ -1,0 +1,88 @@
+{
+  "realm": "fsp",
+  "enabled": true,
+  "displayName": "Карьера ФСП",
+  "sslRequired": "none",
+  "registrationAllowed": true,
+  "registrationEmailAsUsername": true,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": false,
+  "rememberMe": true,
+  "verifyEmail": false,
+  "loginTheme": "keycloak",
+  "internationalizationEnabled": true,
+  "supportedLocales": ["ru", "en"],
+  "defaultLocale": "ru",
+  "attributes": {
+    "fsp.roleSelection": "New users receive no business role. The Nuxt BFF shows a role picker, assigns realm role candidate or employer through the career-web service account, then refreshes the token. Demo users below already have roles."
+  },
+  "roles": {
+    "realm": [
+      {"name": "candidate", "description": "Кандидат"},
+      {"name": "employer", "description": "Работодатель"},
+      {"name": "admin", "description": "Демо-админ"}
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "career-web",
+      "name": "Карьера ФСП",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "secret": "change-me",
+      "clientAuthenticatorType": "client-secret",
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": true,
+      "frontchannelLogout": true,
+      "redirectUris": [
+        "http://localhost/*",
+        "http://localhost:3000/*",
+        "https://career-demo.example.ru/*"
+      ],
+      "webOrigins": ["+"],
+      "fullScopeAllowed": true,
+      "defaultClientScopes": ["web-origins", "acr", "profile", "roles", "email"],
+      "optionalClientScopes": ["address", "phone", "offline_access", "microprofile-jwt"],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "+"
+      }
+    }
+  ],
+  "users": [
+    {
+      "username": "candidate@demo.fsp",
+      "email": "candidate@demo.fsp",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Алексей",
+      "lastName": "Кузнецов",
+      "credentials": [{"type": "password", "value": "candidate-demo", "temporary": false}],
+      "realmRoles": ["candidate"]
+    },
+    {
+      "username": "employer@demo.fsp",
+      "email": "employer@demo.fsp",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Марина",
+      "lastName": "Орлова",
+      "credentials": [{"type": "password", "value": "employer-demo", "temporary": false}],
+      "realmRoles": ["employer"]
+    },
+    {
+      "username": "admin@demo.fsp",
+      "email": "admin@demo.fsp",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Демо",
+      "lastName": "Админ",
+      "credentials": [{"type": "password", "value": "admin-demo", "temporary": false}],
+      "realmRoles": ["admin"]
+    }
+  ]
+}

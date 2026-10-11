@@ -1,0 +1,10 @@
+- {id: fintech, name: Финтех}
+- {id: ecommerce, name: Электронная коммерция}
+- {id: health, name: Здоровье}
+- {id: gov, name: Госсектор}
+- {id: edtech, name: Образование}
+- {id: telecom, name: Телеком}
+- {id: security, name: Информационная безопасность}
+- {id: media, name: Медиа}
+- {id: logistics, name: Логистика}
+- {id: industrial, name: Промышленность}

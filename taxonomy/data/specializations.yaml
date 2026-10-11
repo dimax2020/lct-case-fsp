@@ -1,0 +1,12 @@
+- id: backend
+  name: Backend
+  adjacent: [devops, frontend]
+- id: frontend
+  name: Frontend
+  adjacent: [backend]
+- id: data_ml
+  name: Data/ML
+  adjacent: [backend]
+- id: devops
+  name: DevOps
+  adjacent: [backend]

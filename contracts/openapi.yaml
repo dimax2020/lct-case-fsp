@@ -1,0 +1,3455 @@
+openapi: 3.1.0
+info:
+  title: Карьера ФСП
+  version: 0.1.0
+  description: 'Контракт MVP «Карьера ФСП». Ошибки: {error: {code, message, details?}}.'
+paths:
+  /api/health:
+    get:
+      tags:
+      - meta
+      summary: Health
+      operationId: health_api_health_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties:
+                  type: string
+                type: object
+                title: Response Health Api Health Get
+      security: []
+  /api/v1/me:
+    get:
+      tags:
+      - profile
+      summary: Get Me
+      operationId: get_me_api_v1_me_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Me'
+  /api/v1/candidates/me:
+    get:
+      tags:
+      - profile
+      summary: Get My Candidate
+      operationId: get_my_candidate_api_v1_candidates_me_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CandidateProfile'
+    put:
+      tags:
+      - profile
+      summary: Update My Candidate
+      operationId: update_my_candidate_api_v1_candidates_me_put
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CandidateUpdate'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CandidateProfile'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/candidates/me/projects:
+    get:
+      tags:
+      - profile
+      summary: List My Projects
+      operationId: list_my_projects_api_v1_candidates_me_projects_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/ProjectOut'
+                type: array
+                title: Response List My Projects Api V1 Candidates Me Projects Get
+    post:
+      tags:
+      - profile
+      summary: Create Project
+      operationId: create_project_api_v1_candidates_me_projects_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProjectIn'
+        required: true
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/candidates/me/projects/{id}:
+    put:
+      tags:
+      - profile
+      summary: Update Project
+      operationId: update_project_api_v1_candidates_me_projects__id__put
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProjectIn'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    delete:
+      tags:
+      - profile
+      summary: Delete Project
+      operationId: delete_project_api_v1_candidates_me_projects__id__delete
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Id
+      responses:
+        '204':
+          description: Successful Response
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/candidates/me/fsp-link:
+    post:
+      tags:
+      - profile
+      summary: Link Fsp
+      operationId: link_fsp_api_v1_candidates_me_fsp_link_post
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CandidateProfile'
+  /api/v1/candidates/me/grade:
+    get:
+      tags:
+      - profile
+      summary: Get My Grade
+      operationId: get_my_grade_api_v1_candidates_me_grade_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GradeView'
+  /api/v1/candidates/me/settings:
+    get:
+      tags:
+      - profile
+      summary: Get My Settings
+      operationId: get_my_settings_api_v1_candidates_me_settings_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CandidateSettings'
+    put:
+      tags:
+      - profile
+      summary: Update My Settings
+      operationId: update_my_settings_api_v1_candidates_me_settings_put
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CandidateSettings'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CandidateSettings'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/candidates/me/resume:
+    post:
+      tags:
+      - resume
+      summary: Upload Resume
+      operationId: upload_resume_api_v1_candidates_me_resume_post
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Body_upload_resume_api_v1_candidates_me_resume_post'
+        required: true
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResumeUploadOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/candidates/me/resume/{id}:
+    get:
+      tags:
+      - resume
+      summary: Get Resume
+      operationId: get_resume_api_v1_candidates_me_resume__id__get
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResumeView'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/candidates/me/resume/{id}/confirm:
+    post:
+      tags:
+      - resume
+      summary: Confirm Resume
+      operationId: confirm_resume_api_v1_candidates_me_resume__id__confirm_post
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ParsedResume'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResumeView'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/candidates/me/hints:
+    get:
+      tags:
+      - hints
+      summary: Get My Hints
+      operationId: get_my_hints_api_v1_candidates_me_hints_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/CandidateHint'
+                type: array
+                title: Response Get My Hints Api V1 Candidates Me Hints Get
+  /api/v1/needs/{id}/hints:
+    get:
+      tags:
+      - hints
+      summary: Get Need Hints
+      operationId: get_need_hints_api_v1_needs__id__hints_get
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/EmployerHint'
+                title: Response Get Need Hints Api V1 Needs  Id  Hints Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/assessment/attempts:
+    post:
+      tags:
+      - assessment
+      summary: Create Attempt
+      operationId: create_attempt_api_v1_assessment_attempts_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AttemptCreate'
+        required: true
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AttemptView'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/assessment/attempts/{id}:
+    get:
+      tags:
+      - assessment
+      summary: Get Attempt
+      operationId: get_attempt_api_v1_assessment_attempts__id__get
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AttemptView'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/assessment/attempts/{id}/answers:
+    post:
+      tags:
+      - assessment
+      summary: Save Answer
+      operationId: save_answer_api_v1_assessment_attempts__id__answers_post
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AnswerIn'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AttemptView'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/assessment/run:
+    post:
+      tags:
+      - assessment
+      summary: Run Code
+      operationId: run_code_api_v1_assessment_run_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RunIn'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RunOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/assessment/attempts/{id}/finish:
+    post:
+      tags:
+      - assessment
+      summary: Finish Attempt
+      operationId: finish_attempt_api_v1_assessment_attempts__id__finish_post
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AttemptResult'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/assessment/attempts/{id}/demo-finish:
+    post:
+      tags:
+      - assessment
+      summary: Demo Finish Attempt
+      operationId: demo_finish_attempt_api_v1_assessment_attempts__id__demo_finish_post
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DemoFinishIn'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AttemptResult'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/companies/me:
+    get:
+      tags:
+      - company
+      summary: Get My Company
+      operationId: get_my_company_api_v1_companies_me_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CompanyOut'
+    put:
+      tags:
+      - company
+      summary: Update My Company
+      operationId: update_my_company_api_v1_companies_me_put
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CompanyWrite'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CompanyOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/needs:
+    get:
+      tags:
+      - needs
+      summary: List Needs
+      operationId: list_needs_api_v1_needs_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/NeedOut'
+                type: array
+                title: Response List Needs Api V1 Needs Get
+    post:
+      tags:
+      - needs
+      summary: Create Need
+      operationId: create_need_api_v1_needs_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NeedWrite'
+        required: true
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NeedOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/needs/{id}:
+    get:
+      tags:
+      - needs
+      summary: Get Need
+      operationId: get_need_api_v1_needs__id__get
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NeedOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    put:
+      tags:
+      - needs
+      summary: Update Need
+      operationId: update_need_api_v1_needs__id__put
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NeedWrite'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NeedOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/needs/{id}/parse:
+    post:
+      tags:
+      - needs
+      summary: Parse Need
+      operationId: parse_need_api_v1_needs__id__parse_post
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ParseResult'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/needs/{id}/match:
+    post:
+      tags:
+      - needs
+      summary: Match Need
+      operationId: match_need_api_v1_needs__id__match_post
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Id
+      responses:
+        '202':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MatchAccepted'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/needs/{id}/shortlist:
+    get:
+      tags:
+      - needs
+      summary: Get Shortlist
+      operationId: get_shortlist_api_v1_needs__id__shortlist_get
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Id
+      - name: category
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Category
+      - name: only_fsp
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: false
+          title: Only Fsp
+      - name: fsp_discipline
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Fsp Discipline
+      - name: min_test_score
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Min Test Score
+      - name: stack
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Stack
+      - name: format
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Format
+      - name: active_30d
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: false
+          title: Active 30D
+      - name: tab
+        in: query
+        required: false
+        schema:
+          type: string
+          default: pool
+          title: Tab
+      - name: hint_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Hint Id
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 1
+          title: Page
+      - name: page_size
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 20
+          title: Page Size
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShortlistOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/needs/{id}/candidates/{candidate_id}:
+    get:
+      tags:
+      - needs
+      summary: Get Candidate Card
+      operationId: get_candidate_card_api_v1_needs__id__candidates__candidate_id__get
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Id
+      - name: candidate_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Candidate Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CandidateCard'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/favorites/{candidate_id}:
+    post:
+      tags:
+      - invitations
+      summary: Add Favorite
+      operationId: add_favorite_api_v1_favorites__candidate_id__post
+      parameters:
+      - name: candidate_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Candidate Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FavoriteOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    delete:
+      tags:
+      - invitations
+      summary: Remove Favorite
+      operationId: remove_favorite_api_v1_favorites__candidate_id__delete
+      parameters:
+      - name: candidate_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Candidate Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FavoriteOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/invitations:
+    post:
+      tags:
+      - invitations
+      summary: Create Invitation
+      operationId: create_invitation_api_v1_invitations_post
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InvitationCreate'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvitationOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    get:
+      tags:
+      - invitations
+      summary: List Invitations
+      operationId: list_invitations_api_v1_invitations_get
+      parameters:
+      - name: role
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Role
+      - name: status
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Status
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvitationList'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/invitations/{id}/view:
+    post:
+      tags:
+      - invitations
+      summary: View Invitation
+      operationId: view_invitation_api_v1_invitations__id__view_post
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvitationOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/invitations/{id}/accept:
+    post:
+      tags:
+      - invitations
+      summary: Accept Invitation
+      operationId: accept_invitation_api_v1_invitations__id__accept_post
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvitationOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/invitations/{id}/decline:
+    post:
+      tags:
+      - invitations
+      summary: Decline Invitation
+      operationId: decline_invitation_api_v1_invitations__id__decline_post
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeclineIn'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvitationOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/invitations/{id}/revoke:
+    post:
+      tags:
+      - invitations
+      summary: Revoke Invitation
+      operationId: revoke_invitation_api_v1_invitations__id__revoke_post
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvitationOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/invitations/{id}/remind:
+    post:
+      tags:
+      - invitations
+      summary: Remind Invitation
+      operationId: remind_invitation_api_v1_invitations__id__remind_post
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvitationOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/invitations/{id}/messages:
+    get:
+      tags:
+      - chat
+      summary: List Messages
+      operationId: list_messages_api_v1_invitations__id__messages_get
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Id
+      - name: after
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: After
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageList'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    post:
+      tags:
+      - chat
+      summary: Create Message
+      operationId: create_message_api_v1_invitations__id__messages_post
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MessageCreate'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/taxonomy/skills:
+    get:
+      tags:
+      - taxonomy
+      summary: Search Skills
+      operationId: search_skills_api_v1_taxonomy_skills_get
+      parameters:
+      - name: q
+        in: query
+        required: false
+        schema:
+          type: string
+          default: ''
+          title: Q
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 10
+          title: Limit
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SkillHit'
+                title: Response Search Skills Api V1 Taxonomy Skills Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/taxonomy/specializations:
+    get:
+      tags:
+      - taxonomy
+      summary: List Specializations
+      operationId: list_specializations_api_v1_taxonomy_specializations_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/SpecializationOut'
+                type: array
+                title: Response List Specializations Api V1 Taxonomy Specializations
+                  Get
+  /api/v1/taxonomy/domains:
+    get:
+      tags:
+      - taxonomy
+      summary: List Domains
+      operationId: list_domains_api_v1_taxonomy_domains_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/DomainOut'
+                type: array
+                title: Response List Domains Api V1 Taxonomy Domains Get
+  /api/v1/taxonomy/decline-reasons:
+    get:
+      tags:
+      - taxonomy
+      summary: List Decline Reasons
+      operationId: list_decline_reasons_api_v1_taxonomy_decline_reasons_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/DeclineReasonOut'
+                type: array
+                title: Response List Decline Reasons Api V1 Taxonomy Decline Reasons
+                  Get
+  /api/v1/jobs/{id}:
+    get:
+      tags:
+      - demo
+      summary: Get Job
+      operationId: get_job_api_v1_jobs__id__get
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/demo/reseed:
+    post:
+      tags:
+      - demo
+      summary: Reseed
+      operationId: reseed_api_v1_demo_reseed_post
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReseedOut'
+components:
+  schemas:
+    AnswerIn:
+      properties:
+        task_id:
+          type: string
+          title: Task Id
+        answer:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Answer
+        code:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Code
+        language:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Language
+        skip:
+          type: boolean
+          title: Skip
+          default: false
+      type: object
+      required:
+      - task_id
+      title: AnswerIn
+    AttemptCreate:
+      properties:
+        specialization:
+          $ref: '#/components/schemas/Specialization'
+        declared_grade:
+          $ref: '#/components/schemas/Grade'
+      type: object
+      required:
+      - specialization
+      - declared_grade
+      title: AttemptCreate
+    AttemptProgress:
+      properties:
+        current:
+          type: integer
+          title: Current
+        total:
+          type: integer
+          title: Total
+        answered:
+          type: integer
+          title: Answered
+        skipped:
+          type: integer
+          title: Skipped
+      type: object
+      required:
+      - current
+      - total
+      - answered
+      - skipped
+      title: AttemptProgress
+    AttemptResult:
+      properties:
+        score:
+          type: number
+          title: Score
+        grade:
+          $ref: '#/components/schemas/Grade'
+        ready_for_next:
+          type: boolean
+          title: Ready For Next
+        skill_scores:
+          items:
+            $ref: '#/components/schemas/SkillScore'
+          type: array
+          title: Skill Scores
+        rank:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Rank
+        category_size:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Category Size
+      type: object
+      required:
+      - score
+      - grade
+      - ready_for_next
+      - skill_scores
+      title: AttemptResult
+    AttemptView:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        specialization:
+          $ref: '#/components/schemas/Specialization'
+        declared_grade:
+          $ref: '#/components/schemas/Grade'
+        started_at:
+          type: string
+          format: date-time
+          title: Started At
+        deadline_at:
+          type: string
+          format: date-time
+          title: Deadline At
+        finished_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Finished At
+        remaining_seconds:
+          type: integer
+          title: Remaining Seconds
+        progress:
+          $ref: '#/components/schemas/AttemptProgress'
+        task:
+          anyOf:
+          - $ref: '#/components/schemas/TaskPublic'
+          - type: 'null'
+        result:
+          anyOf:
+          - $ref: '#/components/schemas/AttemptResult'
+          - type: 'null'
+      type: object
+      required:
+      - id
+      - specialization
+      - declared_grade
+      - started_at
+      - deadline_at
+      - remaining_seconds
+      - progress
+      title: AttemptView
+    Benefit:
+      type: string
+      enum:
+      - dms
+      - accreditation
+      - flexible_start
+      title: Benefit
+    Body_upload_resume_api_v1_candidates_me_resume_post:
+      properties:
+        file:
+          type: string
+          contentMediaType: application/octet-stream
+          title: File
+      type: object
+      required:
+      - file
+      title: Body_upload_resume_api_v1_candidates_me_resume_post
+    CandidateCard:
+      properties:
+        candidate_id:
+          type: string
+          format: uuid
+          title: Candidate Id
+        display_name:
+          type: string
+          title: Display Name
+        full_name_initials:
+          type: string
+          title: Full Name Initials
+        category:
+          type: string
+          title: Category
+        city:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: City
+        experience_years:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Experience Years
+        match:
+          type: integer
+          title: Match
+        test_score:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Test Score
+        explanations:
+          items:
+            type: string
+          type: array
+          title: Explanations
+        skills:
+          items:
+            type: string
+          type: array
+          title: Skills
+        projects:
+          items:
+            type: string
+          type: array
+          title: Projects
+        fsp_badge:
+          anyOf:
+          - $ref: '#/components/schemas/FspBadge'
+          - type: 'null'
+        invitation_status:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Invitation Status
+        contacts_revealed:
+          type: boolean
+          title: Contacts Revealed
+          default: false
+        email:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Email
+        phone:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Phone
+      type: object
+      required:
+      - candidate_id
+      - display_name
+      - full_name_initials
+      - category
+      - match
+      title: CandidateCard
+    CandidateHint:
+      properties:
+        id:
+          type: string
+          title: Id
+        type:
+          type: string
+          title: Type
+        title:
+          type: string
+          title: Title
+        effect_text:
+          type: string
+          title: Effect Text
+        action_label:
+          type: string
+          title: Action Label
+        action_href:
+          type: string
+          title: Action Href
+        priority:
+          type: number
+          title: Priority
+      type: object
+      required:
+      - id
+      - type
+      - title
+      - effect_text
+      - action_label
+      - action_href
+      - priority
+      title: CandidateHint
+    CandidateProfile:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        full_name:
+          type: string
+          title: Full Name
+        display_name:
+          type: string
+          title: Display Name
+        city:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: City
+        specialization:
+          anyOf:
+          - $ref: '#/components/schemas/Specialization'
+          - type: 'null'
+        grade:
+          anyOf:
+          - $ref: '#/components/schemas/Grade'
+          - type: 'null'
+        grade_score:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Grade Score
+        ready_for_next:
+          type: boolean
+          title: Ready For Next
+          default: false
+        category_rank:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Category Rank
+        category_size:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Category Size
+        min_salary:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Min Salary
+        formats:
+          items:
+            $ref: '#/components/schemas/WorkFormat'
+          type: array
+          title: Formats
+        status:
+          $ref: '#/components/schemas/CandidateStatus'
+        visible:
+          type: boolean
+          title: Visible
+        in_pool_eligible:
+          type: boolean
+          title: In Pool Eligible
+        liked_skills:
+          items:
+            type: string
+          type: array
+          title: Liked Skills
+        disliked_skills:
+          items:
+            type: string
+          type: array
+          title: Disliked Skills
+        liked_domains:
+          items:
+            type: string
+          type: array
+          title: Liked Domains
+        blocked_domains:
+          items:
+            type: string
+          type: array
+          title: Blocked Domains
+        last_active_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Last Active At
+        phone:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Phone
+        contact_email:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Contact Email
+        skills:
+          items:
+            $ref: '#/components/schemas/SkillOut'
+          type: array
+          title: Skills
+        projects:
+          items:
+            $ref: '#/components/schemas/ProjectOut'
+          type: array
+          title: Projects
+        experiences:
+          items:
+            $ref: '#/components/schemas/ExperienceOut'
+          type: array
+          title: Experiences
+        fsp_achievements:
+          items:
+            $ref: '#/components/schemas/FspAchievementOut'
+          type: array
+          title: Fsp Achievements
+      type: object
+      required:
+      - id
+      - full_name
+      - display_name
+      - status
+      - visible
+      - in_pool_eligible
+      title: CandidateProfile
+    CandidateSettings:
+      properties:
+        visible:
+          type: boolean
+          title: Visible
+        hidden_company_ids:
+          items:
+            type: string
+            format: uuid
+          type: array
+          title: Hidden Company Ids
+      type: object
+      required:
+      - visible
+      title: CandidateSettings
+    CandidateStatus:
+      type: string
+      enum:
+      - seeking
+      - open
+      - paused
+      title: CandidateStatus
+    CandidateUpdate:
+      properties:
+        full_name:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Full Name
+        city:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: City
+        specialization:
+          anyOf:
+          - $ref: '#/components/schemas/Specialization'
+          - type: 'null'
+        min_salary:
+          anyOf:
+          - type: integer
+            minimum: 0.0
+          - type: 'null'
+          title: Min Salary
+        formats:
+          anyOf:
+          - items:
+              $ref: '#/components/schemas/WorkFormat'
+            type: array
+          - type: 'null'
+          title: Formats
+        status:
+          anyOf:
+          - $ref: '#/components/schemas/CandidateStatus'
+          - type: 'null'
+        visible:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Visible
+        liked_skills:
+          anyOf:
+          - items:
+              type: string
+            type: array
+          - type: 'null'
+          title: Liked Skills
+        disliked_skills:
+          anyOf:
+          - items:
+              type: string
+            type: array
+          - type: 'null'
+          title: Disliked Skills
+        liked_domains:
+          anyOf:
+          - items:
+              type: string
+            type: array
+          - type: 'null'
+          title: Liked Domains
+        blocked_domains:
+          anyOf:
+          - items:
+              type: string
+            type: array
+          - type: 'null'
+          title: Blocked Domains
+        phone:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Phone
+        contact_email:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Contact Email
+      type: object
+      title: CandidateUpdate
+    CategorySuggestion:
+      properties:
+        specialization:
+          $ref: '#/components/schemas/Specialization'
+        grades:
+          items:
+            type: string
+          type: array
+          title: Grades
+        domain:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Domain
+        evidence_span:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Evidence Span
+      type: object
+      required:
+      - specialization
+      - grades
+      title: CategorySuggestion
+    CategoryTileOut:
+      properties:
+        id:
+          type: string
+          title: Id
+        title:
+          type: string
+          title: Title
+        count:
+          type: integer
+          title: Count
+      type: object
+      required:
+      - id
+      - title
+      - count
+      title: CategoryTileOut
+    CompanyOut:
+      properties:
+        name:
+          type: string
+          maxLength: 200
+          minLength: 1
+          title: Name
+        city:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: City
+        size:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Size
+        industry:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Industry
+        about:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: About
+        recruiter_contact:
+          $ref: '#/components/schemas/RecruiterContact'
+        benefits:
+          items:
+            $ref: '#/components/schemas/Benefit'
+          type: array
+          title: Benefits
+        id:
+          type: string
+          format: uuid
+          title: Id
+      type: object
+      required:
+      - name
+      - id
+      title: CompanyOut
+    CompanyWrite:
+      properties:
+        name:
+          type: string
+          maxLength: 200
+          minLength: 1
+          title: Name
+        city:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: City
+        size:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Size
+        industry:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Industry
+        about:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: About
+        recruiter_contact:
+          $ref: '#/components/schemas/RecruiterContact'
+        benefits:
+          items:
+            $ref: '#/components/schemas/Benefit'
+          type: array
+          title: Benefits
+      type: object
+      required:
+      - name
+      title: CompanyWrite
+    ContactChannel:
+      type: string
+      enum:
+      - email
+      - phone
+      - telegram
+      title: ContactChannel
+    DeclineIn:
+      properties:
+        reason:
+          $ref: '#/components/schemas/DeclineReason'
+      type: object
+      required:
+      - reason
+      title: DeclineIn
+    DeclineReason:
+      type: string
+      enum:
+      - salary
+      - stack
+      - format
+      - found_job
+      - other
+      title: DeclineReason
+    DeclineReasonOut:
+      properties:
+        id:
+          type: string
+          title: Id
+        name:
+          type: string
+          title: Name
+      type: object
+      required:
+      - id
+      - name
+      title: DeclineReasonOut
+    DemoFinishIn:
+      properties:
+        score:
+          type: number
+          maximum: 100.0
+          minimum: 0.0
+          title: Score
+        skill_scores:
+          items:
+            $ref: '#/components/schemas/SkillScore'
+          type: array
+          title: Skill Scores
+        grade:
+          anyOf:
+          - $ref: '#/components/schemas/Grade'
+          - type: 'null'
+      type: object
+      required:
+      - score
+      title: DemoFinishIn
+    DomainOut:
+      properties:
+        id:
+          type: string
+          title: Id
+        name:
+          type: string
+          title: Name
+      type: object
+      required:
+      - id
+      - name
+      title: DomainOut
+    EmployerHint:
+      properties:
+        id:
+          type: string
+          title: Id
+        type:
+          type: string
+          title: Type
+        title:
+          type: string
+          title: Title
+        before:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Before
+        after:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: After
+        avg_before:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Avg Before
+        avg_after:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Avg After
+        apply:
+          anyOf:
+          - $ref: '#/components/schemas/HintApply'
+          - type: 'null'
+      type: object
+      required:
+      - id
+      - type
+      - title
+      title: EmployerHint
+    ExperienceOut:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        company:
+          type: string
+          title: Company
+        role:
+          type: string
+          title: Role
+        start:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Start
+        end:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: End
+        description:
+          type: string
+          title: Description
+        evidence_span:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Evidence Span
+      type: object
+      required:
+      - id
+      - company
+      - role
+      - description
+      title: ExperienceOut
+    FavoriteOut:
+      properties:
+        candidate_id:
+          type: string
+          format: uuid
+          title: Candidate Id
+        favorite:
+          type: boolean
+          title: Favorite
+      type: object
+      required:
+      - candidate_id
+      - favorite
+      title: FavoriteOut
+    FspAchievementOut:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        discipline:
+          type: string
+          title: Discipline
+        event:
+          type: string
+          title: Event
+        place:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Place
+        year:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Year
+      type: object
+      required:
+      - id
+      - discipline
+      - event
+      title: FspAchievementOut
+    FspBadge:
+      properties:
+        discipline:
+          type: string
+          title: Discipline
+        text:
+          type: string
+          title: Text
+      type: object
+      required:
+      - discipline
+      - text
+      title: FspBadge
+    Grade:
+      type: string
+      enum:
+      - intern
+      - junior
+      - middle
+      - senior
+      - lead
+      title: Grade
+    GradeHistoryItem:
+      properties:
+        attempt_id:
+          type: string
+          format: uuid
+          title: Attempt Id
+        finished_at:
+          type: string
+          format: date-time
+          title: Finished At
+        score:
+          type: number
+          title: Score
+        grade:
+          $ref: '#/components/schemas/Grade'
+      type: object
+      required:
+      - attempt_id
+      - finished_at
+      - score
+      - grade
+      title: GradeHistoryItem
+    GradeView:
+      properties:
+        specialization:
+          anyOf:
+          - $ref: '#/components/schemas/Specialization'
+          - type: 'null'
+        declared_grade:
+          anyOf:
+          - $ref: '#/components/schemas/Grade'
+          - type: 'null'
+        grade:
+          anyOf:
+          - $ref: '#/components/schemas/Grade'
+          - type: 'null'
+        score:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Score
+        ready_for_next:
+          type: boolean
+          title: Ready For Next
+          default: false
+        rank:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Rank
+        category_size:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Category Size
+        skill_scores:
+          items:
+            $ref: '#/components/schemas/SkillScore'
+          type: array
+          title: Skill Scores
+        history:
+          items:
+            $ref: '#/components/schemas/GradeHistoryItem'
+          type: array
+          title: History
+      type: object
+      title: GradeView
+    HTTPValidationError:
+      properties:
+        detail:
+          items:
+            $ref: '#/components/schemas/ValidationError'
+          type: array
+          title: Detail
+      type: object
+      title: HTTPValidationError
+    HintApply:
+      properties:
+        kind:
+          type: string
+          title: Kind
+        filter:
+          anyOf:
+          - additionalProperties: true
+            type: object
+          - type: 'null'
+          title: Filter
+        patch:
+          anyOf:
+          - additionalProperties: true
+            type: object
+          - type: 'null'
+          title: Patch
+      type: object
+      required:
+      - kind
+      title: HintApply
+    HiringStage:
+      type: string
+      enum:
+      - interview
+      - team
+      - offer
+      - closed
+      title: HiringStage
+    InvitationCreate:
+      properties:
+        need_id:
+          type: string
+          format: uuid
+          title: Need Id
+        candidate_id:
+          type: string
+          format: uuid
+          title: Candidate Id
+        title:
+          type: string
+          minLength: 1
+          title: Title
+        message:
+          type: string
+          title: Message
+          default: ''
+        salary_from:
+          type: integer
+          minimum: 0.0
+          title: Salary From
+        salary_to:
+          type: integer
+          minimum: 0.0
+          title: Salary To
+        contact_channel:
+          $ref: '#/components/schemas/ContactChannel'
+        contact_value:
+          type: string
+          minLength: 1
+          title: Contact Value
+        deadline:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Deadline
+      type: object
+      required:
+      - need_id
+      - candidate_id
+      - title
+      - salary_from
+      - salary_to
+      - contact_channel
+      - contact_value
+      title: InvitationCreate
+    InvitationList:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/InvitationOut'
+          type: array
+          title: Items
+        counts:
+          additionalProperties:
+            type: integer
+          type: object
+          title: Counts
+      type: object
+      required:
+      - items
+      - counts
+      title: InvitationList
+    InvitationOut:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        need_id:
+          type: string
+          format: uuid
+          title: Need Id
+        candidate_id:
+          type: string
+          format: uuid
+          title: Candidate Id
+        status:
+          $ref: '#/components/schemas/InvitationStatus'
+        title:
+          type: string
+          title: Title
+        message:
+          type: string
+          title: Message
+        salary_from:
+          type: integer
+          title: Salary From
+        salary_to:
+          type: integer
+          title: Salary To
+        contact_channel:
+          anyOf:
+          - $ref: '#/components/schemas/ContactChannel'
+          - type: 'null'
+        deadline:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Deadline
+        decline_reason:
+          anyOf:
+          - $ref: '#/components/schemas/DeclineReason'
+          - type: 'null'
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        company_name:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Company Name
+        need_title:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Need Title
+        candidate_display_name:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Candidate Display Name
+        candidate_email:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Candidate Email
+        candidate_phone:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Candidate Phone
+        recruiter_contact:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Recruiter Contact
+      type: object
+      required:
+      - id
+      - need_id
+      - candidate_id
+      - status
+      - title
+      - message
+      - salary_from
+      - salary_to
+      - created_at
+      title: InvitationOut
+    InvitationStatus:
+      type: string
+      enum:
+      - sent
+      - viewed
+      - accepted
+      - declined
+      - expired
+      - revoked
+      title: InvitationStatus
+    JobOut:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        status:
+          $ref: '#/components/schemas/JobStatus'
+        result:
+          anyOf:
+          - additionalProperties: true
+            type: object
+          - type: 'null'
+          title: Result
+        error:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Error
+        created_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Created At
+      type: object
+      required:
+      - id
+      - status
+      title: JobOut
+    JobStatus:
+      type: string
+      enum:
+      - queued
+      - running
+      - done
+      - failed
+      title: JobStatus
+    MatchAccepted:
+      properties:
+        job_id:
+          type: string
+          format: uuid
+          title: Job Id
+      type: object
+      required:
+      - job_id
+      title: MatchAccepted
+    Me:
+      properties:
+        sub:
+          type: string
+          title: Sub
+        role:
+          type: string
+          title: Role
+        email:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Email
+        user_id:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: User Id
+        candidate_id:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Candidate Id
+        company_id:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Company Id
+      type: object
+      required:
+      - sub
+      - role
+      title: Me
+    MessageCreate:
+      properties:
+        kind:
+          $ref: '#/components/schemas/MessageKind'
+          default: text
+        body:
+          type: string
+          title: Body
+          default: ''
+        slots:
+          anyOf:
+          - items:
+              $ref: '#/components/schemas/Slot'
+            type: array
+          - type: 'null'
+          title: Slots
+        hiring_stage:
+          anyOf:
+          - $ref: '#/components/schemas/HiringStage'
+          - type: 'null'
+      type: object
+      title: MessageCreate
+    MessageKind:
+      type: string
+      enum:
+      - text
+      - slots
+      - system
+      title: MessageKind
+    MessageList:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/MessageOut'
+          type: array
+          title: Items
+      type: object
+      title: MessageList
+    MessageOut:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        author_user_id:
+          type: string
+          format: uuid
+          title: Author User Id
+        kind:
+          $ref: '#/components/schemas/MessageKind'
+        body:
+          type: string
+          title: Body
+        slots:
+          anyOf:
+          - items:
+              $ref: '#/components/schemas/Slot'
+            type: array
+          - type: 'null'
+          title: Slots
+        hiring_stage:
+          anyOf:
+          - $ref: '#/components/schemas/HiringStage'
+          - type: 'null'
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+      type: object
+      required:
+      - id
+      - author_user_id
+      - kind
+      - body
+      - created_at
+      title: MessageOut
+    NeedOut:
+      properties:
+        title:
+          type: string
+          maxLength: 200
+          minLength: 1
+          title: Title
+        specialization:
+          $ref: '#/components/schemas/Specialization'
+        grades:
+          items:
+            type: string
+          type: array
+          maxItems: 2
+          minItems: 1
+          title: Grades
+        salary_from:
+          type: integer
+          minimum: 0.0
+          title: Salary From
+        salary_to:
+          type: integer
+          minimum: 0.0
+          title: Salary To
+        formats:
+          items:
+            $ref: '#/components/schemas/WorkFormat'
+          type: array
+          minItems: 1
+          title: Formats
+        city:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: City
+        must_skills:
+          items:
+            type: string
+          type: array
+          maxItems: 5
+          minItems: 1
+          title: Must Skills
+        nice_skills:
+          items:
+            type: string
+          type: array
+          maxItems: 5
+          title: Nice Skills
+        description:
+          type: string
+          minLength: 300
+          title: Description
+        domain:
+          type: string
+          minLength: 1
+          title: Domain
+        stages:
+          type: integer
+          maximum: 10.0
+          minimum: 1.0
+          title: Stages
+        id:
+          type: string
+          format: uuid
+          title: Id
+        status:
+          type: string
+          title: Status
+        company_id:
+          type: string
+          format: uuid
+          title: Company Id
+      type: object
+      required:
+      - title
+      - specialization
+      - grades
+      - salary_from
+      - salary_to
+      - formats
+      - must_skills
+      - description
+      - domain
+      - stages
+      - id
+      - status
+      - company_id
+      title: NeedOut
+    NeedWrite:
+      properties:
+        title:
+          type: string
+          maxLength: 200
+          minLength: 1
+          title: Title
+        specialization:
+          $ref: '#/components/schemas/Specialization'
+        grades:
+          items:
+            type: string
+          type: array
+          maxItems: 2
+          minItems: 1
+          title: Grades
+        salary_from:
+          type: integer
+          minimum: 0.0
+          title: Salary From
+        salary_to:
+          type: integer
+          minimum: 0.0
+          title: Salary To
+        formats:
+          items:
+            $ref: '#/components/schemas/WorkFormat'
+          type: array
+          minItems: 1
+          title: Formats
+        city:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: City
+        must_skills:
+          items:
+            type: string
+          type: array
+          maxItems: 5
+          minItems: 1
+          title: Must Skills
+        nice_skills:
+          items:
+            type: string
+          type: array
+          maxItems: 5
+          title: Nice Skills
+        description:
+          type: string
+          minLength: 300
+          title: Description
+        domain:
+          type: string
+          minLength: 1
+          title: Domain
+        stages:
+          type: integer
+          maximum: 10.0
+          minimum: 1.0
+          title: Stages
+      type: object
+      required:
+      - title
+      - specialization
+      - grades
+      - salary_from
+      - salary_to
+      - formats
+      - must_skills
+      - description
+      - domain
+      - stages
+      title: NeedWrite
+    ParseResult:
+      properties:
+        category:
+          anyOf:
+          - $ref: '#/components/schemas/CategorySuggestion'
+          - type: 'null'
+        requirements:
+          items:
+            $ref: '#/components/schemas/RequirementOut'
+          type: array
+          title: Requirements
+        llm_used:
+          type: boolean
+          title: Llm Used
+      type: object
+      required:
+      - llm_used
+      title: ParseResult
+    ParsedExperience:
+      properties:
+        evidence_span:
+          type: string
+          minLength: 1
+          title: Evidence Span
+        company:
+          type: string
+          title: Company
+        role:
+          type: string
+          title: Role
+        start:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Start
+        end:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: End
+        description:
+          type: string
+          title: Description
+          default: ''
+      type: object
+      required:
+      - evidence_span
+      - company
+      - role
+      title: ParsedExperience
+    ParsedProject:
+      properties:
+        evidence_span:
+          type: string
+          minLength: 1
+          title: Evidence Span
+        task:
+          type: string
+          title: Task
+        role:
+          $ref: '#/components/schemas/ProjectRole'
+          default: participant
+        skills:
+          items:
+            type: string
+          type: array
+          title: Skills
+        outcome:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Outcome
+      type: object
+      required:
+      - evidence_span
+      - task
+      title: ParsedProject
+    ParsedResume:
+      properties:
+        experiences:
+          items:
+            $ref: '#/components/schemas/ParsedExperience'
+          type: array
+          title: Experiences
+        skills:
+          items:
+            $ref: '#/components/schemas/ParsedSkill'
+          type: array
+          title: Skills
+        projects:
+          items:
+            $ref: '#/components/schemas/ParsedProject'
+          type: array
+          title: Projects
+      type: object
+      title: ParsedResume
+    ParsedSkill:
+      properties:
+        evidence_span:
+          type: string
+          minLength: 1
+          title: Evidence Span
+        name:
+          type: string
+          title: Name
+        skill_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Skill Id
+      type: object
+      required:
+      - evidence_span
+      - name
+      title: ParsedSkill
+    ProjectIn:
+      properties:
+        task:
+          type: string
+          minLength: 1
+          title: Task
+        role:
+          $ref: '#/components/schemas/ProjectRole'
+        skills:
+          items:
+            type: string
+          type: array
+          minItems: 1
+          title: Skills
+        scale:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Scale
+        outcome:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Outcome
+        date:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Date
+        url:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Url
+      type: object
+      required:
+      - task
+      - role
+      - skills
+      title: ProjectIn
+    ProjectOut:
+      properties:
+        task:
+          type: string
+          minLength: 1
+          title: Task
+        role:
+          $ref: '#/components/schemas/ProjectRole'
+        skills:
+          items:
+            type: string
+          type: array
+          minItems: 1
+          title: Skills
+        scale:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Scale
+        outcome:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Outcome
+        date:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Date
+        url:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Url
+        id:
+          type: string
+          format: uuid
+          title: Id
+        source:
+          type: string
+          title: Source
+      type: object
+      required:
+      - task
+      - role
+      - skills
+      - id
+      - source
+      title: ProjectOut
+    ProjectRole:
+      type: string
+      enum:
+      - owner
+      - contributor
+      - participant
+      title: ProjectRole
+    PublicTest:
+      properties:
+        stdin:
+          type: string
+          title: Stdin
+        expected:
+          type: string
+          title: Expected
+      type: object
+      required:
+      - stdin
+      - expected
+      title: PublicTest
+    RecruiterContact:
+      properties:
+        name:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Name
+        email:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Email
+        phone:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Phone
+      type: object
+      title: RecruiterContact
+    RequirementKind:
+      type: string
+      enum:
+      - must
+      - nice
+      title: RequirementKind
+    RequirementOut:
+      properties:
+        id:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Id
+        task:
+          type: string
+          title: Task
+        domain:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Domain
+        skills:
+          items:
+            type: string
+          type: array
+          title: Skills
+        scale:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Scale
+        kind:
+          $ref: '#/components/schemas/RequirementKind'
+        evidence_span:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Evidence Span
+      type: object
+      required:
+      - task
+      - kind
+      title: RequirementOut
+    ReseedOut:
+      properties:
+        candidates:
+          type: integer
+          title: Candidates
+        companies:
+          type: integer
+          title: Companies
+        needs:
+          type: integer
+          title: Needs
+        invitations:
+          type: integer
+          title: Invitations
+      type: object
+      required:
+      - candidates
+      - companies
+      - needs
+      - invitations
+      title: ReseedOut
+    ResumeStatus:
+      type: string
+      enum:
+      - uploaded
+      - parsing
+      - parsed
+      - confirmed
+      - failed
+      title: ResumeStatus
+    ResumeUploadOut:
+      properties:
+        resume_id:
+          type: string
+          format: uuid
+          title: Resume Id
+        status:
+          $ref: '#/components/schemas/ResumeStatus'
+      type: object
+      required:
+      - resume_id
+      - status
+      title: ResumeUploadOut
+    ResumeView:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        status:
+          $ref: '#/components/schemas/ResumeStatus'
+        error:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Error
+        parsed:
+          anyOf:
+          - $ref: '#/components/schemas/ParsedResume'
+          - type: 'null'
+      type: object
+      required:
+      - id
+      - status
+      title: ResumeView
+    RunIn:
+      properties:
+        task_id:
+          type: string
+          title: Task Id
+        code:
+          type: string
+          minLength: 1
+          title: Code
+        language:
+          type: string
+          title: Language
+      type: object
+      required:
+      - task_id
+      - code
+      - language
+      title: RunIn
+    RunOut:
+      properties:
+        verdict:
+          $ref: '#/components/schemas/Verdict'
+        passed:
+          type: integer
+          title: Passed
+        total:
+          type: integer
+          title: Total
+        stdout:
+          type: string
+          title: Stdout
+          default: ''
+        stderr:
+          type: string
+          title: Stderr
+          default: ''
+      type: object
+      required:
+      - verdict
+      - passed
+      - total
+      title: RunOut
+    ShortlistItemOut:
+      properties:
+        position:
+          type: integer
+          title: Position
+        candidate_id:
+          type: string
+          format: uuid
+          title: Candidate Id
+        display_name:
+          type: string
+          title: Display Name
+        category:
+          type: string
+          title: Category
+        grade:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Grade
+        experience_years:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Experience Years
+        city:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: City
+        fsp_badge:
+          anyOf:
+          - $ref: '#/components/schemas/FspBadge'
+          - type: 'null'
+        match:
+          type: integer
+          maximum: 100.0
+          minimum: 0.0
+          title: Match
+        test_score:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Test Score
+        explanations:
+          items:
+            type: string
+          type: array
+          title: Explanations
+        invitation_status:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Invitation Status
+        favorite:
+          type: boolean
+          title: Favorite
+          default: false
+      type: object
+      required:
+      - position
+      - candidate_id
+      - display_name
+      - category
+      - match
+      title: ShortlistItemOut
+    ShortlistOut:
+      properties:
+        need_id:
+          type: string
+          format: uuid
+          title: Need Id
+        total:
+          type: integer
+          title: Total
+        page:
+          type: integer
+          title: Page
+        page_size:
+          type: integer
+          title: Page Size
+        categories:
+          items:
+            $ref: '#/components/schemas/CategoryTileOut'
+          type: array
+          title: Categories
+        items:
+          items:
+            $ref: '#/components/schemas/ShortlistItemOut'
+          type: array
+          title: Items
+        hidden_count:
+          type: integer
+          title: Hidden Count
+          default: 0
+      type: object
+      required:
+      - need_id
+      - total
+      - page
+      - page_size
+      title: ShortlistOut
+    SkillHit:
+      properties:
+        id:
+          type: string
+          title: Id
+        name:
+          type: string
+          title: Name
+        synonyms:
+          items:
+            type: string
+          type: array
+          title: Synonyms
+        specializations:
+          items:
+            type: string
+          type: array
+          title: Specializations
+      type: object
+      required:
+      - id
+      - name
+      title: SkillHit
+    SkillOut:
+      properties:
+        skill_id:
+          type: string
+          title: Skill Id
+        score:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Score
+        source:
+          $ref: '#/components/schemas/SkillSource'
+      type: object
+      required:
+      - skill_id
+      - source
+      title: SkillOut
+    SkillScore:
+      properties:
+        skill_id:
+          type: string
+          title: Skill Id
+        score:
+          type: number
+          title: Score
+      type: object
+      required:
+      - skill_id
+      - score
+      title: SkillScore
+    SkillSource:
+      type: string
+      enum:
+      - test
+      - resume
+      - project
+      - fsp_id
+      title: SkillSource
+    Slot:
+      properties:
+        start:
+          type: string
+          format: date-time
+          title: Start
+        end:
+          type: string
+          format: date-time
+          title: End
+      type: object
+      required:
+      - start
+      - end
+      title: Slot
+    Specialization:
+      type: string
+      enum:
+      - backend
+      - frontend
+      - data_ml
+      - devops
+      title: Specialization
+    SpecializationOut:
+      properties:
+        id:
+          type: string
+          title: Id
+        name:
+          type: string
+          title: Name
+        adjacent:
+          items:
+            type: string
+          type: array
+          title: Adjacent
+      type: object
+      required:
+      - id
+      - name
+      title: SpecializationOut
+    TaskKind:
+      type: string
+      enum:
+      - mcq
+      - code
+      title: TaskKind
+    TaskOption:
+      properties:
+        id:
+          type: string
+          title: Id
+        text:
+          type: string
+          title: Text
+      type: object
+      required:
+      - id
+      - text
+      title: TaskOption
+    TaskPublic:
+      properties:
+        id:
+          type: string
+          title: Id
+        kind:
+          $ref: '#/components/schemas/TaskKind'
+        skills:
+          items:
+            type: string
+          type: array
+          title: Skills
+        difficulty:
+          type: integer
+          title: Difficulty
+        body:
+          type: string
+          title: Body
+        options:
+          anyOf:
+          - items:
+              $ref: '#/components/schemas/TaskOption'
+            type: array
+          - type: 'null'
+          title: Options
+        tests_public:
+          anyOf:
+          - items:
+              $ref: '#/components/schemas/PublicTest'
+            type: array
+          - type: 'null'
+          title: Tests Public
+        languages:
+          items:
+            type: string
+          type: array
+          title: Languages
+      type: object
+      required:
+      - id
+      - kind
+      - skills
+      - difficulty
+      - body
+      title: TaskPublic
+    ValidationError:
+      properties:
+        loc:
+          items:
+            anyOf:
+            - type: string
+            - type: integer
+          type: array
+          title: Location
+        msg:
+          type: string
+          title: Message
+        type:
+          type: string
+          title: Error Type
+        input:
+          title: Input
+        ctx:
+          type: object
+          title: Context
+      type: object
+      required:
+      - loc
+      - msg
+      - type
+      title: ValidationError
+    Verdict:
+      type: string
+      enum:
+      - OK
+      - WRONG_ANSWER
+      - TIME_LIMIT
+      - MEMORY_LIMIT
+      - COMPILE_ERROR
+      - RUNTIME_ERROR
+      - PENDING
+      title: Verdict
+    WorkFormat:
+      type: string
+      enum:
+      - remote
+      - hybrid
+      - office
+      title: WorkFormat
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+security:
+- bearerAuth: []
