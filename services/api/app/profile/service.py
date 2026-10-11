@@ -63,6 +63,7 @@ class CandidateFeatures:
     liked_domains: list[str]
     blocked_domains: list[str]
     last_active_at: datetime | None
+    daily_boost_until: datetime | None = None
     skills: list[SkillFeature] = field(default_factory=list)
     evidence: list[EvidenceFeature] = field(default_factory=list)
     fsp: list[FspFeature] = field(default_factory=list)
@@ -129,6 +130,10 @@ async def privacy_for(session: AsyncSession, candidate_ids: list[UUID]) -> dict[
 
 async def employer_company_id(session: AsyncSession, principal: Principal) -> UUID | None:
     return await _api().employer_company_id(session, principal)
+
+
+async def list_daily_stories(session: AsyncSession, candidate_id: UUID) -> list[dict[str, Any]]:
+    return await _api().list_daily_stories(session, candidate_id)
 
 
 async def basic_card(session: AsyncSession, candidate_id: UUID) -> dict[str, Any] | None:

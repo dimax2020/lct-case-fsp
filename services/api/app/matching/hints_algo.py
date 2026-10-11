@@ -390,7 +390,7 @@ def _blocker_hints(candidate: CandidateFeatures, needs: list[NeedView]) -> list[
                     f"{count} компаний отсекают вас по зарплате: ваш минимум выше {percent} % вилок",
                     f"+{count} компаний",
                     "Изменить условия",
-                    "/candidate/profile",
+                    "/candidate/profile/edit#search",
                     count / effort,
                 )
             )
@@ -403,7 +403,7 @@ def _blocker_hints(candidate: CandidateFeatures, needs: list[NeedView]) -> list[
                     f"Рассмотрите гибрид — +{count} компаний",
                     f"+{count} компаний",
                     "Изменить формат",
-                    "/candidate/profile",
+                    "/candidate/profile/edit#search",
                     count / effort,
                 )
             )
@@ -491,8 +491,8 @@ def _rank_hints(
     hints: list[dict[str, Any]] = []
     mutations = (
         ("fresh", "Решите задание", "Решить задание", "/candidate/test", HINT_EFFORT["mini_test"]),
-        ("project", None, "Добавить проект", "/candidate/profile", HINT_EFFORT["project"]),
-        ("fsp", "Свяжите ФСП ID", "Связать ФСП ID", "/candidate/profile", HINT_EFFORT["conditions"]),
+        ("project", None, "Добавить проект", "/candidate/profile/edit#projects", HINT_EFFORT["project"]),
+        ("fsp", "Свяжите ФСП ID", "Связать ФСП ID", "/candidate/profile/edit#fsp", HINT_EFFORT["conditions"]),
     )
     for kind, title_prefix, action, href, effort in mutations:
         mutated = _mutate(candidate, kind, pool_needs, today)

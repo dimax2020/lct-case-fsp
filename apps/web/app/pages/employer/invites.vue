@@ -96,7 +96,18 @@ async function revoke(inv: Inv) {
                   </NuxtLink>
                 </td>
                 <td style="padding: 16px 16px 16px 0;">{{ r.title }}</td>
-                <td style="padding: 16px 16px 16px 0;">{{ r.practice_title || '—' }}</td>
+                <td style="padding: 16px 16px 16px 0;">
+                  <template v-if="r.practice_title">
+                    <div>{{ r.practice_title }}</div>
+                    <NuxtLink
+                      v-if="r.practice_id"
+                      :to="`/employer/process#practice=${encodeURIComponent(r.practice_id)}`"
+                      class="fsp-link"
+                      style="display: inline-block; margin-top: 6px; font-weight: 600;"
+                    >{{ r.status === 'accepted' ? 'Смотреть выполнение' : 'Открыть шаблон' }}</NuxtLink>
+                  </template>
+                  <span v-else class="u-muted">—</span>
+                </td>
                 <td style="padding: 16px 16px 16px 0; font-weight: 600; white-space: nowrap;">{{ salaryRange(r.salary_from, r.salary_to) }}</td>
                 <td style="padding: 16px 16px 16px 0; color: var(--text-muted);">{{ shortDate(r.created_at) }}</td>
                 <td style="padding: 16px 16px 16px 0;"><FspStatusBadge :status="inviteTone(r.status)">{{ inviteLabel(r.status) }}</FspStatusBadge></td>

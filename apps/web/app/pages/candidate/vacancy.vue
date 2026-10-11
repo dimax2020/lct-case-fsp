@@ -59,12 +59,12 @@ const cardStyle = (on: boolean) => on
     <main class="fsp-page fsp-stack-32">
       <div>
         <h1 class="fsp-display fsp-title">Вакансии</h1>
-        <p style="margin: 0; font-size: 16px; color: var(--text-muted);">Каталог открытых вакансий. Откликнуться нельзя: работодатель сам присылает приглашение, если профиль подходит.</p>
+        <p style="margin: 0; font-size: 16px; color: var(--text-muted);">Здесь только вакансии компаний, которые уже предложили вам работу. Откликнуться нельзя: ответ даётся в приглашении.</p>
       </div>
       <ScreenState :phase="screen.phase.value" :error="screen.error.value" @retry="screen.load">
         <div class="fsp-columns">
           <section style="flex: 1 1 320px; min-width: 0; display: flex; flex-direction: column; gap: 12px;">
-            <p v-if="!vacancies.length" class="u-muted-p">Открытых вакансий пока нет.</p>
+            <p v-if="!vacancies.length" class="u-muted-p">Пока нет вакансий от компаний, которые предложили вам работу.</p>
             <button v-for="v in vacancies" :key="v.id" type="button" :class="['fsp-cut', selectedId === v.id && 'fsp-active']" :style="cardStyle(selectedId === v.id)" @click="openVacancy(v.id)">
               <span style="display: block; font-weight: 600; font-size: 16px;">{{ v.title }}</span>
               <span style="display: block; margin-top: 4px; font-size: 14px; color: var(--text-muted);">{{ v.company_name || 'Компания' }}</span>
@@ -86,7 +86,7 @@ const cardStyle = (on: boolean) => on
                 <FspPlate :dots="6" style="margin-top: 24px;">
                   <div class="fsp-eyebrow fsp-eyebrow--plate">Зарплата</div>
                   <div style="font-size: 30px; line-height: 36px; font-weight: 700; margin: 8px 0 16px;">{{ fork(detail) }}</div>
-                  <p style="margin: 0; font-size: 14px; color: var(--on-plate-muted);">Отклик недоступен. Если компания захочет поговорить, приглашение придёт в раздел «Приглашения».</p>
+                  <p style="margin: 0; font-size: 14px; color: var(--on-plate-muted);">Компания уже предложила вам работу. Откликнуться на вакансию нельзя: решение принимается в приглашении.</p>
                   <div style="margin-top: 16px;"><FspButton variant="outline" href="/candidate/invites">К приглашениям</FspButton></div>
                 </FspPlate>
               </template>

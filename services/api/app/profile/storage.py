@@ -96,6 +96,7 @@ async def get_candidate_features(candidate_id: UUID) -> CandidateFeatures:
             liked_domains=list(candidate.liked_domains or []),
             blocked_domains=list(candidate.blocked_domains or []),
             last_active_at=candidate.last_active_at,
+            daily_boost_until=await _daily_boost_until(session, candidate_id),
             skills=[SkillFeature(skill_id=row.skill_id, score=row.score, source=row.source) for row in skills],
             evidence=[
                 EvidenceFeature(
@@ -208,14 +209,29 @@ async def _load_achievements(session: AsyncSession, candidate_id: UUID) -> list[
     return list(rows)
 
 
+async def list_daily_stories(session: AsyncSession, candidate_id: UUID) -> list[dict[str, Any]]:
+    from app.profile.daily import stories_for
+
+    return [item.model_dump(mode="json") for item in await stories_for(session, candidate_id)]
+
+
+async def _daily_boost_until(session: AsyncSession, candidate_id: UUID) -> datetime | None:
+    from app.profile.daily import latest_boost_until
+
+    return await latest_boost_until(session, candidate_id)
+
+
 async def profile_view(session: AsyncSession, candidate: Candidate) -> CandidateProfile:
     await _touch(candidate)
+    from app.profile.daily import stories_for
+
     return candidate_profile(
         candidate,
         await _load_skills(session, candidate.id),
         await _load_projects(session, candidate.id),
         await _load_experiences(session, candidate.id),
         await _load_achievements(session, candidate.id),
+        await stories_for(session, candidate.id),
     )
 
 
@@ -718,6 +734,7 @@ async def basic_card(session: AsyncSession, candidate_id: UUID) -> dict[str, Any
         "projects": [item.task for item in projects][:5],
         "fsp_badge": badge,
         "invitation_status": None,
+        "daily_stories": await list_daily_stories(session, candidate.id),
     }
 
 

@@ -384,6 +384,7 @@ async def load_people(
     years = await _experience_years(session, candidate_ids)
     invitations = await _invitation_status(session, candidate_ids, need_id)
     favorites = await _favorites(session, candidate_ids, company_id)
+    boosts = await _daily_boosts(session, candidate_ids)
     loaded: dict[UUID, LoadedPerson] = {}
     for row in rows:
         candidate_id = _uuid(row["id"])
@@ -410,6 +411,7 @@ async def load_people(
             liked_domains=_as_list(row["liked_domains"]),
             blocked_domains=_as_list(row["blocked_domains"]),
             last_active_at=row["last_active_at"] if isinstance(row["last_active_at"], datetime) else None,
+            daily_boost_until=boosts.get(candidate_id),
             skills=[
                 SkillFeature(
                     skill_id=str(item["skill_id"]),
@@ -438,6 +440,28 @@ async def load_people(
             favorite=candidate_id in favorites,
         )
     return loaded
+
+
+async def _daily_boosts(session: AsyncSession, candidate_ids: list[UUID]) -> dict[UUID, datetime]:
+    if not candidate_ids:
+        return {}
+    result = await session.execute(
+        text(
+            """
+            SELECT candidate_id, MAX(boost_until) AS boost_until
+            FROM daily_task_answers
+            WHERE candidate_id = ANY(:ids)
+            GROUP BY candidate_id
+            """
+        ).bindparams(bindparam("ids", type_=_UUIDS)),
+        {"ids": candidate_ids},
+    )
+    found: dict[UUID, datetime] = {}
+    for row in result.mappings():
+        until = row["boost_until"]
+        if isinstance(until, datetime):
+            found[_uuid(row["candidate_id"])] = until
+    return found
 
 
 async def _grouped(

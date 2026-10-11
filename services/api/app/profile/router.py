@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 import app.profile.evidence  # noqa: F401  registers rebuild_evidence on the shared broker
 import app.profile.storage as storage
 from app.core.auth import Principal, require_role
+from app.profile import daily as daily_tasks
 from app.profile.bank import search_candidates
 from app.profile.pdf import render_profile_pdf
 from app.profile.schemas import (
@@ -15,6 +16,8 @@ from app.profile.schemas import (
     CandidateProfile,
     CandidateSettings,
     CandidateUpdate,
+    DailyTaskIn,
+    DailyTaskView,
     GradeView,
     Me,
     ProjectIn,
@@ -115,6 +118,25 @@ async def unlink_my_fsp(
     """Отвязать ФСП ID: достижения и навыки из реестра ФСП удаляются из профиля."""
     candidate = await storage.current_candidate(session, principal)
     return await storage.unlink_fsp(session, candidate)
+
+
+@router.get("/candidates/me/daily-task", response_model=DailyTaskView)
+async def get_my_daily_task(
+    principal: Principal = Depends(require_role("candidate")),
+    session: AsyncSession = Depends(_db),
+) -> DailyTaskView:
+    candidate = await storage.current_candidate(session, principal)
+    return await daily_tasks.current_task(session, candidate)
+
+
+@router.post("/candidates/me/daily-task", response_model=DailyTaskView)
+async def answer_my_daily_task(
+    body: DailyTaskIn,
+    principal: Principal = Depends(require_role("candidate")),
+    session: AsyncSession = Depends(_db),
+) -> DailyTaskView:
+    candidate = await storage.current_candidate(session, principal)
+    return await daily_tasks.answer_task(session, candidate, body)
 
 
 @router.get("/candidates/me/grade", response_model=GradeView)

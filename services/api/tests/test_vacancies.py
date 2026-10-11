@@ -17,9 +17,9 @@ from app.core.auth import Principal, get_principal
 from app.core.db import Base, get_session
 from app.core.errors import AppError
 from app.core.models import User
-from app.invitation import models as invitation_models  # noqa: F401
+from app.invitation.models import Invitation
 from app.main import app
-from app.need import models as need_models  # noqa: F401
+from app.need.models import Need
 from app.profile.models import Candidate
 from app.resume import models as resume_models  # noqa: F401
 from app.vacancy.models import Application, Vacancy
@@ -35,7 +35,7 @@ from app.vacancy.seed_extra import DEMO_VACANCIES
 from app.vacancy.service import _apply_transition, next_application_status, resolve_list_role, vacancy_visible
 from httpx import ASGITransport, AsyncClient
 from pydantic import ValidationError
-from sqlalchemy import text
+from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from starlette.requests import Request
 
@@ -273,6 +273,46 @@ async def bootstrap(factory: async_sessionmaker[AsyncSession]) -> None:
         await session.commit()
 
 
+async def offer_job(factory: async_sessionmaker[AsyncSession], *, candidate_sub: str = "can-1") -> None:
+    async with factory() as session:
+        employer = await session.scalar(select(User).where(User.kc_sub == "emp-1"))
+        candidate_user = await session.scalar(select(User).where(User.kc_sub == candidate_sub))
+        assert employer is not None and candidate_user is not None
+        company = await session.scalar(select(Company).where(Company.owner_user_id == employer.id))
+        candidate = await session.scalar(select(Candidate).where(Candidate.user_id == candidate_user.id))
+        assert company is not None and candidate is not None
+        need = Need(
+            company_id=company.id,
+            title="Backend в процессинг",
+            specialization="backend",
+            grades=["middle"],
+            salary_from=200_000,
+            salary_to=320_000,
+            formats=["remote"],
+            city="Новосибирск",
+            must_skills=["go"],
+            nice_skills=[],
+            description=DESCRIPTION,
+            domain="fintech",
+            stages=1,
+            status="open",
+        )
+        session.add(need)
+        await session.flush()
+        session.add(
+            Invitation(
+                need_id=need.id,
+                candidate_id=candidate.id,
+                status="sent",
+                title="Backend-разработчик",
+                message="Предлагаем обсудить роль.",
+                salary_from=200_000,
+                salary_to=320_000,
+            )
+        )
+        await session.commit()
+
+
 @pytest.mark.parametrize("state,action", [(state, action) for state in STATES for action in ACTIONS])
 def test_application_transitions(state: str, action: str) -> None:
     expected = LEGAL.get((state, action))
@@ -380,8 +420,16 @@ async def test_publish_edit_and_open_catalog(api: tuple[AsyncClient, async_sessi
 
     listed = await client.get("/api/v1/vacancies", headers=CANDIDATE)
     assert listed.status_code == 200, listed.text
+    assert listed.json() == []
+    closed_door = await client.get(f"/api/v1/vacancies/{vacancy_id}", headers=CANDIDATE)
+    assert closed_door.status_code == 404
+
+    await offer_job(factory)
+    listed = await client.get("/api/v1/vacancies", headers=CANDIDATE)
     assert vacancy_id in {item["id"] for item in listed.json()}
     assert CONTACT_C not in listed.text
+    stranger = await client.get("/api/v1/vacancies", headers=CANDIDATE_B)
+    assert stranger.json() == []
 
     frontend = await client.post(
         "/api/v1/vacancies",

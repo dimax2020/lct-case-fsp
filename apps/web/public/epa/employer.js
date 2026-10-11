@@ -140,14 +140,11 @@ function practiceCard(p) {
         <div>
           <button type="button" class="linkish open-practice" data-id="${esc(p.id)}">${esc(p.title)}</button>
           <div class="muted">дедлайн ${esc(fmt(p.deadline))}</div>
+          <div class="muted">${esc(who(p))}</div>
         </div>
         <button type="button" class="btn danger delete-practice" data-id="${esc(p.id)}">Удалить</button>
       </div>
-      <h3>Закрепить за вакансией</h3>
-      <p class="muted">Можно выбрать несколько вакансий.</p>
-      <div class="pin-list" id="pin-${esc(p.id)}"><p class="muted">Загрузка вакансий…</p></div>
-      <div id="pin-msg-${esc(p.id)}"></div>
-      <h3>Кто взял тестовое</h3>
+      <h3>Кто выполняет</h3>
       <div class="takers" id="takers-${esc(p.id)}"><p class="muted">Загрузка…</p></div>
     </section>`;
 }
@@ -162,7 +159,7 @@ function listView() {
       <ol class="steps">
         <li>Назовите проект и загрузите zip. Сразу после загрузки модель определит, что это за проект и что он делает.</li>
         <li>Загрузите ТЗ или сгенерируйте описание и ТЗ. Сохраните текст.</li>
-        <li>На карточке задания закрепите его за вакансиями. Ниже видно, кто взял тестовое. «Раскрыть» открывает обзор, ход работы, снимки кода, анализ и отчёт.</li>
+        <li>Прикрепите шаблон к приглашению в кабинете. Кандидат увидит свою копию после принятия. Ниже — кто уже выполняет.</li>
       </ol>
       <form id="create-form">
         <label for="title">Название проекта</label>
@@ -238,9 +235,6 @@ function fillPin(p) {
 }
 
 async function hydrateTasks() {
-  await loadVacancyCatalog();
-  for (const practice of state.practices) fillPin(practice);
-  $$('.pin-vacancy').forEach((input) => input.addEventListener('change', () => { void onPin(input.dataset.id); }));
   await Promise.all(state.practices.map((practice) => fillTakers(practice.id)));
 }
 
@@ -437,14 +431,11 @@ function materialsHtml() {
 }
 
 function vacancyHtml() {
-  const p = state.practice;
   return `
     <section class="card" id="vacancy-card">
-      <h2>Закрепить за вакансией</h2>
-      <p class="muted">Можно выбрать несколько вакансий. Чтобы кандидат получил задание, прикрепите его к приглашению.</p>
-      <div class="pin-list" id="pin-${esc(p.id)}"><p class="muted">Загрузка вакансий…</p></div>
-      <div id="vacancy-msg"></div>
-      <h2>Кто взял тестовое</h2>
+      <h2>Как отдать кандидату</h2>
+      <p class="muted">Прикрепите этот шаблон к приглашению в кабинете. Кандидат увидит задание после принятия — свою копию, не общий шаблон.</p>
+      <h2>Кто выполняет</h2>
       <div id="attempt-list"><p class="muted">Загрузка…</p></div>
     </section>`;
 }

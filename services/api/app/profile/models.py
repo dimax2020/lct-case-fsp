@@ -109,6 +109,21 @@ class EvidenceUnit(Base):
     embedding: Mapped[list[float] | None] = mapped_column(Vector(EMBEDDING_DIM))
 
 
+class DailyTaskAnswer(Base):
+    __tablename__ = "daily_task_answers"
+    __table_args__ = (UniqueConstraint("candidate_id", "day", name="uq_daily_task_day"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    candidate_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("candidates.id", ondelete="CASCADE"), index=True)
+    day: Mapped[date] = mapped_column(Date, nullable=False)
+    skill_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    skill_label: Mapped[str] = mapped_column(String(80), nullable=False)
+    prompt: Mapped[str] = mapped_column(Text, nullable=False)
+    answer: Mapped[str] = mapped_column(Text, nullable=False)
+    boost_until: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
 class FspAchievement(Base):
     __tablename__ = "fsp_achievements"
 

@@ -92,9 +92,11 @@ services:
       MATCH_BETA: ${MATCH_BETA:-0.15}
       UPLOAD_DIR: /data/uploads
       TAXONOMY_DIR: /srv/taxonomy/data
+      ASSESSMENT_BANK: /srv/assessment/bank.json
     volumes:
       - ../../taxonomy:/srv/taxonomy:ro
       - ../../seed:/srv/seed:ro
+      - ../../tmp_bank:/srv/assessment:ro
       - uploads:/data/uploads
     networks: [web, sandbox]
     depends_on:
@@ -125,9 +127,11 @@ services:
       PISTON_ENABLED: ${PISTON_ENABLED:-false}
       UPLOAD_DIR: /data/uploads
       TAXONOMY_DIR: /srv/taxonomy/data
+      ASSESSMENT_BANK: /srv/assessment/bank.json
     volumes:
       - ../../taxonomy:/srv/taxonomy:ro
       - ../../seed:/srv/seed:ro
+      - ../../tmp_bank:/srv/assessment:ro
       - uploads:/data/uploads
     networks: [web, sandbox]
     depends_on:

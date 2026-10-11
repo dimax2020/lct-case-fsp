@@ -4,6 +4,7 @@ import { read } from '~/utils/read'
 import { apiBlob, apiFetch } from '~/utils/raw'
 import type { PsychEmployerView } from '~/utils/psych'
 import { listEmployerPractices, type EpaPractice } from '~/utils/epa'
+import type { DailyStory } from '~/utils/daily'
 
 type Channel = components['schemas']['ContactChannel']
 
@@ -79,6 +80,7 @@ watch(screen.data, (bundle) => {
 }, { immediate: true })
 
 const card = computed(() => screen.data.value?.card ?? null)
+const stories = computed(() => ((card.value as { daily_stories?: DailyStory[] } | null)?.daily_stories ?? []))
 const companyName = computed(() => screen.data.value?.company?.name || 'Компания')
 const selectedPractice = computed(() => practices.value.find(item => item.id === practiceId.value) ?? null)
 const processHref = computed(() => {
@@ -99,7 +101,21 @@ async function loadPractices() {
   }
 }
 
-watch(() => screen.data.value?.company, () => { void loadPractices() }, { immediate: true })
+watch(
+  [() => screen.data.value?.company, () => String(route.query.practice || '')],
+  ([, id]) => {
+    if (id) practiceId.value = id
+    void loadPractices()
+  },
+  { immediate: true },
+)
+
+function onPageShow() {
+  void loadPractices()
+}
+
+onMounted(() => window.addEventListener('pageshow', onPageShow))
+onBeforeUnmount(() => window.removeEventListener('pageshow', onPageShow))
 
 async function send() {
   err.value = ''
@@ -173,6 +189,14 @@ async function send() {
             <section v-if="card.skills?.length" class="u-row-wrap">
               <FspTag v-for="s in card.skills" :key="s">{{ skillLabel(s) }}</FspTag>
             </section>
+            <section v-if="stories.length" class="fsp-cut" style="--cut: var(--cut-l); --fill: var(--surface); --edge: var(--line-card); --bw: var(--border-card); padding: 28px;">
+              <h2 class="fsp-display" style="font-size: 18px; margin-bottom: 14px;">Опыт из ежедневных задач</h2>
+              <div v-for="story in stories" :key="story.id" style="padding-bottom: 16px; box-shadow: inset 0 -1px 0 var(--line);">
+                <div class="u-strong">{{ story.skill_label }}</div>
+                <div class="u-note-sm u-mt-4">{{ story.prompt }}</div>
+                <p style="margin: 8px 0 0; font-size: 15px; line-height: 22px;">{{ story.answer }}</p>
+              </div>
+            </section>
             <section v-if="card.fsp_badge" style="display: flex; gap: 8px; align-items: center;">
               <FspDisciplineBadge :discipline="card.fsp_badge.discipline">{{ card.fsp_badge.text }}</FspDisciplineBadge>
             </section>
@@ -230,14 +254,18 @@ async function send() {
             </div>
             <div>
               <div class="fsp-eyebrow fsp-eyebrow--plate u-mb-8">2 · Тестовое задание</div>
-              <p class="u-note" style="margin: 0 0 10px; color: var(--on-plate-muted);">Необязательно. Если прикрепите, кандидат увидит задание сразу после принятия.</p>
+              <p class="u-note" style="margin: 0 0 10px; color: var(--on-plate-muted);">Необязательно. Кандидат увидит задание только после принятия — свою копию шаблона.</p>
+              <div v-if="selectedPractice" class="fsp-cut" style="--cut: var(--cut-m); --fill: var(--field); padding: 14px 16px; margin-bottom: 10px;">
+                <div class="fsp-eyebrow fsp-eyebrow--plate">Будет прикреплено</div>
+                <div class="u-strong u-mt-4">{{ selectedPractice.title }}</div>
+              </div>
               <div class="u-row-wrap">
                 <FspChip :selected="!practiceId" locked @click="practiceId = ''">Без задания</FspChip>
                 <FspChip v-for="p in practices" :key="p.id" :selected="practiceId === p.id" locked @click="practiceId = p.id">{{ p.title }}</FspChip>
               </div>
               <p v-if="practicesError" class="u-note" style="margin: 8px 0 0;">{{ practicesError }}</p>
-              <p v-else-if="!practices.length" class="u-note" style="margin: 8px 0 0; color: var(--on-plate-muted);">Заданий пока нет.</p>
-              <div style="margin-top: 10px;"><FspButton size="sm" variant="outline" :href="processHref">Создать задание</FspButton></div>
+              <p v-else-if="!practices.length" class="u-note" style="margin: 8px 0 0; color: var(--on-plate-muted);">Шаблонов пока нет — создайте задание, оно вернётся сюда уже выбранным.</p>
+              <div style="margin-top: 10px;"><FspButton size="sm" variant="outline" :href="processHref">{{ practices.length ? 'Новый шаблон' : 'Создать задание' }}</FspButton></div>
             </div>
             <div v-if="err" style="font-size: 13px; color: var(--danger);">{{ err }}</div>
             <FspButton size="lg" :block="true" :disabled="sending || (!!card.invitation_status && card.invitation_status !== 'declined')" @click="send">{{ selectedPractice ? 'Отправить с заданием' : 'Отправить приглашение' }}</FspButton>

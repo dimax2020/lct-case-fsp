@@ -15,11 +15,12 @@ const notes = useNotifications(role)
 
 const userMenu = computed(() => isEmployer.value
   ? [{ label: 'Профиль компании', to: '/employer/company' }, { label: 'Приглашения', to: '/employer/invites' }, { label: 'Переписка', to: '/employer/chat' }]
-  : [{ label: 'Мой профиль', to: '/candidate/profile' }, { label: 'Тесты и грейд', to: '/candidate/grade' }, { label: 'Настройки и приватность', to: '/candidate/settings' }])
+  : [{ label: 'Мой профиль', to: '/candidate/profile' }, { label: 'Редактировать профиль', to: '/candidate/profile/edit' }, { label: 'Тесты и грейд', to: '/candidate/grade' }, { label: 'Настройки и приватность', to: '/candidate/settings' }])
 
 function isActive(l: NavLink) {
   if (!l.href) return !!l.active
   if (route.path === l.href) return true
+  if (l.href !== '/' && route.path.startsWith(`${l.href}/`)) return true
   return props.links.every(x => x.href !== route.path) && !!l.active
 }
 function toggle(m: 'bell' | 'user') {

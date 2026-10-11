@@ -1,15 +1,18 @@
 from uuid import UUID
 
 from fastapi import APIRouter, Depends
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.assessment import micro, roadmap, service
+from app.assessment import blueprint, micro, roadmap, service
 from app.assessment.schemas import (
     AnswerIn,
     AttemptCreate,
     AttemptResult,
     AttemptView,
+    BlueprintOut,
     DemoFinishIn,
+    EligibilityOut,
     MicroAnswerIn,
     MicroAnswerOut,
     MicroTaskCreate,
@@ -25,8 +28,32 @@ from app.assessment.schemas import (
 )
 from app.core.auth import Principal, require_role
 from app.core.db import get_session
+from app.core.provision import provision_user
 
 router = APIRouter(prefix="/assessment", tags=["assessment"])
+
+
+@router.get("/eligibility", response_model=EligibilityOut, include_in_schema=False)
+async def eligibility(
+    principal: Principal = Depends(require_role("candidate")),
+    session: AsyncSession = Depends(get_session),
+) -> EligibilityOut:
+    return await service.get_eligibility(session, principal)
+
+
+@router.get("/blueprint", response_model=BlueprintOut, include_in_schema=False)
+async def need_blueprint(
+    need_id: UUID,
+    principal: Principal = Depends(require_role("employer")),
+    session: AsyncSession = Depends(get_session),
+) -> BlueprintOut:
+    user = await provision_user(session, principal)
+    found = await session.execute(
+        text("SELECT id FROM companies WHERE owner_user_id = :uid"),
+        {"uid": str(user.id)},
+    )
+    company_id = found.scalar_one_or_none()
+    return await blueprint.blueprint_for_need(session, company_id, need_id)
 
 
 @router.post("/attempts", response_model=AttemptView, status_code=201)

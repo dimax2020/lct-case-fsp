@@ -2,6 +2,7 @@
 import { ApiError, read } from '~/utils/read'
 import { apiFetch } from '~/utils/raw'
 import type { PsychState } from '~/utils/psych'
+import type { Eligibility } from '~/utils/cat'
 useHead({ title: 'Категория и грейд — Карьера ФСП' })
 const cabinetUser = useCabinetUser('Кандидат')
 const { show } = useToast()
@@ -38,31 +39,48 @@ async function retake(direction: 'down' | 'up') {
   }
 }
 const psych = ref<PsychState | null>(null)
-const roadmap = ref<{
-  finished?: boolean
-  locked_until?: string | null
-  message?: string | null
-  open?: boolean
-  nodes?: { id: string; label: string; title: string; status: 'held' | 'review' | 'current' | 'ahead' | 'aside'; order: number | null }[]
-  review?: { label: string; title: string; items: string[] }[]
-} | null>(null)
+const eligibility = ref<Eligibility | null>(null)
+const micros = ref<{ id: string; title: string; body: string }[]>([])
+const microAnswer = ref('')
+const microId = ref('')
+const microBusy = ref(false)
 onMounted(async () => {
-  const [latest, style] = await Promise.all([
-    apiFetch('/api/v1/assessment/roadmap/latest').catch(() => null),
+  const [gate, style, inbox] = await Promise.all([
+    apiFetch<Eligibility>('/api/v1/assessment/eligibility').catch(() => null),
     apiFetch<PsychState>('/api/v1/psych/me').catch(() => null),
+    apiFetch<{ id: string; title: string; body: string }[]>('/api/v1/assessment/micro-tasks').catch(() => []),
   ])
-  roadmap.value = latest
+  eligibility.value = gate
   psych.value = style
+  micros.value = inbox ?? []
 })
 const nextAt = computed(() => {
-  const locked = roadmap.value?.locked_until
+  const locked = eligibility.value?.retry_at || eligibility.value?.grade_change_at
   if (locked) return new Date(locked).toLocaleDateString('ru-RU')
   const last = grade.value?.history?.[0]?.finished_at
   if (!last) return ''
   const d = new Date(last)
-  d.setMonth(d.getMonth() + 3)
+  d.setDate(d.getDate() + 30)
   return d.toLocaleDateString('ru-RU')
 })
+async function sendMicro() {
+  if (!microId.value || microAnswer.value.trim().length < 20) {
+    show('Ответ — хотя бы 20 символов')
+    return
+  }
+  microBusy.value = true
+  try {
+    await apiFetch(`/api/v1/assessment/micro-tasks/${microId.value}/answer`, { method: 'POST', body: { answer: microAnswer.value.trim() } })
+    micros.value = micros.value.filter(item => item.id !== microId.value)
+    microAnswer.value = ''
+    microId.value = ''
+    show('Микрозадание отправлено, свежесть профиля обновлена')
+  } catch (e) {
+    show(e instanceof Error ? e.message : 'Не удалось отправить')
+  } finally {
+    microBusy.value = false
+  }
+}
 </script>
 
 <template>
@@ -104,11 +122,8 @@ const nextAt = computed(() => {
             <div class="fsp-cut" style="flex: 1 1 360px; min-width: 0; --cut: var(--cut-l); --fill: var(--surface); --edge: var(--line-card); --bw: var(--border-card); padding: 32px; display: flex; flex-direction: column; gap: 12px;">
               <div style="font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted);">Следующая смена грейда</div>
               <div class="fsp-display" style="font-size: 28px; line-height: 32px;">{{ nextAt || 'после теста' }}</div>
-              <div style="font-size: 14px; line-height: 20px; color: var(--text-muted);">{{ roadmap?.message || 'Следующая попытка зависит от того, как пройден тест по карте: сильный результат открывает senior раньше, слабый удлиняет паузу.' }}</div>
+              <div style="font-size: 14px; line-height: 20px; color: var(--text-muted);">{{ eligibility?.message || 'Смена грейда раз в 90 дней, повтор на тот же грейд через 30. Принудительного понижения нет.' }}</div>
             </div>
-          </section>
-          <section v-if="roadmap?.finished && roadmap.nodes?.length" style="padding: 8px 0 0;">
-            <FspRoadmapMap :nodes="roadmap.nodes" :review="roadmap.review || []" :specialization="grade.specialization || 'backend'" show-review />
           </section>
           <section style="padding: 24px 0 0; box-shadow: inset 0 1px 0 var(--line);">
             <h2 class="fsp-display" style="font-size: 20px; line-height: 24px; margin-bottom: 24px;">Лестница грейдов</h2>
@@ -139,6 +154,16 @@ const nextAt = computed(() => {
               <b>{{ s.score }}</b>
             </div>
             <p v-if="!(grade.skill_scores ?? []).length" style="color: var(--text-muted);">Баллов по навыкам пока нет.</p>
+          </section>
+          <section v-if="micros.length" style="padding: 24px 0 0; box-shadow: inset 0 1px 0 var(--line);">
+            <h2 class="fsp-display" style="font-size: 20px; line-height: 24px; margin-bottom: 12px;">Микрозадания</h2>
+            <p style="margin: 0 0 16px; color: var(--text-muted);">10–15 минут, обновляют свежесть профиля. Раз в 14 дней достаточно одного.</p>
+            <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px;">
+              <FspChip v-for="item in micros" :key="item.id" :selected="microId === item.id" locked @click="microId = item.id">{{ item.title }}</FspChip>
+            </div>
+            <p v-if="microId" style="margin: 0 0 12px; line-height: 24px;">{{ micros.find(item => item.id === microId)?.body }}</p>
+            <textarea v-if="microId" v-model="microAnswer" aria-label="Ответ на микрозадание" style="box-sizing: border-box; width: 100%; min-height: 120px; padding: 12px; margin-bottom: 12px; resize: vertical; border: 1px solid var(--line-strong); background: var(--surface); color: var(--text); font: 16px/24px var(--font-sans);" />
+            <FspButton v-if="microId" :disabled="microBusy" @click="sendMicro">Отправить</FspButton>
           </section>
           <section style="padding: 24px 0 0; box-shadow: inset 0 1px 0 var(--line);">
             <h2 class="fsp-display" style="font-size: 20px; line-height: 24px; margin-bottom: 20px;">История тестов</h2>

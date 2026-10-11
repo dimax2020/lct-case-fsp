@@ -635,24 +635,30 @@ function taskList(items) {
 async function enter() {
   const h = hashParams();
   let joinError = '';
+  let opened = null;
   if (h.practice) {
     try {
-      await api('POST', `/v1/practices/${encodeURIComponent(h.practice)}/join`, {});
+      opened = await api('POST', `/v1/practices/${encodeURIComponent(h.practice)}/join`, {});
     } catch (e) {
       joinError = e.message || '';
     }
   } else if (h.vacancy) {
     try {
-      await api('POST', `/v1/vacancies/${encodeURIComponent(h.vacancy)}/join`, {});
+      opened = await api('POST', `/v1/vacancies/${encodeURIComponent(h.vacancy)}/join`, {});
     } catch (e) {
       joinError = e.message || '';
     }
+  }
+  if (opened?.id) {
+    location.hash = `practice=${opened.id}`;
+    return resume(opened.id);
   }
   const list = await api('GET', '/v1/practices?limit=20');
   const items = list.items || [];
   if (!items.length) {
     return notice(joinError || 'Задание появится, когда вы примете приглашение с тестовым заданием.');
   }
+  if (items.length === 1) return resume(items[0].id);
   return offerView(items);
 }
 

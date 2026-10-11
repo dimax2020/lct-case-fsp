@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import AiSettings from './AiSettings.vue'
 
-const props = defineProps<{ role: 'employer' | 'candidate' }>()
+const props = defineProps<{ role: 'employer' | 'candidate'; practiceId?: string }>()
 
 const frame = ref<HTMLIFrameElement | null>(null)
 const frameSrc = ref('')
@@ -61,7 +61,10 @@ onMounted(async () => {
     sessionStorage.setItem('epa.token', session.token)
     sessionStorage.setItem('epa.role', session.role)
     const page = props.role === 'employer' ? 'employer.html' : 'candidate.html'
-    frameSrc.value = `/epa/${page}${window.location.hash || ''}`
+    const hash = props.practiceId
+      ? `#practice=${encodeURIComponent(props.practiceId)}`
+      : (window.location.hash || '')
+    frameSrc.value = `/epa/${page}${hash}`
   } catch (e) {
     offline.value = true
     const message = loginError(e)

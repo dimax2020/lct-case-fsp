@@ -57,6 +57,7 @@ export const SKILL_LABEL: Record<string, string> = {
   javascript: 'JavaScript',
   postgresql: 'PostgreSQL',
   kafka: 'Kafka',
+  redis: 'Redis',
   kubernetes: 'Kubernetes',
   react: 'React',
   docker: 'Docker',

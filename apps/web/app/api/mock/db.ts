@@ -47,6 +47,16 @@ export interface PoolPerson {
   phone: string
 }
 
+export type CatTaskPublic = S['TaskPublic'] & {
+  title?: string
+  format?: string
+  time_minutes?: number
+  tags?: string[]
+  multiple?: boolean
+  b?: number
+  key?: string
+}
+
 export interface AttemptRec {
   id: string
   specialization: S['Specialization']
@@ -57,6 +67,13 @@ export interface AttemptRec {
   answers: S['AnswerIn'][]
   order: string[]
   result: S['AttemptResult'] | null
+  cat?: {
+    theta: number
+    se: number
+    used: string[]
+    current: string | null
+    correct: Record<string, number>
+  }
 }
 
 export interface Db {
@@ -87,11 +104,23 @@ export function taskOrder() {
 }
 
 export function taskById(id: string) {
-  return TASKS.find(t => t.id === id) ?? null
+  return CAT_TASKS.find(t => t.id === id) ?? TASKS.find(t => t.id === id) ?? null
+}
+
+export function catPool(spec: S['Specialization']): CatTaskPublic[] {
+  const bank = spec === 'frontend' ? 'FE' : spec === 'devops' ? 'OPS' : spec === 'data_ml' ? 'QA' : 'BE'
+  const rows = CAT_TASKS.filter(item => item.id.startsWith(bank))
+  return rows.length ? rows : CAT_TASKS.filter(item => item.id.startsWith('BE'))
+}
+
+export function pickCatItem(pool: CatTaskPublic[], used: string[], theta: number) {
+  const left = pool.filter(item => !used.includes(item.id))
+  if (!left.length) return null
+  return [...left].sort((a, b) => Math.abs((a.b ?? 0) - theta) - Math.abs((b.b ?? 0) - theta))[0] ?? null
 }
 
 export function correctOption(taskId: string) {
-  return CORRECT[taskId] ?? ''
+  return CAT_TASKS.find(item => item.id === taskId)?.key ?? CORRECT[taskId] ?? ''
 }
 
 export function getDb() {
@@ -222,6 +251,77 @@ export const TASKS: S['TaskPublic'][] = [
 const CORRECT: Record<string, string> = {
   t01: 'b', t02: 'b', t03: 'b', t04: 'b', t05: 'b', t06: 'b', t07: 'b', t08: 'b', t09: 'b',
 }
+
+const catItem = (
+  id: string,
+  format: string,
+  title: string,
+  body: string,
+  b: number,
+  extras: Partial<CatTaskPublic> = {},
+): CatTaskPublic => ({
+  id,
+  kind: format === 'MCQ' || format === 'MSQ' ? 'mcq' : 'code',
+  skills: extras.tags ?? [id.slice(0, 2).toLowerCase()],
+  difficulty: b < 0 ? 2 : b < 1 ? 3 : 4,
+  body,
+  options: extras.options ?? null,
+  languages: format === 'CODE' ? ['python'] : [],
+  tests_public: null,
+  title,
+  format,
+  time_minutes: extras.time_minutes ?? 4,
+  tags: extras.tags ?? [],
+  multiple: format === 'MSQ',
+  b,
+  key: extras.key,
+})
+
+export const CAT_TASKS: CatTaskPublic[] = [
+  catItem('BE-J-01', 'MCQ', 'Коды ответа HTTP', 'Клиент вызывает PATCH /tasks/817. Ситуация: токен валиден, но задача принадлежит другому проекту. Варианты ниже.', -1.6, {
+    options: ['401', '403', '404', '409'].map((text, i) => ({ id: String.fromCharCode(97 + i), text })),
+    key: 'b',
+    tags: ['http.status', 'api.rest'],
+  }),
+  catItem('BE-J-03', 'SHORT', 'Результат SQL-запроса', 'Таблица employees(id, salary): (1, 50000), (2, NULL), (3, 70000), (4, 70000), (5, 90000), (6, NULL), (7, 40000).\nSELECT * FROM employees WHERE salary <> 70000;', -0.8, {
+    key: '3',
+    tags: ['sql.select'],
+  }),
+  catItem('BE-J-05', 'MSQ', 'Git: выбор команд', 'Отменить последний неотправлённый коммит и сохранить изменения.', -1.3, {
+    options: ['git reset --soft HEAD~1', 'git reset --hard HEAD~1', 'git revert HEAD', 'git reset HEAD~1'].map((text, i) => ({ id: String.fromCharCode(97 + i), text })),
+    key: 'a,d',
+    tags: ['git'],
+    multiple: true,
+  }),
+  catItem('BE-J-02', 'CODE', 'Агрегация списка', 'Напишите функцию revenue_by_city(records), сумма amount по city. Записи без amount пропускать.', -1.0, {
+    key: 'amount',
+    tags: ['python.collections'],
+    time_minutes: 8,
+  }),
+  catItem('BE-M-06', 'REVIEW', 'Ревью обработчика', '@app.get(\'/orders/{id}\')\nasync def get_order(id: str, user=Depends(auth)):\n    row = db.execute(f"SELECT * FROM orders WHERE id = {id}")\n    return row', 0.8, {
+    key: 'sql',
+    tags: ['api.rest', 'security.basics'],
+    time_minutes: 10,
+  }),
+  catItem('BE-S-01', 'CASE', 'Сервис под нагрузку', 'Спроектируйте каталог с 20k RPS чтения и строгой идемпотентностью списаний. Хранилище, кэш, отказ реплики.', 1.6, {
+    key: 'кэш',
+    tags: ['system.design'],
+    time_minutes: 20,
+  }),
+  catItem('FE-J-01', 'MCQ', 'Ключ списка в React', 'Какой key безопасен для списка товаров, который фильтруется?', -1.4, {
+    options: ['index', 'id товара', 'случайное число', 'название'].map((text, i) => ({ id: String.fromCharCode(97 + i), text })),
+    key: 'b',
+    tags: ['react.lists'],
+  }),
+  catItem('OPS-J-01', 'SHORT', 'Большие файлы логов', 'Одной командой выведите 10 самых больших файлов в /var/log.', -1.1, {
+    key: 'du',
+    tags: ['linux'],
+  }),
+  catItem('QA-J-01', 'SHORT', 'Границы длительности урока', 'Поле duration принимает 15–90 минут. Назовите 6 проверок границ.', -1.0, {
+    key: '15',
+    tags: ['qa.test_design'],
+  }),
+]
 
 function seed(): Db {
   const description = longText('Перестраиваем процессинг платежей: 3 тыс. транзакций в секунду, шесть разработчиков, релиз раз в неделю. Нужен человек в антифрод на Go, Kafka и PostgreSQL.')

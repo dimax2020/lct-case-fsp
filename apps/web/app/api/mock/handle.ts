@@ -2,13 +2,15 @@ import type { components } from '~/api/schema'
 import {
   IDS,
   type AttemptRec,
+  type CatTaskPublic,
   type Db,
   type PoolPerson,
+  catPool,
   correctOption,
   getDb,
+  pickCatItem,
   saveDb,
   taskById,
-  taskOrder,
   uid,
 } from '~/api/mock/db'
 import { PSYCH_LIMITATIONS, PSYCH_PUBLIC, candidateView, cleanAnswers, progressOf, scoreMock } from '~/api/mock/psych'
@@ -120,10 +122,10 @@ function present(db: Db, inv: S['InvitationOut']): S['InvitationOut'] {
 }
 
 function attemptView(rec: AttemptRec): S['AttemptView'] {
-  const answered = rec.answers.filter(a => !a.skip).length
+  const cat = rec.cat
+  const answered = cat?.used.length ?? rec.answers.filter(a => !a.skip).length
   const skipped = rec.answers.filter(a => a.skip).length
-  const seen = new Set(rec.answers.map(a => a.task_id))
-  const currentId = rec.finished_at ? null : rec.order.find(id => !seen.has(id)) ?? null
+  const currentId = rec.finished_at ? null : cat?.current ?? rec.order.find(id => !rec.answers.some(a => a.task_id === id)) ?? null
   const remaining = Math.max(0, Math.floor((Date.parse(rec.deadline_at) - Date.now()) / 1000))
   return {
     id: rec.id,
@@ -134,13 +136,77 @@ function attemptView(rec: AttemptRec): S['AttemptView'] {
     finished_at: rec.finished_at,
     remaining_seconds: remaining,
     progress: {
-      current: currentId ? rec.order.indexOf(currentId) + 1 : rec.order.length,
-      total: rec.order.length,
+      current: currentId ? answered + 1 : answered,
+      total: 20,
       answered,
       skipped,
     },
     task: currentId ? taskById(currentId) : null,
     result: rec.result,
+    engine: cat ? 'cat' : 'yaml',
+    theta: cat?.theta ?? null,
+    se: cat?.se ?? null,
+  } as S['AttemptView']
+}
+
+function startTheta(grade: S['Grade']) {
+  return { intern: -2.2, junior: -1.8, middle: -0.5, senior: 0.7, lead: 1.8 }[grade]
+}
+
+function catHit(task: CatTaskPublic, body: S['AnswerIn']) {
+  const key = task.key ?? correctOption(task.id)
+  if (!key) return (body.answer || body.code || '').trim().length > 12
+  if (task.format === 'MCQ') return body.answer === key
+  if (task.format === 'MSQ') {
+    const left = new Set((body.answer ?? '').split(',').filter(Boolean))
+    const right = new Set(key.split(',').filter(Boolean))
+    return left.size === right.size && [...left].every(item => right.has(item))
+  }
+  const text = `${body.answer ?? ''} ${body.code ?? ''}`.toLowerCase()
+  return key.split(',').every(part => text.includes(part.toLowerCase()))
+}
+
+function scoreCat(rec: AttemptRec): S['AttemptResult'] {
+  const theta = rec.cat?.theta ?? startTheta(rec.declared_grade)
+  const se = rec.cat?.se ?? 1
+  const measured = theta >= 2.2 ? 'lead' : theta >= 1.2 ? 'senior' : theta >= 0.2 ? 'middle' : theta >= -1.2 ? 'junior' : 'intern'
+  const score = Math.round(Math.max(0, Math.min(100, (theta + 3) * (100 / 6))))
+  const skills = Object.entries(rec.cat?.correct ?? {}).map(([id, ok]) => {
+    const task = taskById(id)
+    return { skill_id: task?.skills[0] ?? id, score: ok * 100 }
+  })
+  return {
+    score,
+    grade: measured,
+    ready_for_next: LADDER.indexOf(measured) > LADDER.indexOf(rec.declared_grade),
+    skill_scores: skills,
+    rank: 12,
+    category_size: 340,
+    theta,
+    se,
+    decision: measured === rec.declared_grade ? 'passed' : LADDER.indexOf(measured) > LADDER.indexOf(rec.declared_grade) ? 'above' : 'below',
+    measured_grade: measured,
+    percentile: Math.round(100 / (1 + Math.exp(-theta))),
+    message: `Заявлен ${rec.declared_grade}, оценка ${measured}.`,
+  } as S['AttemptResult']
+}
+
+function applyGrade(db: Db, rec: AttemptRec) {
+  if (!rec.result) return
+  db.profile.specialization = rec.specialization
+  db.profile.grade = rec.result.grade
+  db.profile.grade_score = rec.result.score
+  db.profile.ready_for_next = rec.result.ready_for_next
+  db.grade = {
+    specialization: rec.specialization,
+    declared_grade: rec.declared_grade,
+    grade: rec.result.grade,
+    score: rec.result.score,
+    ready_for_next: rec.result.ready_for_next,
+    rank: rec.result.rank ?? null,
+    category_size: rec.result.category_size ?? null,
+    skill_scores: rec.result.skill_scores,
+    history: [{ attempt_id: rec.id, finished_at: rec.finished_at ?? new Date().toISOString(), score: rec.result.score, grade: rec.result.grade }, ...(db.grade.history ?? [])],
   }
 }
 
@@ -255,14 +321,14 @@ function hintsFor(db: Db): S['CandidateHint'][] {
     items.push({ id: 'k8s', type: 'skill', title: 'Подтвердите знание Kubernetes', effect_text: '+30% работодателей', action_label: 'Пройти тест', action_href: '/candidate/onboarding', priority: 30 })
   }
   if (!db.profile.projects?.length) {
-    items.push({ id: 'project', type: 'project', title: 'Добавьте проект через мастер', effect_text: '+18% просмотров', action_label: 'Добавить проект', action_href: '/candidate/profile#projects', priority: 20 })
+    items.push({ id: 'project', type: 'project', title: 'Добавьте проект через мастер', effect_text: '+18% просмотров', action_label: 'Добавить проект', action_href: '/candidate/profile/edit#projects', priority: 20 })
   } else {
     items.push({ id: 'fresh', type: 'activity', title: 'Решите задание, чтобы подняться в категории', effect_text: '12 → 7 место', action_label: 'К тесту', action_href: '/candidate/onboarding', priority: 20 })
   }
   if (!db.profile.fsp_achievements?.length) {
-    items.push({ id: 'fsp', type: 'fsp', title: 'Свяжите ФСП ID', effect_text: 'до 3 достижений в профиле', action_label: 'Связать', action_href: '/candidate/profile#fsp', priority: 10 })
+    items.push({ id: 'fsp', type: 'fsp', title: 'Свяжите ФСП ID', effect_text: 'до 3 достижений в профиле', action_label: 'Связать', action_href: '/candidate/profile/edit#fsp', priority: 10 })
   } else if (!db.profile.in_pool_eligible) {
-    items.push({ id: 'pool', type: 'settings', title: 'Укажите зарплату и формат', effect_text: 'иначе профиль не участвует в подборках', action_label: 'Заполнить', action_href: '/candidate/profile#search', priority: 10 })
+    items.push({ id: 'pool', type: 'settings', title: 'Укажите зарплату и формат', effect_text: 'иначе профиль не участвует в подборках', action_label: 'Заполнить', action_href: '/candidate/profile/edit#search', priority: 10 })
   } else {
     items.push({ id: 'visibility', type: 'settings', title: 'Проверьте видимость профиля', effect_text: 'скрытый профиль не попадает в подборки', action_label: 'Настройки', action_href: '/candidate/settings', priority: 10 })
   }
@@ -360,6 +426,8 @@ type Gap = {
   applications?: AppRec[]
   micro_tasks?: MicroRec[]
   micro_answers?: string[]
+  daily_stories?: Array<{ id: string; day: string; skill_id: string; skill_label: string; prompt: string; answer: string; answered_at: string; boost_until: string }>
+  daily_day?: string
   consent_processing?: boolean
   consent_publication?: boolean
   soft_skills?: string[]
@@ -368,6 +436,18 @@ type Gap = {
 
 function gap(db: Db) {
   return db as Db & Gap
+}
+
+function offeredCompanyIds(db: Db) {
+  const mine = me().candidate_id
+  const companyByNeed = new Map(db.needs.map(need => [need.id, need.company_id]))
+  const ids = new Set<string>()
+  for (const inv of db.invitations) {
+    if (inv.candidate_id !== mine || inv.status === 'revoked') continue
+    const companyId = companyByNeed.get(inv.need_id)
+    if (companyId) ids.add(companyId)
+  }
+  return ids
 }
 
 function ensureVacancies(db: Db) {
@@ -527,8 +607,9 @@ function ensureMicro(db: Db) {
   const state = gap(db)
   if (!state.micro_tasks) {
     state.micro_tasks = [
-      { id: 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeee01', title: 'Разберите гонку в кэше', body: 'Где гонка и как её закрыть, не останавливая чтение.' },
-      { id: 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeee02', title: 'Как бы вы деградировали Kafka-консьюмер', body: 'Что отключите первым, если лаг растёт.' },
+      { id: 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeee01', title: 'Backend: Подход', body: 'Платёжный провайдер присылает вебхуки повторно до 5 раз. Опишите, как обработать вебхук «платёж прошёл», чтобы деньги не зачислились дважды.' },
+      { id: 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeee02', title: 'Frontend: Подход', body: 'Список из 5000 товаров с фильтрами тормозит на мобильных. Назовите 3 первых шага диагностики и 3 вероятных исправления.' },
+      { id: 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeee03', title: 'DevOps: Подход', body: 'После деплоя каждые 2–3 дня под с сервисом получает OOMKilled. Опишите план расследования.' },
     ]
   }
   if (!state.micro_answers) state.micro_answers = []
@@ -683,7 +764,7 @@ async function routeOfficial(db: Db, method: string, path: string, url: URL, req
     const state = ensureVacancies(db)
     const rows = role() === 'employer'
       ? (state.vacancies ?? []).filter(v => v.company_id === IDS.company)
-      : (state.vacancies ?? []).filter(v => v.status === 'open')
+      : (state.vacancies ?? []).filter(v => v.status === 'open' && offeredCompanyIds(db).has(v.company_id))
     return json(rows)
   }
   if (path === '/api/v1/vacancies' && method === 'POST') {
@@ -744,7 +825,9 @@ async function routeOfficial(db: Db, method: string, path: string, url: URL, req
     const state = ensureVacancies(db)
     const vacancy = (state.vacancies ?? []).find(v => v.id === take(vacancyPath))
     if (!vacancy) return fail(404, 'Вакансия не найдена')
-    if (role() !== 'employer' && vacancy.status !== 'open') return fail(404, 'Вакансия не найдена')
+    if (role() !== 'employer' && (vacancy.status !== 'open' || !offeredCompanyIds(db).has(vacancy.company_id))) {
+      return fail(404, 'Вакансия не найдена')
+    }
     return json(vacancy)
   }
 
@@ -775,7 +858,23 @@ async function routeOfficial(db: Db, method: string, path: string, url: URL, req
     db.profile.grade = next
     db.grade.grade = next
     state.retake_locked = true
-    return json({ direction: body.direction, grade: next })
+    const started = new Date()
+    const pool = catPool(db.profile.specialization ?? 'backend')
+    const first = pickCatItem(pool, [], startTheta(next))
+    const id = uid()
+    db.attempts[id] = {
+      id,
+      specialization: db.profile.specialization ?? 'backend',
+      declared_grade: next,
+      started_at: started.toISOString(),
+      deadline_at: new Date(started.getTime() + 90 * 60 * 1000).toISOString(),
+      finished_at: null,
+      answers: [],
+      order: pool.map(item => item.id),
+      result: null,
+      cat: { theta: startTheta(next), se: 1.2, used: [], current: first?.id ?? null, correct: {} },
+    }
+    return json(attemptView(db.attempts[id]), 201)
   }
 
   if (path === '/api/v1/assessment/micro-tasks' && method === 'GET') {
@@ -798,6 +897,63 @@ async function routeOfficial(db: Db, method: string, path: string, url: URL, req
     return json({ id: taskId, status: 'answered' })
   }
 
+  const dailyPrompt = 'Опиши свой лучший опыт использования Redis.'
+  const dailyHint = 'Ответ появится в профиле — его увидят работодатели. За выполнение даётся буст в подборках на весь следующий день.'
+  if (path === '/api/v1/candidates/me/daily-task' && method === 'GET') {
+    const state = gap(db)
+    const today = new Date().toISOString().slice(0, 10)
+    const stories = state.daily_stories ?? []
+    const todayStory = stories.find(item => item.day === today && state.daily_day === today)
+    return json({
+      day: today,
+      prompt: todayStory?.prompt ?? dailyPrompt,
+      skill_id: 'redis',
+      skill_label: 'Redis',
+      hint: dailyHint,
+      answered: !!todayStory,
+      answer: todayStory?.answer ?? null,
+      boost_active: !!todayStory,
+      boost_until: todayStory?.boost_until ?? null,
+      stories,
+    })
+  }
+  if (path === '/api/v1/candidates/me/daily-task' && method === 'POST') {
+    const state = gap(db)
+    const today = new Date().toISOString().slice(0, 10)
+    const body = await readBody<{ answer?: string }>(req)
+    const text = (body.answer ?? '').trim()
+    if (text.length < 40) return fail(422, 'Напишите не меньше 40 символов — это короткий рассказ, не одно слово')
+    if ((state.daily_stories ?? []).some(item => item.day === today)) return fail(409, 'Сегодняшнее задание уже выполнено', 'daily_answered')
+    const until = new Date()
+    until.setUTCDate(until.getUTCDate() + 2)
+    until.setUTCHours(0, 0, 0, 0)
+    const story = {
+      id: uid(),
+      day: today,
+      skill_id: 'redis',
+      skill_label: 'Redis',
+      prompt: dailyPrompt,
+      answer: text,
+      answered_at: new Date().toISOString(),
+      boost_until: until.toISOString(),
+    }
+    state.daily_stories = [story, ...(state.daily_stories ?? [])]
+    state.daily_day = today
+    db.profile.last_active_at = new Date().toISOString()
+    return json({
+      day: today,
+      prompt: dailyPrompt,
+      skill_id: 'redis',
+      skill_label: 'Redis',
+      hint: dailyHint,
+      answered: true,
+      answer: text,
+      boost_active: true,
+      boost_until: story.boost_until,
+      stories: state.daily_stories,
+    })
+  }
+
   return null
 }
 
@@ -806,7 +962,7 @@ async function route(db: Db, method: string, path: string, url: URL, req: Reques
   if (official) return official
   if (method === 'GET' && path === '/api/v1/me') return json(me())
 
-  if (path === '/api/v1/candidates/me' && method === 'GET') return json({ ...db.profile, soft_skills: gap(db).soft_skills ?? [] })
+  if (path === '/api/v1/candidates/me' && method === 'GET') return json({ ...db.profile, soft_skills: gap(db).soft_skills ?? [], daily_stories: gap(db).daily_stories ?? [] })
   if (path === '/api/v1/candidates/me' && method === 'PUT') {
     const body = await readBody<S['CandidateUpdate'] & { soft_skills?: string[] | string }>(req)
     const profile = db.profile
@@ -956,22 +1112,49 @@ async function route(db: Db, method: string, path: string, url: URL, req: Reques
     return json(employerHints(db.people.filter(p => p.category_id === primary)))
   }
 
+  if (path === '/api/v1/assessment/eligibility' && method === 'GET') {
+    const open = Object.values(db.attempts).find(item => !item.finished_at)
+    if (open) return json({ can_start: false, reason: 'session_active', active_attempt_id: open.id, message: 'Уже есть незаконченный тест — продолжите его.' })
+    return json({ can_start: true, message: 'Можно начать адаптивный тест.' })
+  }
+
+  if (path === '/api/v1/assessment/blueprint' && method === 'GET') {
+    const need = db.needs.find(item => item.id === url.searchParams.get('need_id'))
+    if (!need) return fail(404, 'Потребность не найдена')
+    const pool = catPool(need.specialization)
+    return json({
+      specialization: need.specialization,
+      grade: need.grades[0] ?? null,
+      theory: 30,
+      practice: 40,
+      debug: 20,
+      case: 10,
+      skills: [...need.must_skills, ...(need.nice_skills ?? [])],
+      sample: pool.slice(0, 6).map(item => ({ id: item.id, title: item.title ?? item.id, format: item.format ?? 'SHORT', tags: item.tags ?? item.skills })),
+      note: 'Квоты смещены к тегам потребности. Грейд кандидата чертёж не меняет.',
+    })
+  }
+
   if (path === '/api/v1/assessment/attempts' && method === 'POST') {
     const body = await readBody<S['AttemptCreate']>(req)
     if (!body.specialization || !body.declared_grade) return fail(422, 'Укажите специализацию и грейд')
+    const open = Object.values(db.attempts).find(item => !item.finished_at)
+    if (open) return json(attemptView(open), 201)
     const id = uid()
     const started = new Date()
-    const deadline = new Date(started.getTime() + 40 * 60 * 1000)
+    const pool = catPool(body.specialization)
+    const first = pickCatItem(pool, [], startTheta(body.declared_grade))
     const rec: AttemptRec = {
       id,
       specialization: body.specialization,
       declared_grade: body.declared_grade,
       started_at: started.toISOString(),
-      deadline_at: deadline.toISOString(),
+      deadline_at: new Date(started.getTime() + 90 * 60 * 1000).toISOString(),
       finished_at: null,
       answers: [],
-      order: taskOrder(),
+      order: pool.map(item => item.id),
       result: null,
+      cat: { theta: startTheta(body.declared_grade), se: 1.2, used: [], current: first?.id ?? null, correct: {} },
     }
     db.attempts[id] = rec
     return json(attemptView(rec), 201)
@@ -986,6 +1169,28 @@ async function route(db: Db, method: string, path: string, url: URL, req: Reques
     if (!body.task_id) return fail(422, 'Не указано задание')
     rec.answers = rec.answers.filter(a => a.task_id !== body.task_id)
     rec.answers.push({ task_id: body.task_id, answer: body.answer ?? null, code: body.code ?? null, language: body.language ?? null, skip: !!body.skip })
+    if (rec.cat) {
+      const task = taskById(body.task_id) as CatTaskPublic | null
+      const ok = !body.skip && !!task && catHit(task, body)
+      rec.cat.used.push(body.task_id)
+      rec.cat.correct[body.task_id] = ok ? 1 : 0
+      rec.cat.theta = Math.max(-3, Math.min(3, rec.cat.theta + (ok ? 0.35 : -0.35)))
+      rec.cat.se = Math.max(0.22, rec.cat.se * 0.85)
+      const done = rec.cat.used.length >= 8 && rec.cat.se < 0.3 || rec.cat.used.length >= 20
+      if (done) {
+        rec.result = scoreCat(rec)
+        rec.finished_at = new Date().toISOString()
+        applyGrade(db, rec)
+        rec.cat.current = null
+      } else {
+        rec.cat.current = pickCatItem(catPool(rec.specialization), rec.cat.used, rec.cat.theta)?.id ?? null
+        if (!rec.cat.current) {
+          rec.result = scoreCat(rec)
+          rec.finished_at = new Date().toISOString()
+          applyGrade(db, rec)
+        }
+      }
+    }
     return json(attemptView(rec))
   }
 
@@ -994,29 +1199,9 @@ async function route(db: Db, method: string, path: string, url: URL, req: Reques
     const rec = db.attempts[take(attemptFinish)]
     if (!rec) return fail(404, 'Попытка не найдена')
     if (!rec.result) {
-      rec.result = scoreAttempt(rec)
+      rec.result = rec.cat ? scoreCat(rec) : scoreAttempt(rec)
       rec.finished_at = new Date().toISOString()
-      db.profile.specialization = rec.specialization
-      db.profile.grade = rec.result.grade
-      db.profile.grade_score = rec.result.score
-      db.profile.ready_for_next = rec.result.ready_for_next
-      db.profile.category_rank = rec.result.rank ?? null
-      db.profile.category_size = rec.result.category_size ?? null
-      const tested = new Map((db.profile.skills ?? []).filter(s => s.source !== 'test').map(s => [s.skill_id + s.source, s]))
-      const nextSkills = [...tested.values()]
-      for (const row of rec.result.skill_scores) nextSkills.push({ skill_id: row.skill_id, score: row.score, source: 'test' })
-      db.profile.skills = nextSkills
-      db.grade = {
-        specialization: rec.specialization,
-        declared_grade: rec.declared_grade,
-        grade: rec.result.grade,
-        score: rec.result.score,
-        ready_for_next: rec.result.ready_for_next,
-        rank: rec.result.rank ?? null,
-        category_size: rec.result.category_size ?? null,
-        skill_scores: rec.result.skill_scores,
-        history: [{ attempt_id: rec.id, finished_at: rec.finished_at, score: rec.result.score, grade: rec.result.grade }, ...(db.grade.history ?? [])],
-      }
+      applyGrade(db, rec)
     }
     return json(rec.result)
   }
@@ -1176,7 +1361,7 @@ async function route(db: Db, method: string, path: string, url: URL, req: Reques
       card.pdf_available = p.show_pdf
       card.psych_available = p.show_psych
     }
-    return json(card)
+    return json({ ...card, daily_stories: person.candidate_id === IDS.candidate ? (gap(db).daily_stories ?? []) : [] })
   }
 
   const fav = path.match(/^\/api\/v1\/favorites\/([^/]+)$/)

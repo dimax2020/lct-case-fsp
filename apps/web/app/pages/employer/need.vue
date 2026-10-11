@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import type { components } from '~/api/schema'
+import type { Blueprint } from '~/utils/cat'
+import { CAT_FORMAT_LABEL } from '~/utils/cat'
 import { read } from '~/utils/read'
+import { apiFetch } from '~/utils/raw'
 
 type Spec = components['schemas']['Specialization']
 type Grade = components['schemas']['Grade']
@@ -37,6 +40,7 @@ const stages = ref<string | number>(2)
 const tech = ref('')
 const hits = ref<components['schemas']['SkillHit'][]>([])
 const requirements = ref<Req[]>([])
+const blueprint = ref<Blueprint | null>(null)
 const parsing = ref(false)
 const matching = ref(false)
 const jobStatus = ref('')
@@ -161,6 +165,11 @@ async function parseNeed() {
     const saved = await save(true)
     const parsed = await read(api.POST('/api/v1/needs/{id}/parse', { params: { path: { id: saved.id } } }))
     requirements.value = parsed.requirements ?? []
+    try {
+      blueprint.value = await apiFetch<Blueprint>(`/api/v1/assessment/blueprint?need_id=${saved.id}`)
+    } catch {
+      blueprint.value = null
+    }
     show(parsed.llm_used ? 'Описание разобрано' : 'Сохранено без разбора LLM — матчинг пойдёт по навыкам формы')
   } catch (e) {
     show(e instanceof Error ? e.message : 'Не удалось сохранить')
@@ -285,7 +294,16 @@ onBeforeUnmount(() => clearTimeout(skillTimer))
           <aside style="flex: 1 1 340px; min-width: 0;">
             <div style="padding: 20px 0 0; box-shadow: inset 0 1px 0 var(--line); font-size: 14px; line-height: 20px; color: var(--text-muted);">
               <div class="fsp-display" style="font-size: 16px; line-height: 20px; color: var(--text); margin-bottom: 10px;">Как строится подборка</div>
-              Кандидаты попадают в категорию по результатам теста. Описание длиннее 300 символов API разбирает на требования: их можно переключить между «обязательно» и «желательно» или удалить.
+              Кандидаты попадают в категорию по результатам адаптивного теста. Описание длиннее 300 символов API разбирает на требования: их можно переключить между «обязательно» и «желательно» или удалить.
+            </div>
+            <div v-if="blueprint" style="margin-top: 24px; padding-top: 20px; box-shadow: inset 0 1px 0 var(--line);">
+              <div class="fsp-display" style="font-size: 16px; line-height: 20px; margin-bottom: 10px;">Профильный чертёж теста</div>
+              <p style="margin: 0 0 12px; font-size: 14px; color: var(--text-muted);">Теория {{ blueprint.theory }}% · практика {{ blueprint.practice }}% · отладка {{ blueprint.debug }}% · кейс {{ blueprint.case }}%</p>
+              <p v-if="blueprint.note" style="margin: 0 0 12px; font-size: 13px; color: var(--text-muted);">{{ blueprint.note }}</p>
+              <div v-for="item in blueprint.sample" :key="item.id" style="padding: 10px 0; box-shadow: inset 0 1px 0 var(--line); font-size: 14px;">
+                <b>{{ item.title }}</b>
+                <div class="u-small">{{ CAT_FORMAT_LABEL[item.format] || item.format }} · {{ item.tags.join(', ') || item.id }}</div>
+              </div>
             </div>
           </aside>
         </div>

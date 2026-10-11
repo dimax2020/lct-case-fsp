@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 from uuid import UUID
 
 from pydantic import BaseModel, Field
@@ -43,6 +43,34 @@ class FspAchievementOut(BaseModel):
     event: str
     place: int | None = None
     year: int | None = None
+
+
+class DailyStory(BaseModel):
+    id: UUID
+    day: date
+    skill_id: str
+    skill_label: str
+    prompt: str
+    answer: str
+    answered_at: datetime
+    boost_until: datetime
+
+
+class DailyTaskIn(BaseModel):
+    answer: str = Field(min_length=40, max_length=4000)
+
+
+class DailyTaskView(BaseModel):
+    day: date
+    prompt: str
+    skill_id: str
+    skill_label: str
+    hint: str
+    answered: bool
+    answer: str | None = None
+    boost_active: bool
+    boost_until: datetime | None = None
+    stories: list[DailyStory] = Field(default_factory=list)
 
 
 class CandidateUpdate(BaseModel):
@@ -117,6 +145,7 @@ class CandidateProfile(BaseModel):
     projects: list[ProjectOut] = Field(default_factory=list)
     experiences: list[ExperienceOut] = Field(default_factory=list)
     fsp_achievements: list[FspAchievementOut] = Field(default_factory=list)
+    daily_stories: list[DailyStory] = Field(default_factory=list)
 
 
 class CandidateBankItem(BaseModel):

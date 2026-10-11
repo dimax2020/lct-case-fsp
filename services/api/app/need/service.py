@@ -479,6 +479,7 @@ async def get_candidate_card(
         card["current_job"] = privacy["current_job"]
         card["pdf_available"] = bool(privacy["show_pdf"])
         card["psych_available"] = bool(privacy["show_psych"])
+    card["daily_stories"] = await profile_api.list_daily_stories(session, candidate_id)
     return CandidateCard.model_validate(card)
 
 

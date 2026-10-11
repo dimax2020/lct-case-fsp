@@ -63,11 +63,15 @@ async function accept() {
       inv = await read(api.POST('/api/v1/invitations/{id}/view', { params: { path: { id: inv.id } } }))
       replace(inv)
     }
-    replace(await read(api.POST('/api/v1/invitations/{id}/accept', { params: { path: { id: inv.id } } })))
-    show(inv.practice_title
-      ? 'Приглашение принято. Можно открыть тестовое задание.'
+    const accepted = await read(api.POST('/api/v1/invitations/{id}/accept', { params: { path: { id: inv.id } } }))
+    replace(accepted)
+    show(accepted.practice_title
+      ? `Приглашение принято. Открываем задание «${accepted.practice_title}».`
       : 'Приглашение принято — компания видит ваши контакты')
     tab.value = 'ok'
+    if (accepted.practice_id) {
+      await navigateTo(`/candidate/process#practice=${encodeURIComponent(accepted.practice_id)}`)
+    }
   } catch (e) {
     show(e instanceof Error ? e.message : 'Не удалось принять')
   }

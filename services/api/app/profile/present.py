@@ -5,6 +5,7 @@ from app.profile.models import Candidate, CandidateSkill, Experience, FspAchieve
 from app.profile.parsing import as_datetime, display_name, in_pool_eligible
 from app.profile.schemas import (
     CandidateProfile,
+    DailyStory,
     ExperienceOut,
     FspAchievementOut,
     ProjectOut,
@@ -90,6 +91,7 @@ def candidate_profile(
     projects: list[Project],
     experiences: list[Experience],
     achievements: list[FspAchievement],
+    daily_stories: list[DailyStory] | None = None,
 ) -> CandidateProfile:
     status = candidate.status if candidate.status in {item.value for item in CandidateStatus} else CandidateStatus.paused.value
     return CandidateProfile(
@@ -122,4 +124,5 @@ def candidate_profile(
         projects=[project_out(row) for row in projects],
         experiences=[experience_out(row) for row in experiences],
         fsp_achievements=[achievement_out(row) for row in achievements],
+        daily_stories=list(daily_stories or []),
     )

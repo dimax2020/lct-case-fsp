@@ -158,6 +158,10 @@ async def invalidate(need_id: UUID) -> None:
     await _cache().invalidate(need_id)
 
 
+async def invalidate_candidate(candidate_id: UUID) -> None:
+    await _cache().invalidate_candidate(candidate_id)
+
+
 async def present_shortlist(need_id: UUID, query: ShortlistQuery) -> dict[str, Any] | None:
     return await _engine().present_shortlist(need_id, query)
 

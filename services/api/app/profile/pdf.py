@@ -103,6 +103,12 @@ def profile_lines(profile: CandidateProfile) -> list[str]:
             lines.append("- " + ", ".join(bits))
     else:
         lines.append(EMPTY_FSP_LINE)
+    lines.append("Ежедневные задачи:")
+    if profile.daily_stories:
+        for story in profile.daily_stories:
+            lines.append(f"- {story.skill_label}: {story.answer}")
+    else:
+        lines.append("- нет")
     return lines
 
 

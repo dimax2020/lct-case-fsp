@@ -31,6 +31,11 @@ class TaskPublic(BaseModel):
     options: list[TaskOption] | None = None
     tests_public: list[PublicTest] | None = None
     languages: list[str] = Field(default_factory=list)
+    title: str | None = None
+    format: str | None = None
+    time_minutes: int | None = None
+    tags: list[str] = Field(default_factory=list)
+    multiple: bool = False
 
 
 class AttemptProgress(BaseModel):
@@ -52,6 +57,12 @@ class AttemptResult(BaseModel):
     skill_scores: list[SkillScore]
     rank: int | None = None
     category_size: int | None = None
+    theta: float | None = None
+    se: float | None = None
+    decision: str | None = None
+    measured_grade: Grade | None = None
+    percentile: float | None = None
+    message: str | None = None
 
 
 class AttemptView(BaseModel):
@@ -65,6 +76,13 @@ class AttemptView(BaseModel):
     progress: AttemptProgress
     task: TaskPublic | None = None
     result: AttemptResult | None = None
+    engine: str = "yaml"
+    theta: float | None = None
+    se: float | None = None
+    decision: str | None = None
+    measured_grade: Grade | None = None
+    percentile: float | None = None
+    message: str | None = None
 
 
 class AnswerIn(BaseModel):
@@ -97,6 +115,34 @@ class DemoFinishIn(BaseModel):
 
 class RetakeIn(BaseModel):
     direction: Literal["up", "down"]
+
+
+class EligibilityOut(BaseModel):
+    can_start: bool
+    reason: str | None = None
+    active_attempt_id: UUID | None = None
+    retry_at: datetime | None = None
+    grade_change_at: datetime | None = None
+    message: str | None = None
+
+
+class BlueprintSample(BaseModel):
+    id: str
+    title: str
+    format: str
+    tags: list[str]
+
+
+class BlueprintOut(BaseModel):
+    specialization: str
+    grade: str | None = None
+    theory: int
+    practice: int
+    debug: int
+    case: int
+    skills: list[str]
+    sample: list[BlueprintSample]
+    note: str | None = None
 
 
 class MicroTaskCreate(BaseModel):

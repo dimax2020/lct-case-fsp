@@ -4,7 +4,6 @@ from datetime import UTC, datetime
 from uuid import UUID
 
 from sqlalchemy import or_, select
-from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.company.models import Company
@@ -13,6 +12,8 @@ from app.core.enums import Grade, Specialization
 from app.core.errors import AppError
 from app.core.models import User
 from app.core.provision import provision_user
+from app.invitation.models import Invitation
+from app.need.models import Need
 from app.profile.models import Candidate
 from app.vacancy.models import Application, Vacancy
 from app.vacancy.schemas import (
@@ -27,6 +28,9 @@ from app.vacancy.schemas import (
     ensure_vacancy_bounds,
     status_counts,
 )
+
+# A revoked invitation is no longer an offer. Declined and expired ones still mean the company offered work.
+_OFFERED = ("sent", "viewed", "accepted", "declined", "expired")
 
 _ACTIONS: dict[tuple[str, str], str] = {
     ("sent", "view"): "viewed",
@@ -189,6 +193,15 @@ async def _company_name(session: AsyncSession, company_id: UUID) -> str:
     return name or ""
 
 
+async def _offered_company_ids(session: AsyncSession, candidate_id: UUID) -> set[UUID]:
+    rows = await session.scalars(
+        select(Need.company_id)
+        .join(Invitation, Invitation.need_id == Need.id)
+        .where(Invitation.candidate_id == candidate_id, Invitation.status.in_(_OFFERED))
+    )
+    return set(rows.all())
+
+
 def _catalog_stmt(principal: Principal, company_id: UUID | None, specialization: str | None, grade: str | None):
     stmt = select(Vacancy, Company.name).join(Company, Company.id == Vacancy.company_id)
     if principal.role == "candidate":
@@ -212,9 +225,18 @@ async def list_vacancies(
     spec, parsed_grade = clean_catalog_filters(specialization, grade)
     user = await _user(session, principal)
     company_id: UUID | None = None
+    offered: set[UUID] | None = None
     if principal.role == "employer":
         company_id = (await _company_for(session, user.id)).id
-    rows = (await session.execute(_catalog_stmt(principal, company_id, spec, parsed_grade))).all()
+    elif principal.role == "candidate":
+        offered = await _offered_company_ids(session, (await _candidate_for(session, user.id)).id)
+        if not offered:
+            await session.commit()
+            return []
+    stmt = _catalog_stmt(principal, company_id, spec, parsed_grade)
+    if offered is not None:
+        stmt = stmt.where(Vacancy.company_id.in_(offered))
+    rows = (await session.execute(stmt)).all()
     await session.commit()
     return [to_vacancy_out(vacancy, name or "") for vacancy, name in rows]
 
@@ -238,6 +260,10 @@ async def get_vacancy(session: AsyncSession, principal: Principal, vacancy_id: U
     owns = False
     if principal.role == "employer":
         owns = vacancy.company_id == (await _company_for(session, user.id)).id
+    elif principal.role == "candidate":
+        offered = await _offered_company_ids(session, (await _candidate_for(session, user.id)).id)
+        if vacancy.company_id not in offered:
+            raise AppError("not_found", "Вакансия не найдена", status_code=404)
     if not vacancy_visible(vacancy.status, viewer_role=principal.role, owns=owns):
         raise AppError("not_found", "Вакансия не найдена", status_code=404)
     name = await _company_name(session, vacancy.company_id)

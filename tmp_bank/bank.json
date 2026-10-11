@@ -1,0 +1,5856 @@
+{
+ "version": "1.1",
+ "grade_cuts": {
+  "junior": -1.2,
+  "middle": 0.2,
+  "senior": 1.2
+ },
+ "exposure_cap": 0.25,
+ "templates": [
+  {
+   "id": "BE-J-01",
+   "spec": "Backend",
+   "grade": "Junior",
+   "format": "MCQ",
+   "anchor": true,
+   "title": "Коды ответа HTTP",
+   "tags": [
+    "http.status",
+    "api.rest"
+   ],
+   "a": 1.2,
+   "b": -1.6,
+   "time": 2,
+   "statement": "Клиент вызывает {method} {endpoint}. Ситуация: {situation}. Какой код ответа должен вернуть сервер?",
+   "params": [
+    {
+     "name": "method/endpoint",
+     "domain": "пары из словаря ресурсов: GET /orders/{id}, POST /users, PATCH /tasks/{id}, DELETE /files/{id} и т. д. (40 пар)"
+    },
+    {
+     "name": "situation",
+     "domain": "ситуация из пула с однозначным кодом: ресурс не найден → 404; токен отсутствует/просрочен → 401; токен валиден, прав нет → 403; ресурс создан → 201; тело не прошло валидацию → 422; конфликт уникальности → 409; успешное удаление без тела → 204"
+    }
+   ],
+   "answer": "Код однозначно задаётся ситуацией. Дистракторы: 3 кода из той же группы (4xx для ошибок, 2xx для успеха), выбираются по таблице частых путаниц (401↔403, 400↔422, 200↔201↔204).",
+   "scoring": "1 балл за верный ответ, 0 иначе.",
+   "example": "Клиент вызывает PATCH /tasks/817. Ситуация: токен валиден, но задача принадлежит другому проекту, к которому у пользователя нет доступа. Варианты: 401 / 403 / 404 / 409.",
+   "example_answer": "403 Forbidden.",
+   "variants": 280,
+   "rubric": null
+  },
+  {
+   "id": "BE-J-02",
+   "spec": "Backend",
+   "grade": "Junior",
+   "format": "CODE",
+   "title": "Агрегация списка словарей",
+   "tags": [
+    "python.collections",
+    "python.basics"
+   ],
+   "a": 1.0,
+   "b": -1.0,
+   "time": 8,
+   "statement": "Напишите функцию {fn}(records: list[dict]) -> dict, которая возвращает словарь: ключ — значение поля «{key}», значение — {agg} по полю «{val}». Записи без поля «{val}» пропускать.",
+   "params": [
+    {
+     "name": "fn, key, val",
+     "domain": "согласованные тройки из предметных доменов: orders(city, amount), employees(department, salary), products(category, price), tickets(priority, hours) — 12 доменов"
+    },
+    {
+     "name": "agg",
+     "domain": "сумма | количество | максимум | среднее (округлить до 2 знаков)"
+    }
+   ],
+   "answer": "Эталонное решение генерируется из шаблона по паре (agg, domain). Скрытые тесты: 8 шт., включая пустой список, отсутствующее поле, одну группу, отрицательные значения.",
+   "scoring": "Доля пройденных скрытых тестов (0–1). Порог «решено» для IRT — ≥ 0.75.",
+   "example": "Напишите функцию revenue_by_city(records), возвращающую сумму поля amount по каждому значению city. Записи без amount пропускать.",
+   "example_answer": "def revenue_by_city(records):\n    res = {}\n    for r in records:\n        if 'amount' in r:\n            res[r['city']] = res.get(r['city'], 0) + r['amount']\n    return res",
+   "variants": 48,
+   "anchor": false,
+   "rubric": null
+  },
+  {
+   "id": "BE-J-03",
+   "spec": "Backend",
+   "grade": "Junior",
+   "format": "SHORT",
+   "title": "Результат SQL-запроса с фильтром",
+   "tags": [
+    "sql.select",
+    "sql.null"
+   ],
+   "a": 1.3,
+   "b": -0.8,
+   "time": 4,
+   "statement": "Таблица {table} содержит строки (показаны полностью). Сколько строк вернёт запрос:\nSELECT * FROM {table} WHERE {col} {op} {value};",
+   "params": [
+    {
+     "name": "table, rows",
+     "domain": "генерируемая таблица 6–9 строк; в колонке col обязательно 1–2 значения NULL и одно значение ровно на границе value"
+    },
+    {
+     "name": "op",
+     "domain": ">, >=, <, <=, <>, BETWEEN … AND …, IN (…), NOT IN (…)"
+    },
+    {
+     "name": "value",
+     "domain": "граничное значение, совпадающее с одной из строк"
+    }
+   ],
+   "answer": "Ответ вычисляется прогоном запроса в SQLite на сгенерированной таблице. Ловушки, которые проверяются: NULL не проходит ни одно сравнение (включая <> и NOT IN), граница включается только для >=, <=, BETWEEN.",
+   "scoring": "1 балл за точное число.",
+   "example": "Таблица employees(id, salary): (1, 50000), (2, NULL), (3, 70000), (4, 70000), (5, 90000), (6, NULL), (7, 40000).\nSELECT * FROM employees WHERE salary <> 70000;",
+   "example_answer": "3 строки (id 1, 5, 7). Строки с NULL не возвращаются.",
+   "variants": 500,
+   "anchor": false,
+   "rubric": null
+  },
+  {
+   "id": "BE-J-04",
+   "spec": "Backend",
+   "grade": "Junior",
+   "format": "DEBUG",
+   "title": "Найти ошибку в функции Python",
+   "tags": [
+    "python.basics",
+    "debugging"
+   ],
+   "a": 1.1,
+   "b": -0.5,
+   "time": 5,
+   "statement": "Функция {fn} должна {purpose}, но на некоторых входах работает неверно. Укажите номер строки с ошибкой и выберите вход, на котором проявляется дефект.",
+   "params": [
+    {
+     "name": "bug_class",
+     "domain": "одна ошибка из класса сложности J: изменяемый аргумент по умолчанию; выход за границу range (off-by-one); целочисленное деление вместо обычного; сравнение `is` вместо `==` для строк; изменение списка во время итерации"
+    },
+    {
+     "name": "fn, purpose",
+     "domain": "оболочка-сюжет (корзина, расписание, журнал событий и др., 15 сюжетов), в которую встраивается ошибка; длина 8–14 строк"
+    }
+   ],
+   "answer": "Номер строки известен генератору. Варианты входов: 1 воспроизводит дефект, 3 — нет (проверяется прогоном эталона и дефектной версии).",
+   "scoring": "0.5 за строку + 0.5 за вход. Для IRT «решено» = оба верны.",
+   "example": "def add_tag(tag, tags=[]):   # строка 1\n    tags.append(tag)          # строка 2\n    return tags               # строка 3\nОжидается, что add_tag('a') вернёт ['a'] при каждом вызове.",
+   "example_answer": "Строка 1 — изменяемый аргумент по умолчанию. Вход: два последовательных вызова add_tag('a'); второй вернёт ['a', 'a'].",
+   "variants": 75,
+   "anchor": false,
+   "rubric": null
+  },
+  {
+   "id": "BE-J-05",
+   "spec": "Backend",
+   "grade": "Junior",
+   "format": "MSQ",
+   "title": "Git: выбор команд под задачу",
+   "tags": [
+    "git"
+   ],
+   "a": 0.8,
+   "b": -1.3,
+   "time": 3,
+   "statement": "Вы работаете в ветке {branch}. Задача: {goal}. Отметьте все команды/последовательности, которые решают задачу без потери чужих изменений.",
+   "params": [
+    {
+     "name": "goal",
+     "domain": "пул из 10 задач: отменить последний локальный коммит, сохранив изменения; подтянуть изменения main в свою ветку; временно убрать незакоммиченные изменения; переименовать ветку; посмотреть, кто изменил строку и т. д."
+    },
+    {
+     "name": "branch",
+     "domain": "имя ветки из генератора feature/XXX-описание"
+    }
+   ],
+   "answer": "Для каждой задачи в банке хранится 2–3 корректных варианта и 3–4 некорректных (в т.ч. опасные: push --force в общую ветку, reset --hard).",
+   "scoring": "Частичный балл: (верно отмеченные − ошибочно отмеченные) / число верных, не ниже 0.",
+   "example": "Задача: отменить последний коммит, который ещё не отправлен, но сохранить изменения в рабочей директории. Варианты: git reset --soft HEAD~1; git reset --hard HEAD~1; git revert HEAD; git reset HEAD~1.",
+   "example_answer": "git reset --soft HEAD~1 и git reset HEAD~1 (mixed).",
+   "variants": 40,
+   "anchor": false,
+   "rubric": null
+  },
+  {
+   "id": "BE-J-06",
+   "spec": "Backend",
+   "grade": "Junior",
+   "format": "CODE",
+   "title": "SQL: JOIN + GROUP BY + HAVING",
+   "tags": [
+    "sql.join",
+    "sql.aggregate"
+   ],
+   "a": 1.4,
+   "b": -0.2,
+   "time": 8,
+   "statement": "Даны таблицы {t1} и {t2} (схема и пример данных). Напишите запрос, который для каждого {dim} возвращает {metric}, оставляя только тех, у кого {metric} {cmp} {threshold}. Отсортируйте по убыванию {metric}.",
+   "params": [
+    {
+     "name": "t1, t2, dim, metric",
+     "domain": "согласованные схемы: customers/orders (клиент, сумма заказов), authors/posts (автор, число постов), courses/enrollments (курс, число студентов) — 10 схем"
+    },
+    {
+     "name": "cmp, threshold",
+     "domain": "> | >= ; порог подбирается так, чтобы отсекалось 30–60 % групп"
+    }
+   ],
+   "answer": "Проверка: запрос выполняется на 3 скрытых наборах данных (включая группу без связанных строк и группу ровно на пороге); результат сравнивается с эталоном как упорядоченное множество.",
+   "scoring": "Доля совпавших наборов (0, 1/3, 2/3, 1). «Решено» = все 3.",
+   "example": "customers(id, name), orders(id, customer_id, amount). Для каждого клиента выведите name и сумму заказов, только если сумма > 10000, по убыванию суммы.",
+   "example_answer": "SELECT c.name, SUM(o.amount) AS total\nFROM customers c JOIN orders o ON o.customer_id = c.id\nGROUP BY c.id, c.name\nHAVING SUM(o.amount) > 10000\nORDER BY total DESC;",
+   "variants": 60,
+   "anchor": false,
+   "rubric": null
+  },
+  {
+   "id": "BE-M-01",
+   "spec": "Backend",
+   "grade": "Middle",
+   "format": "CODE",
+   "anchor": true,
+   "title": "SQL: оконные функции, top-N в группе",
+   "tags": [
+    "sql.window",
+    "sql.aggregate"
+   ],
+   "a": 1.5,
+   "b": 0.4,
+   "time": 10,
+   "statement": "По таблице {table} выведите top-{n} {entity} по {metric} внутри каждой группы «{group}». При равенстве значений {tie_rule}.",
+   "params": [
+    {
+     "name": "table, entity, metric, group",
+     "domain": "sales(товар, выручка, регион), employees(сотрудник, зарплата, отдел), matches(игрок, очки, команда) — 8 схем"
+    },
+    {
+     "name": "n",
+     "domain": "2 | 3 | 5"
+    },
+    {
+     "name": "tie_rule",
+     "domain": "«включить всех с равным значением» (→ DENSE_RANK/RANK) | «взять с меньшим id» (→ ROW_NUMBER с доп. сортировкой)"
+    }
+   ],
+   "answer": "Эталон на ROW_NUMBER/RANK/DENSE_RANK в зависимости от tie_rule. Скрытые наборы специально содержат равенства на границе top-N — неверный выбор ранжирующей функции даёт другой результат.",
+   "scoring": "Доля совпавших скрытых наборов (4 шт.). «Решено» = 4/4.",
+   "example": "sales(id, product, region, revenue). Выведите top-3 товара по revenue в каждом region; при равенстве включать всех с одинаковой выручкой.",
+   "example_answer": "SELECT region, product, revenue FROM (\n  SELECT *, DENSE_RANK() OVER (PARTITION BY region ORDER BY revenue DESC) r\n  FROM sales) t\nWHERE r <= 3;",
+   "variants": 48,
+   "rubric": null
+  },
+  {
+   "id": "BE-M-02",
+   "spec": "Backend",
+   "grade": "Middle",
+   "format": "MCQ",
+   "title": "Уровни изоляции и аномалии",
+   "tags": [
+    "db.transactions",
+    "db.isolation"
+   ],
+   "a": 1.3,
+   "b": 0.6,
+   "time": 4,
+   "statement": "Две транзакции выполняются параллельно в {dbms} на уровне изоляции {level}:\n{schedule}\nКакой результат возможен / какая аномалия произойдёт?",
+   "params": [
+    {
+     "name": "dbms",
+     "domain": "PostgreSQL | MySQL InnoDB (семантика уровней различается — учитывается в ответе)"
+    },
+    {
+     "name": "level",
+     "domain": "READ COMMITTED | REPEATABLE READ | SERIALIZABLE"
+    },
+    {
+     "name": "schedule",
+     "domain": "расписание операций из 12 шаблонов: lost update, non-repeatable read, phantom, write skew (дежурные врачи, бронирование мест), с подставляемыми сущностями и числами"
+    }
+   ],
+   "answer": "Ответ вычисляется таблицей «аномалия × уровень × СУБД». Варианты: конкретное итоговое значение, ошибка сериализации, блокировка до коммита и т. п.",
+   "scoring": "1/0.",
+   "example": "PostgreSQL, REPEATABLE READ. T1: SELECT count(*) FROM doctors WHERE on_call; (=2) UPDATE doctors SET on_call=false WHERE id=1. T2 одновременно: SELECT count(*)... (=2) UPDATE ... WHERE id=2. Обе фиксируются. Что будет?",
+   "example_answer": "Обе транзакции успешно зафиксируются, дежурных не останется (write skew). Предотвращает только SERIALIZABLE или SELECT ... FOR UPDATE.",
+   "variants": 72,
+   "anchor": false,
+   "rubric": null
+  },
+  {
+   "id": "BE-M-03",
+   "spec": "Backend",
+   "grade": "Middle",
+   "format": "DEBUG",
+   "title": "Проблема производительности в ORM-коде",
+   "tags": [
+    "orm",
+    "db.performance",
+    "debugging"
+   ],
+   "a": 1.2,
+   "b": 0.5,
+   "time": 7,
+   "statement": "Эндпоинт {endpoint} отвечает {latency} при {n} записях. Ниже код обработчика и фрагмент лога SQL-запросов. Найдите причину и выберите исправление.",
+   "params": [
+    {
+     "name": "issue",
+     "domain": "N+1 запрос (lazy-load в цикле); отсутствие индекса на поле фильтра; SELECT * c загрузкой BLOB; пагинация через OFFSET на больших страницах; count(*) на каждый запрос"
+    },
+    {
+     "name": "framework",
+     "domain": "SQLAlchemy | Django ORM — синтаксис подставляется"
+    },
+    {
+     "name": "endpoint, n, latency",
+     "domain": "числа генерируются согласованно с проблемой (линейный рост для N+1 и т. д.)"
+    }
+   ],
+   "answer": "Две части: (1) причина — выбор из 5; (2) исправление — выбор из 4 (selectinload/prefetch_related, индекс, keyset-пагинация, .only()/defer).",
+   "scoring": "0.5 + 0.5; «решено» = обе части.",
+   "example": "GET /authors → 1,8 с при 200 авторах. В логе: 1 запрос SELECT authors и 200 запросов SELECT books WHERE author_id = ?. Код: for a in Author.objects.all(): data.append({..., 'books': [b.title for b in a.books.all()]})",
+   "example_answer": "Причина: N+1. Исправление: Author.objects.prefetch_related('books').",
+   "variants": 60,
+   "anchor": false,
+   "rubric": null
+  },
+  {
+   "id": "BE-M-04",
+   "spec": "Backend",
+   "grade": "Middle",
+   "format": "CODE",
+   "title": "Реализовать rate limiter / LRU-кэш",
+   "tags": [
+    "algorithms.ds",
+    "python.oop",
+    "system.caching"
+   ],
+   "a": 1.4,
+   "b": 0.9,
+   "time": 15,
+   "statement": "Реализуйте класс {cls} с интерфейсом {interface}. Требования: {requirements}. Все операции — O(1) амортизированно (кроме оговорённых).",
+   "params": [
+    {
+     "name": "cls/variant",
+     "domain": "LRUCache(capacity) с get/put; TTLCache(ttl) с get/put и внешними часами; SlidingWindowLimiter(limit, window_sec).allow(user_id, now); TokenBucket(rate, burst).allow(now)"
+    },
+    {
+     "name": "requirements",
+     "domain": "параметры capacity / limit / window / ttl генерируются; часы передаются явно (now) для детерминированности тестов"
+    }
+   ],
+   "answer": "Скрытые тесты: 15 шт., включая граничные моменты времени (ровно на границе окна), вытеснение при переполнении, повторную запись существующего ключа, нагрузочный тест 10^5 операций с лимитом 2 с.",
+   "scoring": "Доля тестов; нагрузочный тест обязателен для «решено».",
+   "example": "SlidingWindowLimiter(limit=5, window_sec=60). allow(user_id, now) возвращает True, если за последние 60 секунд (полуинтервал (now−60, now]) у пользователя было < 5 разрешённых запросов.",
+   "example_answer": "Хранить deque меток времени на пользователя; при вызове удалять метки ≤ now−60; если len < limit — добавить now и вернуть True.",
+   "variants": 36,
+   "anchor": false,
+   "rubric": null
+  },
+  {
+   "id": "BE-M-05",
+   "spec": "Backend",
+   "grade": "Middle",
+   "format": "MCQ",
+   "title": "Использование индексов",
+   "tags": [
+    "db.indexes",
+    "db.performance"
+   ],
+   "a": 1.1,
+   "b": 0.3,
+   "time": 3,
+   "statement": "В таблице {table} создан индекс {index}. Какой из запросов сможет эффективно использовать этот индекс (Index Scan / Index Only Scan)?",
+   "params": [
+    {
+     "name": "index",
+     "domain": "составной B-tree индекс на 2–3 колонки, частичный индекс, индекс по выражению lower(email)"
+    },
+    {
+     "name": "queries",
+     "domain": "4 запроса: один использует префикс индекса корректно; остальные нарушают правило левого префикса, применяют функцию к колонке, используют LIKE '%x', сравнивают с типом, требующим приведения"
+    }
+   ],
+   "answer": "Правильный вариант определяется правилами B-tree и подтверждается EXPLAIN на сгенерированной таблице в PostgreSQL.",
+   "scoring": "1/0.",
+   "example": "Индекс: CREATE INDEX ON orders (customer_id, created_at). Варианты: WHERE created_at > now()-'7 days'; WHERE customer_id = 42 ORDER BY created_at DESC LIMIT 10; WHERE date(created_at) = '2026-01-01'; WHERE customer_id::text = '42'.",
+   "example_answer": "WHERE customer_id = 42 ORDER BY created_at DESC LIMIT 10.",
+   "variants": 54,
+   "anchor": false,
+   "rubric": null
+  },
+  {
+   "id": "BE-M-06",
+   "spec": "Backend",
+   "grade": "Middle",
+   "format": "REVIEW",
+   "title": "Code review обработчика REST API",
+   "tags": [
+    "api.rest",
+    "security.basics",
+    "code_review"
+   ],
+   "a": 1.2,
+   "b": 0.8,
+   "time": 10,
+   "statement": "Ниже обработчик {endpoint} на {framework} (25–40 строк). Оставьте комментарии ревью: укажите строки с проблемами и тип каждой проблемы.",
+   "params": [
+    {
+     "name": "seeded_issues",
+     "domain": "в код внедряются 4 проблемы из пула: SQL-инъекция через f-строку; отсутствие пагинации; возврат 200 вместо 201/404; утечка stack trace в ответ; отсутствие проверки владельца ресурса (IDOR); блокирующий I/O в async-обработчике; секрет в коде"
+    },
+    {
+     "name": "framework",
+     "domain": "FastAPI | Flask | Django REST"
+    }
+   ],
+   "answer": "Кандидат отмечает строку и выбирает тип из справочника (10 типов). Совпадение = верная строка (±1) и верный тип.",
+   "scoring": "Найдено k из 4 внедрённых проблем → k/4; ложные срабатывания −0.1 каждое (не ниже 0). «Решено» = ≥ 3 из 4.",
+   "example": "@app.get('/orders/{id}')\nasync def get_order(id: str, user=Depends(auth)):\n    row = db.execute(f\"SELECT * FROM orders WHERE id = {id}\")  # стр. 3\n    ... return row  # нет проверки row.user_id == user.id",
+   "example_answer": "Стр. 3 — SQL-инъекция (параметризованный запрос); стр. 3 — синхронный db.execute в async; отсутствует проверка владельца (IDOR); при row=None нужен 404.",
+   "variants": 140,
+   "anchor": false,
+   "rubric": null
+  },
+  {
+   "id": "BE-S-01",
+   "spec": "Backend",
+   "grade": "Senior",
+   "format": "CASE",
+   "anchor": true,
+   "title": "Проектирование сервиса под нагрузку",
+   "tags": [
+    "system.design",
+    "system.scaling",
+    "system.caching"
+   ],
+   "a": 1.3,
+   "b": 1.6,
+   "time": 25,
+   "statement": "Спроектируйте {service}. Нагрузка: {rps} RPS на чтение, {wps} RPS на запись, объём данных {volume}, требование к консистентности: {consistency}. Опишите хранилище, схему данных, кэширование, масштабирование и поведение при отказе {failure}. Объём ответа — до 4000 знаков, можно приложить схему.",
+   "params": [
+    {
+     "name": "service",
+     "domain": "сокращатель ссылок; лента новостей; счётчик просмотров; сервис бронирования слотов; хранилище сессий; поиск по каталогу (8 сюжетов)"
+    },
+    {
+     "name": "rps, wps, volume",
+     "domain": "согласованные порядки величин (10^3–10^5 RPS, 10 ГБ–10 ТБ)"
+    },
+    {
+     "name": "consistency",
+     "domain": "строгая для записи | eventual допустима с задержкой ≤ N с"
+    },
+    {
+     "name": "failure",
+     "domain": "падение мастер-БД | недоступность кэша | отказ одной зоны"
+    }
+   ],
+   "answer": "Эталонного ответа нет — оценка по рубрике. Для каждого сюжета хранится «ключевая ловушка» (например, горячие ключи для счётчика, двойное бронирование для слотов), которую должен заметить кандидат.",
+   "scoring": "Рубрика 5 критериев × 0–2 балла = 0–10. LLM-оценка дважды + экспертная перепроверка при расхождении ≥ 2 баллов. Для IRT: «решено» = ≥ 6.",
+   "rubric": [
+    "Оценка нагрузки и объёмов: есть расчёт, выводы из него влияют на решения",
+    "Выбор хранилища и схемы данных обоснован требованиями (а не «люблю PostgreSQL»)",
+    "Кэширование/шардирование: стратегия инвалидации, горячие ключи",
+    "Отказоустойчивость: поведение при заданном отказе, деградация, RPO/RTO",
+    "Компромиссы названы явно: что принесено в жертву и почему; найдена ключевая ловушка сюжета"
+   ],
+   "example": "Спроектируйте сервис бронирования слотов к врачам. 20 000 RPS чтение, 300 RPS запись, 50 ГБ данных, двойное бронирование недопустимо. Отказ: падение мастер-БД.",
+   "example_answer": "Сильный ответ: реляционная БД с уникальным ограничением (slot_id) или SELECT … FOR UPDATE SKIP LOCKED; кэш расписаний с коротким TTL и инвалидацией по событию; запись только через мастер; при падении — автоматический failover (Patroni), запись недоступна ≤ 30 с, чтение из реплик с пометкой «данные могут устареть»; идемпотентный ключ для повторных запросов.",
+   "variants": 96
+  },
+  {
+   "id": "BE-S-02",
+   "spec": "Backend",
+   "grade": "Senior",
+   "format": "CASE",
+   "title": "Надёжная доставка событий (outbox, идемпотентность)",
+   "tags": [
+    "system.messaging",
+    "system.consistency"
+   ],
+   "a": 1.4,
+   "b": 1.8,
+   "time": 20,
+   "statement": "Сервис {service} после изменения {entity} в БД должен опубликовать событие {event} в {broker}. Сейчас публикация идёт сразу после commit, и раз в сутки события теряются или дублируются. Предложите решение, опишите гарантии доставки и поведение потребителя {consumer}.",
+   "params": [
+    {
+     "name": "service, entity, event",
+     "domain": "заказы/OrderPaid, пользователи/UserBlocked, платежи/RefundIssued — 6 сюжетов"
+    },
+    {
+     "name": "broker",
+     "domain": "Kafka | RabbitMQ"
+    },
+    {
+     "name": "consumer",
+     "domain": "сервис начисления бонусов | отправка e-mail | обновление поискового индекса"
+    }
+   ],
+   "answer": "Ожидаемые элементы: transactional outbox или CDC; at-least-once + идемпотентный потребитель (ключ дедупликации, таблица processed_events); порядок событий по ключу партиции; мониторинг лага.",
+   "scoring": "Рубрика 4 критерия × 0–2 = 0–8; «решено» ≥ 5.",
+   "rubric": [
+    "Корректно объяснена причина потерь/дублей (dual write)",
+    "Предложен outbox/CDC с описанием механизма",
+    "Потребитель идемпотентен; указан способ дедупликации",
+    "Учтены порядок, повторы, мониторинг и что делать с «ядовитыми» сообщениями (DLQ)"
+   ],
+   "example": "Сервис заказов после оплаты публикует OrderPaid в Kafka; потребитель — начисление бонусов. Иногда бонусы начисляются дважды или не начисляются.",
+   "example_answer": "Outbox-таблица в той же транзакции; relay (Debezium) публикует; at-least-once; потребитель хранит event_id в processed_events с уникальным ключом и начисляет бонус в одной транзакции; ключ партиции = order_id; DLQ и алерт на лаг.",
+   "variants": 36,
+   "anchor": false
+  },
+  {
+   "id": "BE-S-03",
+   "spec": "Backend",
+   "grade": "Senior",
+   "format": "MCQ",
+   "title": "Разбор инцидента по метрикам и логам",
+   "tags": [
+    "observability",
+    "incident",
+    "db.performance"
+   ],
+   "a": 1.5,
+   "b": 1.4,
+   "time": 8,
+   "statement": "Во время {event} p99 латентности {service} вырос с {p99_before} до {p99_after}. Даны графики (в виде таблицы значений): RPS, CPU приложения, активные соединения пула БД, время ожидания соединения, hit-rate кэша, ошибки 5xx. Какая наиболее вероятная первопричина и первое действие?",
+   "params": [
+    {
+     "name": "root_cause",
+     "domain": "исчерпание пула соединений из-за долгой транзакции; cache stampede после истечения TTL популярного ключа; блокировка строки при массовом UPDATE; GC-паузы при утечке памяти; ретрай-шторм от клиента без backoff"
+    },
+    {
+     "name": "metrics",
+     "domain": "временные ряды генерируются моделью, согласованной с первопричиной, плюс правдоподобный шум и одна «отвлекающая» метрика"
+    }
+   ],
+   "answer": "Первопричина и первое действие хранятся в генераторе. Дистракторы — остальные первопричины, у каждой есть частичное подтверждение в данных (отвлекающая метрика).",
+   "scoring": "1/0 (оба элемента в одном варианте).",
+   "example": "В 12:00 hit-rate кэша упал с 0,97 до 0,10 на 40 секунд, RPS к БД вырос в 25 раз, CPU БД 100 %, затем восстановление. CPU приложения ровный.",
+   "example_answer": "Cache stampede после одновременного истечения TTL; первое действие — request coalescing / мьютекс на перестроение ключа, вероятностное раннее обновление и разброс TTL.",
+   "variants": 100,
+   "anchor": false,
+   "rubric": null
+  },
+  {
+   "id": "BE-S-04",
+   "spec": "Backend",
+   "grade": "Senior",
+   "format": "CODE",
+   "title": "Конкурентность: пул задач с ограничением и ретраями",
+   "tags": [
+    "python.asyncio",
+    "concurrency",
+    "resilience"
+   ],
+   "a": 1.3,
+   "b": 1.5,
+   "time": 20,
+   "statement": "Реализуйте async-функцию {fn}(tasks, limit={k}, retries={r}, base_delay={d}), которая выполняет корутины-фабрики не более чем по {k} одновременно, повторяет упавшие с экспоненциальной задержкой и jitter, сохраняет порядок результатов и {failure_mode}.",
+   "params": [
+    {
+     "name": "k, r, d",
+     "domain": "k ∈ {3,5,10}; r ∈ {2,3}; d ∈ {0.05,0.1}"
+    },
+    {
+     "name": "failure_mode",
+     "domain": "возвращает исключение на месте результата | отменяет остальные задачи при первой окончательной ошибке | прекращает ретраи на исключениях типа PermanentError"
+    }
+   ],
+   "answer": "Тесты с подменой asyncio.sleep и счётчиком одновременных задач: проверяется верхняя граница параллелизма, число попыток, порядок результатов, отмена.",
+   "scoring": "Доля тестов (12). «Решено» ≥ 10/12.",
+   "example": "run_limited(tasks, limit=5, retries=3, base_delay=0.1) — порядок результатов как во входе; при окончательной ошибке на её месте возвращается исключение.",
+   "example_answer": "asyncio.Semaphore(limit); для каждой фабрики — цикл попыток с await asyncio.sleep(d * 2**i * random.uniform(0.5, 1.5)); asyncio.gather(..., return_exceptions=True).",
+   "variants": 54,
+   "anchor": false,
+   "rubric": null
+  },
+  {
+   "id": "BE-S-05",
+   "spec": "Backend",
+   "grade": "Senior",
+   "format": "REVIEW",
+   "title": "Ревью архитектурного решения (ADR)",
+   "tags": [
+    "system.design",
+    "code_review",
+    "architecture"
+   ],
+   "a": 1.2,
+   "b": 1.7,
+   "time": 15,
+   "statement": "Команда предлагает ADR «{title}» (≈ 1 страница). Найдите риски и слабые места решения и предложите, что изменить.",
+   "params": [
+    {
+     "name": "adr",
+     "domain": "8 сюжетов ADR: переход на микросервисы при команде из 4 человек; общая БД между сервисами; синхронная цепочка из 5 вызовов; распределённая транзакция через 2PC; хранение денег во float; самописная очередь на таблице без SKIP LOCKED и др."
+    },
+    {
+     "name": "seeded_risks",
+     "domain": "в каждый ADR заложено 4–5 рисков; 1–2 «правильных» решения, которые не являются риском (проверка на ложные срабатывания)"
+    }
+   ],
+   "answer": "Список заложенных рисков с ключевыми словами для LLM-сопоставления; итог проверяется рубрикой.",
+   "scoring": "Найдено рисков k из N → k/N × 6; аргументированность и альтернатива 0–2; ложные риски −1 каждый. Итог 0–8, «решено» ≥ 5.",
+   "rubric": [
+    "Доля найденных заложенных рисков",
+    "Для каждого риска есть последствие в терминах бизнеса/эксплуатации",
+    "Предложены реалистичные альтернативы",
+    "Нет критики корректных частей решения"
+   ],
+   "example": "ADR: «Каждый из 6 новых сервисов читает и пишет в общую БД PostgreSQL, чтобы не дублировать данные; вызовы между сервисами синхронные по HTTP без таймаутов».",
+   "example_answer": "Риски: связанность через общую схему (миграции ломают соседей), отсутствие таймаутов → каскадные отказы, распределённый монолит; предложение: владение данными на сервис, таймауты + circuit breaker, асинхронные события.",
+   "variants": 40,
+   "anchor": false
+  },
+  {
+   "id": "BE-S-06",
+   "spec": "Backend",
+   "grade": "Senior",
+   "format": "MCQ",
+   "title": "Распределённые системы: поведение при разделении сети",
+   "tags": [
+    "system.consistency",
+    "system.distributed"
+   ],
+   "a": 1.2,
+   "b": 1.3,
+   "time": 5,
+   "statement": "Кластер {system} из {n} узлов в {dcs} ДЦ, настройки: {settings}. Происходит разделение сети: {partition}. Что произойдёт с записью и чтением в каждой части?",
+   "params": [
+    {
+     "name": "system",
+     "domain": "PostgreSQL + Patroni (etcd); Cassandra с RF=3; Kafka (min.insync.replicas); Redis Sentinel; MongoDB replica set"
+    },
+    {
+     "name": "n, dcs, settings",
+     "domain": "число узлов и кворумные параметры (W, R, min.insync, priority)"
+    },
+    {
+     "name": "partition",
+     "domain": "какие узлы оказались в меньшинстве"
+    }
+   ],
+   "answer": "Ответ вычисляется по кворумным правилам системы; дистракторы — типичные заблуждения (обе части принимают запись; запись блокируется везде).",
+   "scoring": "1/0.",
+   "example": "Cassandra, 5 узлов, RF=3, запись CONSISTENCY QUORUM, чтение ONE. Разделение отрезает 2 реплики ключа K от клиента.",
+   "example_answer": "Запись по ключу K недоступна (нужно 2 из 3 реплик, доступна 1); чтение ONE возможно, но может вернуть устаревшие данные.",
+   "variants": 60,
+   "anchor": false,
+   "rubric": null
+  },
+  {
+   "id": "FE-J-01",
+   "spec": "Frontend",
+   "grade": "Junior",
+   "format": "SHORT",
+   "anchor": true,
+   "title": "Что выведет JS-код (типы и приведение)",
+   "tags": [
+    "js.types",
+    "js.basics"
+   ],
+   "a": 1.2,
+   "b": -1.2,
+   "time": 3,
+   "statement": "Что выведет в консоль следующий код?\n{snippet}",
+   "params": [
+    {
+     "name": "snippet",
+     "domain": "3–5 строк, собираемых из пула конструкций одного уровня: == vs ===, typeof null, [] + {}, '5' - 2, '5' + 2, NaN === NaN, Boolean('0'), let/const в блоке, параметры по умолчанию; переменные и литералы подставляются случайно"
+    }
+   ],
+   "answer": "Ответ вычисляется выполнением в Node.js в песочнице. Принимается точное совпадение строки вывода (с нормализацией пробелов).",
+   "scoring": "1/0.",
+   "example": "const a = '7';\nconst b = 3;\nconsole.log(a - b, a + b, typeof (a * 1));",
+   "example_answer": "4 73 number",
+   "variants": 900,
+   "rubric": null
+  },
+  {
+   "id": "FE-J-02",
+   "spec": "Frontend",
+   "grade": "Junior",
+   "format": "CODE",
+   "title": "Методы массивов: фильтр, сортировка, преобразование",
+   "tags": [
+    "js.arrays",
+    "js.basics"
+   ],
+   "a": 1.0,
+   "b": -1.0,
+   "time": 8,
+   "statement": "Напишите функцию {fn}(items), которая возвращает {projection} для {entity}, у которых {condition}, отсортированные по {sort_field} ({order}). Исходный массив не изменять.",
+   "params": [
+    {
+     "name": "entity, fields",
+     "domain": "users, products, tasks, movies — 10 доменов с 4–6 полями"
+    },
+    {
+     "name": "condition",
+     "domain": "сравнение числа / проверка вхождения строки / флаг"
+    },
+    {
+     "name": "projection",
+     "domain": "массив имён | массив объектов {id, title} | строка через запятую"
+    },
+    {
+     "name": "order",
+     "domain": "по возрастанию | по убыванию; при равенстве — по id"
+    }
+   ],
+   "answer": "Скрытые тесты: 8 шт., включая пустой массив, равенство ключей сортировки и проверку, что исходный массив не мутирован (Object.freeze).",
+   "scoring": "Доля тестов. «Решено» ≥ 6/8.",
+   "example": "activeTitles(tasks) — вернуть массив title задач с done === false, отсортированных по priority по убыванию, при равенстве — по id по возрастанию.",
+   "example_answer": "const activeTitles = tasks => tasks.filter(t => !t.done)\n  .slice().sort((a, b) => b.priority - a.priority || a.id - b.id)\n  .map(t => t.title);",
+   "variants": 80,
+   "anchor": false,
+   "rubric": null
+  },
+  {
+   "id": "FE-J-03",
+   "spec": "Frontend",
+   "grade": "Junior",
+   "format": "MCQ",
+   "title": "CSS: специфичность и каскад",
+   "tags": [
+    "css.cascade",
+    "css.selectors"
+   ],
+   "a": 1.1,
+   "b": -0.6,
+   "time": 3,
+   "statement": "Даны HTML-фрагмент и 3–4 CSS-правила, задающих свойство {prop}. Какое значение {prop} получит элемент {target}?",
+   "params": [
+    {
+     "name": "rules",
+     "domain": "селекторы с разной специфичностью (id, класс, тег, атрибут, :is/:where, !important, порядок в файле, inline-стиль); генератор гарантирует, что ответ определяется ровно одним правилом каскада"
+    },
+    {
+     "name": "prop",
+     "domain": "color | margin-top | display | font-size"
+    }
+   ],
+   "answer": "Ответ вычисляется headless-браузером (getComputedStyle).",
+   "scoring": "1/0.",
+   "example": "<p id=\"note\" class=\"msg warn\">…</p>\n#note { color: blue }  .msg.warn { color: orange }  p.warn { color: red !important }  :where(#note) { color: green }",
+   "example_answer": "red (правило с !important).",
+   "variants": 300,
+   "anchor": false,
+   "rubric": null
+  },
+  {
+   "id": "FE-J-04",
+   "spec": "Frontend",
+   "grade": "Junior",
+   "format": "DEBUG",
+   "title": "React: ошибка в компоненте",
+   "tags": [
+    "react.state",
+    "react.basics",
+    "debugging"
+   ],
+   "a": 1.2,
+   "b": -0.3,
+   "time": 6,
+   "statement": "Компонент {component} должен {purpose}, но {symptom}. Укажите строку с ошибкой и выберите исправление.",
+   "params": [
+    {
+     "name": "bug_class",
+     "domain": "мутация состояния (push в массив из useState); отсутствует key в списке; вызов обработчика при рендере onClick={f()}; useEffect без массива зависимостей с setState (бесконечный цикл); прямое сравнение объектов в зависимостях"
+    },
+    {
+     "name": "component, purpose",
+     "domain": "TodoList, Counter, SearchBox, Cart, Tabs — 12 сюжетов"
+    }
+   ],
+   "answer": "Строка и корректный вариант исправления (1 из 4) известны генератору; проверка эталона прогоном в jsdom.",
+   "scoring": "0.5 + 0.5; «решено» = оба.",
+   "example": "const [items, setItems] = useState([]);\nconst add = (t) => { items.push(t); setItems(items); };  // строка 2\nСимптом: после нажатия «Добавить» список на экране не обновляется.",
+   "example_answer": "Строка 2: мутация состояния, ссылка не меняется. Исправление: setItems(prev => [...prev, t]).",
+   "variants": 60,
+   "anchor": false,
+   "rubric": null
+  },
+  {
+   "id": "FE-J-05",
+   "spec": "Frontend",
+   "grade": "Junior",
+   "format": "MSQ",
+   "title": "Семантика HTML и доступность",
+   "tags": [
+    "html.semantics",
+    "a11y"
+   ],
+   "a": 0.9,
+   "b": -1.5,
+   "time": 3,
+   "statement": "Ниже разметка {widget}. Отметьте все изменения, которые улучшают доступность для пользователей скринридеров и клавиатуры.",
+   "params": [
+    {
+     "name": "widget",
+     "domain": "форма входа, меню навигации, карточка товара, модальное окно, таблица данных (10 виджетов) с 3–4 внедрёнными проблемами"
+    },
+    {
+     "name": "options",
+     "domain": "6 вариантов: 3–4 корректных (label for, button вместо div onClick, alt, aria-expanded), 2–3 бесполезных/вредных (tabindex=\"5\", aria-label дублирует видимый текст, role=\"button\" на <button>)"
+    }
+   ],
+   "answer": "Набор корректных вариантов хранится в шаблоне виджета.",
+   "scoring": "Частичный: (верно − ошибочно) / число верных, ≥ 0.",
+   "example": "<div class=\"btn\" onclick=\"save()\">Сохранить</div> <img src=\"logo.png\"> <input placeholder=\"Email\">",
+   "example_answer": "Заменить div на <button>; добавить alt у изображения; добавить <label> к полю. Не верно: tabindex=\"5\".",
+   "variants": 50,
+   "anchor": false,
+   "rubric": null
+  },
+  {
+   "id": "FE-J-06",
+   "spec": "Frontend",
+   "grade": "Junior",
+   "format": "CODE",
+   "title": "Валидация формы",
+   "tags": [
+    "js.basics",
+    "js.strings",
+    "forms"
+   ],
+   "a": 1.0,
+   "b": -0.7,
+   "time": 8,
+   "statement": "Напишите функцию validate(form), которая возвращает объект ошибок {field: message} по правилам: {rules}. Если ошибок нет — пустой объект.",
+   "params": [
+    {
+     "name": "rules",
+     "domain": "3–4 правила из пула: обязательное поле, длина от N до M, e-mail (упрощённый шаблон), совпадение паролей, возраст ≥ K, телефон в формате +7XXXXXXXXXX; N, M, K генерируются"
+    },
+    {
+     "name": "messages",
+     "domain": "тексты ошибок фиксированы в условии"
+    }
+   ],
+   "answer": "Скрытые тесты на граничные длины (N−1, N, M, M+1), пробелы по краям, пустые значения.",
+   "scoring": "Доля тестов; «решено» ≥ 80 %.",
+   "example": "Правила: name обязателен; password от 8 до 32 символов; confirm совпадает с password.",
+   "example_answer": "function validate(f){const e={};if(!f.name?.trim())e.name='Обязательное поле';const l=(f.password||'').length;if(l<8||l>32)e.password='От 8 до 32 символов';if(f.confirm!==f.password)e.confirm='Пароли не совпадают';return e;}",
+   "variants": 120,
+   "anchor": false,
+   "rubric": null
+  },
+  {
+   "id": "FE-M-01",
+   "spec": "Frontend",
+   "grade": "Middle",
+   "format": "SHORT",
+   "anchor": true,
+   "title": "Event loop: порядок вывода",
+   "tags": [
+    "js.async",
+    "js.eventloop"
+   ],
+   "a": 1.5,
+   "b": 0.5,
+   "time": 4,
+   "statement": "В каком порядке будут выведены значения?\n{snippet}",
+   "params": [
+    {
+     "name": "snippet",
+     "domain": "генератор из 6–9 операций: console.log, setTimeout(0), Promise.resolve().then, queueMicrotask, async-функция с await, вложенный then внутри setTimeout; метки — случайные буквы/числа"
+    }
+   ],
+   "answer": "Ответ — фактический порядок вывода при выполнении в Node.js (одинаков для браузера на используемом подмножестве API).",
+   "scoring": "1 за полное совпадение порядка.",
+   "example": "console.log('A');\nsetTimeout(() => console.log('B'));\nPromise.resolve().then(() => console.log('C'));\n(async () => { console.log('D'); await null; console.log('E'); })();\nconsole.log('F');",
+   "example_answer": "A D F C E B",
+   "variants": 5000,
+   "rubric": null
+  },
+  {
+   "id": "FE-M-02",
+   "spec": "Frontend",
+   "grade": "Middle",
+   "format": "CODE",
+   "title": "debounce / throttle с опциями",
+   "tags": [
+    "js.closures",
+    "js.timers"
+   ],
+   "a": 1.3,
+   "b": 0.7,
+   "time": 12,
+   "statement": "Реализуйте {fn}(callback, {ms}, options) с поддержкой опций {options}. Функция должна сохранять this и аргументы последнего вызова и иметь метод cancel().",
+   "params": [
+    {
+     "name": "fn",
+     "domain": "debounce | throttle"
+    },
+    {
+     "name": "ms",
+     "domain": "100–1000"
+    },
+    {
+     "name": "options",
+     "domain": "{leading: bool, trailing: bool} | {maxWait}"
+    }
+   ],
+   "answer": "Тесты на фейковых таймерах (jest.useFakeTimers): количество и моменты вызовов при сериях событий, контекст this, cancel().",
+   "scoring": "Доля тестов (10). «Решено» ≥ 8.",
+   "example": "debounce(fn, 300, {leading: true, trailing: true}): вызовы в t=0, 100, 200 → fn вызывается в t=0 и t=500.",
+   "example_answer": "Замыкание с timer, lastArgs, lastThis; при первом вызове без таймера и leading — вызвать сразу; на каждый вызов перезапускать таймер; по таймеру при trailing и наличии отложенного вызова — вызвать.",
+   "variants": 24,
+   "anchor": false,
+   "rubric": null
+  },
+  {
+   "id": "FE-M-03",
+   "spec": "Frontend",
+   "grade": "Middle",
+   "format": "DEBUG",
+   "title": "React: устаревшее замыкание и гонки запросов",
+   "tags": [
+    "react.hooks",
+    "js.async",
+    "debugging"
+   ],
+   "a": 1.4,
+   "b": 0.8,
+   "time": 8,
+   "statement": "Компонент {component} {purpose}. Пользователи жалуются: {symptom}. Найдите причину и выберите исправление.",
+   "params": [
+    {
+     "name": "bug_class",
+     "domain": "stale closure в setInterval внутри useEffect([]); гонка ответов fetch при быстром вводе (старый ответ перезаписывает новый); отсутствие очистки подписки; useCallback с неполными зависимостями"
+    },
+    {
+     "name": "component",
+     "domain": "SearchSuggest, Timer, ChatWindow, PriceTicker — 10 сюжетов"
+    }
+   ],
+   "answer": "Причина и исправление выбираются из списков; для гонки ожидается AbortController или проверка актуальности запроса.",
+   "scoring": "0.5 + 0.5.",
+   "example": "useEffect(() => { fetch('/api/search?q=' + q).then(r => r.json()).then(setResults); }, [q]);\nСимптом: при быстром наборе «react» иногда показываются результаты для «re».",
+   "example_answer": "Гонка ответов. Исправление: AbortController в эффекте и abort() в функции очистки (или флаг ignore).",
+   "variants": 40,
+   "anchor": false,
+   "rubric": null
+  },
+  {
+   "id": "FE-M-04",
+   "spec": "Frontend",
+   "grade": "Middle",
+   "format": "CODE",
+   "title": "TypeScript: типизация утилиты",
+   "tags": [
+    "ts.generics",
+    "ts.types"
+   ],
+   "a": 1.3,
+   "b": 1.0,
+   "time": 12,
+   "statement": "Напишите типизированную функцию {fn} с сигнатурой, при которой {type_requirements}. Проверка выполняется tsc на наборе файлов с ожидаемыми ошибками (@ts-expect-error).",
+   "params": [
+    {
+     "name": "fn",
+     "domain": "pick(obj, keys); groupBy(arr, keyFn); mapValues(obj, fn); safeGet(obj, path) для 2 уровней; createStore<T>() с типизированным setState"
+    },
+    {
+     "name": "type_requirements",
+     "domain": "тип результата выводится без явных аннотаций; неверный ключ — ошибка компиляции; возвращаемый тип сужается"
+    }
+   ],
+   "answer": "Набор type-tests: 6–10 случаев с ожидаемыми ошибками и ожидаемыми типами (через Expect<Equal<…>>), плюс runtime-тесты.",
+   "scoring": "Доля пройденных type-тестов и runtime-тестов (50/50).",
+   "example": "pick(obj, keys): pick({a: 1, b: 'x', c: true}, ['a', 'c']) имеет тип {a: number; c: boolean}; pick(obj, ['z']) — ошибка компиляции.",
+   "example_answer": "function pick<T, K extends keyof T>(obj: T, keys: K[]): Pick<T, K> { const r = {} as Pick<T, K>; for (const k of keys) r[k] = obj[k]; return r; }",
+   "variants": 20,
+   "anchor": false,
+   "rubric": null
+  },
+  {
+   "id": "FE-M-05",
+   "spec": "Frontend",
+   "grade": "Middle",
+   "format": "MCQ",
+   "title": "Ререндеры и мемоизация",
+   "tags": [
+    "react.performance",
+    "react.hooks"
+   ],
+   "a": 1.1,
+   "b": 0.4,
+   "time": 4,
+   "statement": "Родитель {parent} содержит дочерние компоненты (код ниже). Пользователь {action}. Какие из дочерних компонентов перерендерятся?",
+   "params": [
+    {
+     "name": "tree",
+     "domain": "дерево из 3–4 компонентов, часть обёрнута в React.memo; пропсы — примитивы, объекты-литералы, колбэки с/без useCallback, children"
+    },
+    {
+     "name": "action",
+     "domain": "ввод в поле, состояние которого хранится в родителе | клик, меняющий контекст"
+    }
+   ],
+   "answer": "Вычисляется прогоном в React Profiler (jsdom) — фиксируется множество перерендеренных компонентов.",
+   "scoring": "1/0.",
+   "example": "Parent хранит text; <Memo1 value={42} />, <Memo2 style={{color:'red'}} />, <Plain />, <Memo3 onClick={useCallback(f, [])} />. Пользователь вводит символ.",
+   "example_answer": "Memo2 (новый объект style) и Plain; Memo1 и Memo3 — нет.",
+   "variants": 120,
+   "anchor": false,
+   "rubric": null
+  },
+  {
+   "id": "FE-M-06",
+   "spec": "Frontend",
+   "grade": "Middle",
+   "format": "REVIEW",
+   "title": "Code review React-компонента",
+   "tags": [
+    "react.basics",
+    "code_review",
+    "security.xss"
+   ],
+   "a": 1.2,
+   "b": 0.6,
+   "time": 10,
+   "statement": "Компонент {component} (40–60 строк) отправлен на ревью. Отметьте строки с проблемами и тип каждой проблемы.",
+   "params": [
+    {
+     "name": "seeded_issues",
+     "domain": "4 проблемы из пула: dangerouslySetInnerHTML с пользовательским вводом; запрос без обработки ошибки и состояния загрузки; индекс массива как key при сортировке; вычисление в рендере без useMemo на 10^4 элементах; утечка подписки; хранение токена в localStorage"
+    }
+   ],
+   "answer": "Как в BE-M-06: совпадение строки (±1) и типа.",
+   "scoring": "k/4 − 0.1 × ложные; «решено» ≥ 3.",
+   "example": "<div dangerouslySetInnerHTML={{__html: comment.text}} /> … items.sort(...).map((it, i) => <Row key={i} …/>)",
+   "example_answer": "XSS через dangerouslySetInnerHTML (санитизация / рендер текста); key={i} при сортировке → неверное переиспользование DOM-узлов.",
+   "variants": 90,
+   "anchor": false,
+   "rubric": null
+  },
+  {
+   "id": "FE-S-01",
+   "spec": "Frontend",
+   "grade": "Senior",
+   "format": "CASE",
+   "anchor": true,
+   "title": "Архитектура фронтенда продукта",
+   "tags": [
+    "fe.architecture",
+    "system.design"
+   ],
+   "a": 1.3,
+   "b": 1.6,
+   "time": 25,
+   "statement": "Компания разрабатывает {product}. Над фронтендом работают {teams} команд, релизы {release}, требования: {requirements}. Предложите архитектуру фронтенда: способ рендеринга, разбиение на модули/микрофронтенды, управление состоянием, дизайн-систему, стратегию релизов и тестирования.",
+   "params": [
+    {
+     "name": "product",
+     "domain": "маркетплейс; банковский личный кабинет; CRM для продаж; медиа-портал; админ-панель SaaS (8 сюжетов)"
+    },
+    {
+     "name": "teams, release",
+     "domain": "2–12 команд; ежедневно / раз в 2 недели"
+    },
+    {
+     "name": "requirements",
+     "domain": "SEO важен/не важен; офлайн-режим; доступность WCAG AA; поддержка слабых устройств"
+    }
+   ],
+   "answer": "Оценка по рубрике; у каждого сюжета зафиксирована ключевая развилка (например, SEO → SSR/SSG; 2 команды → микрофронтенды избыточны).",
+   "scoring": "Рубрика 5 × 0–2 = 0–10; «решено» ≥ 6.",
+   "rubric": [
+    "Выбор рендеринга (CSR/SSR/SSG/ISR) обоснован требованиями",
+    "Разбиение на модули соответствует размеру и структуре команд",
+    "Управление состоянием и данными (серверный кэш vs клиентское состояние)",
+    "Дизайн-система, доступность, производительность заложены в процесс",
+    "Релизы, тестирование, откат; явно названы компромиссы"
+   ],
+   "example": "Маркетплейс, 9 команд, ежедневные релизы, SEO критичен, большая доля мобильного трафика.",
+   "example_answer": "SSR/ISR для каталога и карточек (Next.js), CSR для личного кабинета; разбиение по доменам с module federation или монорепо с независимыми пакетами; TanStack Query для серверного состояния; общая дизайн-система с visual-regression; feature flags и канареечные релизы; бюджет производительности в CI.",
+   "variants": 80
+  },
+  {
+   "id": "FE-S-02",
+   "spec": "Frontend",
+   "grade": "Senior",
+   "format": "CASE",
+   "title": "План по производительности (Core Web Vitals)",
+   "tags": [
+    "fe.performance",
+    "web.vitals"
+   ],
+   "a": 1.4,
+   "b": 1.5,
+   "time": 20,
+   "statement": "Страница {page} на {device} имеет LCP {lcp} с, INP {inp} мс, CLS {cls}. Дан отчёт Lighthouse и waterfall (таблица ресурсов). Определите 3 главные причины и составьте план улучшений с ожидаемым эффектом.",
+   "params": [
+    {
+     "name": "page, device",
+     "domain": "главная маркетплейса, статья, карточка товара; mid-range Android / десктоп"
+    },
+    {
+     "name": "metrics, waterfall",
+     "domain": "генерируются согласованно с 4–5 заложенными проблемами: hero-изображение без приоритета и размеров, блокирующий CSS/JS, сторонние скрипты, долгие задачи при гидратации, шрифты без font-display, баннер, сдвигающий контент"
+    }
+   ],
+   "answer": "Список заложенных проблем с ожидаемым вкладом в метрики хранится в генераторе.",
+   "scoring": "Рубрика 4 × 0–2; «решено» ≥ 5.",
+   "rubric": [
+    "Причины определены по данным, а не общими советами",
+    "Приоритизация по вкладу в метрику",
+    "Конкретные технические меры (fetchpriority, preload, code splitting, размеры изображений, yield в long tasks)",
+    "Способ измерения эффекта (RUM, бюджеты в CI)"
+   ],
+   "example": "Карточка товара, mid-range Android: LCP 5,1 с, INP 420 мс, CLS 0,27. В waterfall hero.jpg (1,8 МБ) загружается после bundle.js (900 КБ); баннер cookie вставляется сверху через 2 с.",
+   "example_answer": "LCP: preload/fetchpriority=high для hero, AVIF/WebP + srcset, SSR разметки; INP: разбить bundle, отложить гидратацию второстепенных блоков; CLS: резерв места под баннер/изображения (width/height, aspect-ratio).",
+   "variants": 60,
+   "anchor": false
+  },
+  {
+   "id": "FE-S-03",
+   "spec": "Frontend",
+   "grade": "Senior",
+   "format": "CODE",
+   "title": "Виртуализация списка",
+   "tags": [
+    "fe.performance",
+    "algorithms",
+    "react.advanced"
+   ],
+   "a": 1.2,
+   "b": 1.4,
+   "time": 20,
+   "statement": "Реализуйте функцию getVisibleRange({scrollTop, viewportHeight, itemHeights, overscan}) для списка с {height_mode} высотой элементов, возвращающую {start, end, offsetTop, totalHeight}. Требование к сложности: {complexity}.",
+   "params": [
+    {
+     "name": "height_mode",
+     "domain": "фиксированной | переменной известной (массив высот) | переменной с кэшем измерений"
+    },
+    {
+     "name": "complexity",
+     "domain": "O(1) для фиксированной; O(log n) на запрос после O(n) предрасчёта префиксных сумм"
+    },
+    {
+     "name": "overscan",
+     "domain": "0–5"
+    }
+   ],
+   "answer": "Тесты на границах (scrollTop = 0, конец списка, ровно на стыке элементов), производительность 10^5 элементов × 10^4 запросов ≤ 1 с.",
+   "scoring": "Доля тестов; производительность обязательна для «решено».",
+   "example": "itemHeights = [30, 50, 20, …] (100 000 элементов), viewportHeight = 600, overscan = 2.",
+   "example_answer": "Префиксные суммы heights → бинарный поиск первого элемента с prefix[i+1] > scrollTop и последнего с prefix[i] < scrollTop + viewportHeight; расширить на overscan с обрезкой границ.",
+   "variants": 30,
+   "anchor": false,
+   "rubric": null
+  },
+  {
+   "id": "FE-S-04",
+   "spec": "Frontend",
+   "grade": "Senior",
+   "format": "MCQ",
+   "title": "Утечка памяти в SPA",
+   "tags": [
+    "fe.performance",
+    "debugging",
+    "js.memory"
+   ],
+   "a": 1.3,
+   "b": 1.5,
+   "time": 8,
+   "statement": "После {n} переходов между экранами {screens} потребление памяти вкладкой растёт с {m1} до {m2} МБ. Дан фрагмент сравнения heap-снимков (таблица: конструктор, число объектов, retained size, цепочка удержания). Какова причина утечки и исправление?",
+   "params": [
+    {
+     "name": "leak",
+     "domain": "обработчик window.addEventListener без удаления; setInterval без clearInterval; detached DOM-узлы в модульном кэше; подписка на store без отписки; замыкание в глобальном Map по ключу-объекту"
+    },
+    {
+     "name": "heap_table",
+     "domain": "генерируется: строки, согласованные с причиной, + 2 шумовые строки (рост строк кэша i18n, нормальный рост)"
+    }
+   ],
+   "answer": "Причина определяется по цепочке удержания (retainers); дистракторы опираются на шумовые строки.",
+   "scoring": "1/0.",
+   "example": "В diff снимков +480 Detached HTMLDivElement; цепочка: Detached HTMLDivElement ← handler ← listeners ← Window. Экран ChartView при монтировании вызывает window.addEventListener('resize', this.onResize).",
+   "example_answer": "Обработчик resize не удаляется при размонтировании и удерживает отсоединённый DOM. Исправление: removeEventListener в cleanup (или AbortController signal).",
+   "variants": 50,
+   "anchor": false,
+   "rubric": null
+  },
+  {
+   "id": "FE-S-05",
+   "spec": "Frontend",
+   "grade": "Senior",
+   "format": "REVIEW",
+   "title": "Ревью API компонента дизайн-системы",
+   "tags": [
+    "fe.architecture",
+    "design_system",
+    "code_review"
+   ],
+   "a": 1.1,
+   "b": 1.7,
+   "time": 15,
+   "statement": "Предложен публичный API компонента {component} для дизайн-системы, которой пользуются {teams} команд (интерфейс TypeScript + примеры использования). Оцените API: расширяемость, доступность, обратная совместимость, удобство.",
+   "params": [
+    {
+     "name": "component",
+     "domain": "Select, Modal, DataTable, DatePicker, Toast (6 вариантов)"
+    },
+    {
+     "name": "seeded_issues",
+     "domain": "булевы пропсы-взрывы (isPrimary, isSmall, isDanger…); отсутствие controlled/uncontrolled режима; нет управления фокусом; утечка внутренней разметки в API (className внутреннего узла); ломающее переименование без deprecation"
+    }
+   ],
+   "answer": "Заложенные проблемы + ожидаемые альтернативы (variant/size, value/defaultValue/onChange, composition через subcomponents, deprecation-слой).",
+   "scoring": "Рубрика 4 × 0–2; «решено» ≥ 5.",
+   "rubric": [
+    "Найдены заложенные проблемы API",
+    "Учтены доступность и управление фокусом",
+    "Предложена стратегия совместимости/миграции",
+    "Предложения согласованы между собой и не переусложнены"
+   ],
+   "example": "<Modal isOpen isLarge isDanger hideClose onClose={...} innerClassName=\"x\" />",
+   "example_answer": "Заменить булевы флаги на size/variant; обеспечить focus trap и возврат фокуса, aria-modal, закрытие по Esc; убрать innerClassName в пользу slots/компонентов; переименования — через период deprecation с предупреждением в dev-сборке.",
+   "variants": 30,
+   "anchor": false
+  },
+  {
+   "id": "FE-S-06",
+   "spec": "Frontend",
+   "grade": "Senior",
+   "format": "MCQ",
+   "title": "Безопасность веб-клиента",
+   "tags": [
+    "security.xss",
+    "security.csrf",
+    "web.csp"
+   ],
+   "a": 1.2,
+   "b": 1.2,
+   "time": 5,
+   "statement": "Приложение {app}: {setup}. Злоумышленник {attack}. Удастся ли атака и какая мера её надёжно предотвращает?",
+   "params": [
+    {
+     "name": "setup",
+     "domain": "комбинации: токен в localStorage / cookie HttpOnly + SameSite=Lax/None; CSP с 'unsafe-inline' / с nonce; CORS с отражением Origin + credentials; JSONP-эндпоинт"
+    },
+    {
+     "name": "attack",
+     "domain": "внедряет <img onerror> в комментарий; отправляет форму с другого домена; встраивает страницу в iframe; читает ответ API со своего сайта"
+    }
+   ],
+   "answer": "Ответ вычисляется по таблице «механизм защиты × вектор атаки».",
+   "scoring": "1/0.",
+   "example": "Сессия в cookie HttpOnly; SameSite=None; Secure; CSRF-токена нет. Злоумышленник размещает на своём сайте автосабмит POST-формы на /api/transfer.",
+   "example_answer": "Атака удастся (cookie отправится). Надёжно: SameSite=Lax/Strict и CSRF-токен / проверка Origin.",
+   "variants": 64,
+   "anchor": false,
+   "rubric": null
+  },
+  {
+   "id": "QA-J-01",
+   "spec": "QA",
+   "grade": "Junior",
+   "format": "MSQ",
+   "anchor": true,
+   "title": "Граничные значения и классы эквивалентности",
+   "tags": [
+    "qa.test_design"
+   ],
+   "a": 1.3,
+   "b": -1.1,
+   "time": 4,
+   "statement": "Поле «{field}» принимает {domain}. Отметьте минимальный набор значений, покрывающий все границы и классы эквивалентности.",
+   "params": [
+    {
+     "name": "field, domain",
+     "domain": "целое от N до M; строка длиной от N до M; сумма с 2 знаками от N до M; дата не раньше D; N, M, D генерируются"
+    },
+    {
+     "name": "options",
+     "domain": "8–10 значений: N−1, N, N+1, M−1, M, M+1, середина, нечисловое, пустое; часть вариантов избыточна"
+    }
+   ],
+   "answer": "Эталонный набор вычисляется по правилу «граница, ±1 шаг, по одному представителю каждого класса, невалидный тип».",
+   "scoring": "Частичный: (верно − ошибочно) / число верных.",
+   "example": "Поле «Возраст» принимает целое от 18 до 65. Варианты: 17, 18, 19, 40, 64, 65, 66, «abc», пусто, 0.",
+   "example_answer": "17, 18, 65, 66, 40, «abc», пусто (19 и 64 допустимы, но не обязательны для минимального набора по 2-значному анализу границ).",
+   "variants": 200,
+   "rubric": null
+  },
+  {
+   "id": "QA-J-02",
+   "spec": "QA",
+   "grade": "Junior",
+   "format": "MCQ",
+   "title": "Severity и priority дефекта",
+   "tags": [
+    "qa.bug_reporting"
+   ],
+   "a": 0.9,
+   "b": -1.4,
+   "time": 2,
+   "statement": "Описание дефекта: {bug}. Контекст продукта: {context}. Какие severity и priority корректны?",
+   "params": [
+    {
+     "name": "bug, context",
+     "domain": "пул из 30 пар: опечатка в логотипе на главной; падение при оплате у 1 % пользователей; неверный расчёт скидки; кнопка недоступна в редком браузере"
+    }
+   ],
+   "answer": "Хранится в пуле с обоснованием; дистракторы — перестановки severity/priority.",
+   "scoring": "1/0.",
+   "example": "На главной странице интернет-магазина в названии компании опечатка. Функциональность не затронута.",
+   "example_answer": "Severity: Trivial/Minor; Priority: High (репутационный дефект на главной).",
+   "variants": 30,
+   "anchor": false,
+   "rubric": null
+  },
+  {
+   "id": "QA-J-03",
+   "spec": "QA",
+   "grade": "Junior",
+   "format": "CASE",
+   "title": "Тест-кейсы для функции",
+   "tags": [
+    "qa.test_design",
+    "qa.documentation"
+   ],
+   "a": 1.0,
+   "b": -0.6,
+   "time": 10,
+   "statement": "Опишите 5–7 тест-кейсов для функции «{feature}» по требованиям ниже: {requirements}. Для каждого: шаги, данные, ожидаемый результат.",
+   "params": [
+    {
+     "name": "feature",
+     "domain": "восстановление пароля; добавление в корзину; фильтр каталога; загрузка аватара; промокод (10 функций)"
+    },
+    {
+     "name": "requirements",
+     "domain": "4–6 пунктов требований с числовыми ограничениями"
+    }
+   ],
+   "answer": "LLM сопоставляет кейсы с чек-листом обязательных проверок (позитивный путь, границы, негатив, безопасность/права, состояние после ошибки).",
+   "scoring": "Рубрика 3 × 0–2 = 0–6; «решено» ≥ 4.",
+   "rubric": [
+    "Покрыты позитивный и негативные сценарии и границы",
+    "Ожидаемые результаты проверяемы и конкретны",
+    "Нет дублей; кейсы атомарны"
+   ],
+   "example": "Загрузка аватара: JPG/PNG, до 5 МБ, минимальный размер 200×200, после загрузки — обрезка до квадрата.",
+   "example_answer": "Кейсы: PNG 4,9 МБ 500×500 — успех; 5,0 МБ / 5,1 МБ — граница; GIF — отказ с сообщением; 199×199 — отказ; файл с расширением .jpg, но содержимым .exe — отказ; неквадратное изображение — обрезка по центру.",
+   "variants": 50,
+   "anchor": false
+  },
+  {
+   "id": "QA-J-04",
+   "spec": "QA",
+   "grade": "Junior",
+   "format": "SHORT",
+   "title": "Чтение HTTP-запроса и ответа",
+   "tags": [
+    "qa.api",
+    "http.status"
+   ],
+   "a": 1.1,
+   "b": -0.4,
+   "time": 4,
+   "statement": "Ниже запрос и ответ API (из DevTools/Postman). Ответьте: {question}",
+   "params": [
+    {
+     "name": "question",
+     "domain": "какой метод/код/заголовок указывает на проблему; какое поле в теле нарушает контракт (дана схема); корректен ли код ответа"
+    },
+    {
+     "name": "exchange",
+     "domain": "сгенерированная пара запрос–ответ с одним расхождением с контрактом"
+    }
+   ],
+   "answer": "Однозначный ответ (имя поля / код / заголовок).",
+   "scoring": "1/0.",
+   "example": "Схема: price — number, обязателен. Ответ 200: {\"id\": 5, \"price\": \"199.00\", \"name\": \"Чайник\"}",
+   "example_answer": "Поле price: строка вместо числа — нарушение контракта.",
+   "variants": 150,
+   "anchor": false,
+   "rubric": null
+  },
+  {
+   "id": "QA-M-01",
+   "spec": "QA",
+   "grade": "Middle",
+   "format": "CODE",
+   "anchor": true,
+   "title": "API-автотест на pytest",
+   "tags": [
+    "qa.automation",
+    "qa.api",
+    "python.basics"
+   ],
+   "a": 1.3,
+   "b": 0.5,
+   "time": 15,
+   "statement": "Напишите автотесты (pytest + requests/httpx) для эндпоинта {endpoint} по спецификации ниже. Тесты запускаются против эталонной реализации и {k} мутантов с внедрёнными дефектами.",
+   "params": [
+    {
+     "name": "endpoint",
+     "domain": "POST /orders, GET /users?page=, PATCH /tasks/{id}, DELETE /files/{id} — 8 спецификаций"
+    },
+    {
+     "name": "k",
+     "domain": "6–8 мутантов: неверный код ответа, отсутствие валидации поля, ошибка пагинации, отсутствие проверки прав, неверная сортировка"
+    }
+   ],
+   "answer": "Мутационное тестирование: тесты должны проходить на эталоне и падать на мутантах.",
+   "scoring": "Доля «убитых» мутантов; если тесты падают на эталоне — 0. «Решено» ≥ 70 %.",
+   "example": "GET /users?page=&size= : size от 1 до 100 (иначе 422), сортировка по id, поле total в ответе.",
+   "example_answer": "Тесты: size=0 и 101 → 422; size=100 → 200 и len ≤ 100; страницы не пересекаются и упорядочены по id; total совпадает с суммой по страницам; без токена → 401.",
+   "variants": 40,
+   "rubric": null
+  },
+  {
+   "id": "QA-M-02",
+   "spec": "QA",
+   "grade": "Middle",
+   "format": "SHORT",
+   "title": "Попарное тестирование: число комбинаций",
+   "tags": [
+    "qa.test_design",
+    "qa.combinatorics"
+   ],
+   "a": 1.0,
+   "b": 0.4,
+   "time": 5,
+   "statement": "Конфигурация имеет параметры: {params_list}. Ограничение: {constraint}. Каково минимальное число тестов для полного попарного покрытия? Приведите набор.",
+   "params": [
+    {
+     "name": "params_list",
+     "domain": "3–4 параметра с 2–4 значениями (браузер, ОС, язык, тариф)"
+    },
+    {
+     "name": "constraint",
+     "domain": "отсутствует | Safari только на macOS"
+    }
+   ],
+   "answer": "Минимум вычисляется решателем покрывающих массивов (PICT/ILP); набор проверяется программно на полноту пар.",
+   "scoring": "0.5 за число (допуск +1), 0.5 за валидный набор.",
+   "example": "Браузер {Chrome, Firefox}, ОС {Windows, macOS, Linux}, язык {RU, EN}. Без ограничений.",
+   "example_answer": "6 тестов (3 × 2, по наибольшим параметрам), например: Chrome-Win-RU, Firefox-Win-EN, Chrome-Mac-EN, Firefox-Mac-RU, Chrome-Linux-RU, Firefox-Linux-EN.",
+   "variants": 120,
+   "anchor": false,
+   "rubric": null
+  },
+  {
+   "id": "QA-M-03",
+   "spec": "QA",
+   "grade": "Middle",
+   "format": "DEBUG",
+   "title": "Нестабильный (flaky) UI-тест",
+   "tags": [
+    "qa.automation",
+    "qa.flaky",
+    "debugging"
+   ],
+   "a": 1.3,
+   "b": 0.8,
+   "time": 8,
+   "statement": "UI-тест {test} (Playwright/Selenium) падает в CI в {pct} % прогонов. Дан код теста и лог падения. Определите причину и исправление.",
+   "params": [
+    {
+     "name": "cause",
+     "domain": "жёсткий sleep вместо ожидания условия; зависимость от порядка тестов (общие данные); локатор по тексту, меняющемуся по локали; анимация перекрывает элемент; время/часовой пояс в проверке"
+    },
+    {
+     "name": "pct",
+     "domain": "3–30"
+    }
+   ],
+   "answer": "Причина и исправление — из списков; дистрактор «увеличить таймаут / добавить ретраи» засчитывается как неверный.",
+   "scoring": "0.5 + 0.5.",
+   "example": "page.click('#save'); time.sleep(1); assert page.inner_text('.toast') == 'Сохранено'. Лог: ElementNotFound '.toast' (в 12 % прогонов).",
+   "example_answer": "Жёсткое ожидание. Исправление: expect(page.locator('.toast')).to_have_text('Сохранено') с автоожиданием.",
+   "variants": 50,
+   "anchor": false,
+   "rubric": null
+  },
+  {
+   "id": "QA-M-04",
+   "spec": "QA",
+   "grade": "Middle",
+   "format": "MCQ",
+   "title": "Регресс в условиях ограниченного времени",
+   "tags": [
+    "qa.strategy",
+    "qa.risk"
+   ],
+   "a": 1.0,
+   "b": 0.6,
+   "time": 5,
+   "statement": "До релиза {hours} ч. Изменения: {changes}. Набор регресса — {n} кейсов ({t} ч вручную). Какая стратегия наиболее обоснована?",
+   "params": [
+    {
+     "name": "changes",
+     "domain": "список изменённых модулей и их связей; история дефектов по модулям"
+    },
+    {
+     "name": "hours, n, t",
+     "domain": "согласованы так, что полный регресс не помещается"
+    }
+   ],
+   "answer": "Верный вариант — risk-based отбор по изменённым модулям, связям и истории дефектов + smoke всего; дистракторы — «пройти всё быстрее», «только новые фичи», «перенести релиз без анализа».",
+   "scoring": "1/0.",
+   "example": "До релиза 6 ч. Изменён модуль расчёта скидок, от которого зависят корзина и оформление заказа. Регресс: 400 кейсов, 30 ч.",
+   "example_answer": "Smoke по всему продукту + полный регресс скидок, корзины, оформления заказа и модулей с дефектами за последние 3 релиза; остальное — после релиза с мониторингом.",
+   "variants": 40,
+   "anchor": false,
+   "rubric": null
+  },
+  {
+   "id": "QA-S-01",
+   "spec": "QA",
+   "grade": "Senior",
+   "format": "CASE",
+   "anchor": true,
+   "title": "Стратегия тестирования продукта",
+   "tags": [
+    "qa.strategy",
+    "qa.automation"
+   ],
+   "a": 1.3,
+   "b": 1.5,
+   "time": 25,
+   "statement": "Компания {company} выпускает {product}: {teams} команд, релизы {release}, текущая проблема: {pain}. Предложите стратегию качества на полгода: уровни тестирования, автоматизация, окружения и данные, метрики, роль QA в командах.",
+   "params": [
+    {
+     "name": "product",
+     "domain": "мобильный банк; маркетплейс; B2B SaaS; игра с внутриигровыми покупками"
+    },
+    {
+     "name": "pain",
+     "domain": "дефекты на проде после каждого релиза; регресс занимает 5 дней; 30 % автотестов нестабильны; нет тестовых данных"
+    }
+   ],
+   "answer": "Оценка по рубрике.",
+   "scoring": "Рубрика 5 × 0–2; «решено» ≥ 6.",
+   "rubric": [
+    "Пирамида/трофей тестирования обоснованы архитектурой продукта",
+    "Приоритизация по рискам продукта",
+    "Решение заявленной проблемы (pain) конкретными мерами",
+    "Метрики качества с целевыми значениями (escape rate, время регресса, доля flaky)",
+    "Реалистичный поэтапный план и ресурсы"
+   ],
+   "example": "Мобильный банк, 6 команд, релиз раз в 2 недели, регресс занимает 5 дней вручную.",
+   "example_answer": "Контрактные тесты между мобильным клиентом и API, автоматизация критичных путей (переводы, вход), feature flags; цель — регресс ≤ 1 дня за 3 месяца; метрика escape rate по severity.",
+   "variants": 40
+  },
+  {
+   "id": "QA-S-02",
+   "spec": "QA",
+   "grade": "Senior",
+   "format": "SHORT",
+   "title": "Интерпретация метрик качества",
+   "tags": [
+    "qa.metrics",
+    "qa.strategy"
+   ],
+   "a": 1.2,
+   "b": 1.3,
+   "time": 8,
+   "statement": "Даны метрики за {k} релизов: найдено дефектов до релиза, после релиза (по severity), покрытие кода, доля автотестов, время регресса. Вычислите {metric} и ответьте, какой вывод корректен.",
+   "params": [
+    {
+     "name": "metric",
+     "domain": "defect escape rate по критичным; DDP (defect detection percentage); тренд"
+    },
+    {
+     "name": "data",
+     "domain": "генерируемая таблица на 4–6 релизов с заложенной ловушкой: покрытие растёт, а escape rate критичных тоже растёт"
+    }
+   ],
+   "answer": "Число вычисляется; вывод выбирается из 4 вариантов.",
+   "scoring": "0.5 число (допуск ±0,5 п. п.) + 0.5 вывод.",
+   "example": "Релиз 3: до релиза найдено 45, после релиза 5 (из них 3 критичных).",
+   "example_answer": "DDP = 45 / (45 + 5) = 90 %.",
+   "variants": 80,
+   "anchor": false,
+   "rubric": null
+  },
+  {
+   "id": "QA-S-03",
+   "spec": "QA",
+   "grade": "Senior",
+   "format": "REVIEW",
+   "title": "Ревью архитектуры автотестов",
+   "tags": [
+    "qa.automation",
+    "code_review",
+    "architecture"
+   ],
+   "a": 1.1,
+   "b": 1.6,
+   "time": 15,
+   "statement": "Ниже структура фреймворка автотестов и 3 типичных теста. Найдите архитектурные проблемы и предложите изменения.",
+   "params": [
+    {
+     "name": "seeded_issues",
+     "domain": "4–5 из пула: тесты зависят друг от друга; данные создаются через UI вместо API; локаторы дублируются (нет Page Object/компонентов); секреты в репозитории; нет параллелизации из-за общего аккаунта; проверки в хелперах"
+    }
+   ],
+   "answer": "Список заложенных проблем.",
+   "scoring": "Рубрика 4 × 0–2; «решено» ≥ 5.",
+   "rubric": [
+    "Найдены заложенные проблемы",
+    "Предложены конкретные паттерны (фабрики данных через API, изоляция, Page/Component Objects)",
+    "Учтены скорость и параллелизация",
+    "Есть план миграции без остановки разработки"
+   ],
+   "example": "Каждый тест логинится через UI под одним аккаунтом qa@test.ru, создаёт заказ через UI и проверяет его в следующем тесте.",
+   "example_answer": "Создание данных через API/фикстуры, уникальные аккаунты на воркер, независимые тесты, логин через storage state.",
+   "variants": 30,
+   "anchor": false
+  },
+  {
+   "id": "QA-S-04",
+   "spec": "QA",
+   "grade": "Senior",
+   "format": "CASE",
+   "title": "План нагрузочного тестирования",
+   "tags": [
+    "qa.performance"
+   ],
+   "a": 1.2,
+   "b": 1.8,
+   "time": 20,
+   "statement": "Сервис {service} готовится к {event}: ожидается {peak} пиковой нагрузки. Составьте план нагрузочного тестирования: профиль нагрузки, сценарии, окружение, данные, критерии успеха, мониторинг.",
+   "params": [
+    {
+     "name": "service, event",
+     "domain": "интернет-магазин / распродажа; сервис записи к врачу / открытие записи; билетный сервис / старт продаж"
+    },
+    {
+     "name": "peak",
+     "domain": "×5–×50 от обычной"
+    }
+   ],
+   "answer": "Оценка по рубрике.",
+   "scoring": "Рубрика 4 × 0–2; «решено» ≥ 5.",
+   "rubric": [
+    "Профиль нагрузки выведен из данных (а не «дадим 10 000 RPS»)",
+    "Виды тестов: базовый, стресс, длительный, пиковый всплеск",
+    "Критерии успеха через SLO (p95, ошибки)",
+    "Окружение и данные репрезентативны; учтены внешние зависимости"
+   ],
+   "example": "Билетный сервис: старт продаж на концерт, ожидается ×40 к обычной нагрузке в первые 5 минут.",
+   "example_answer": "Профиль «всплеск»: 0 → пик за 30 с; сценарии: вход, выбор места, бронь, оплата (заглушка платёжного шлюза); критерий: p95 < 800 мс, ошибки < 0,5 %, отсутствие двойных продаж мест.",
+   "variants": 30,
+   "anchor": false
+  },
+  {
+   "id": "OPS-J-01",
+   "spec": "DevOps",
+   "grade": "Junior",
+   "format": "CODE",
+   "anchor": true,
+   "title": "Команда Linux под задачу",
+   "tags": [
+    "linux.cli"
+   ],
+   "a": 1.1,
+   "b": -1.0,
+   "time": 5,
+   "statement": "Напишите одну команду (допускаются конвейеры), которая {goal}. Проверка выполняется в контейнере со сгенерированной файловой системой.",
+   "params": [
+    {
+     "name": "goal",
+     "domain": "найти файлы *.{ext} в {path} старше {days} дней и вывести их суммарный размер; посчитать число уникальных IP в {log} за {hour}; вывести 5 процессов с наибольшим RSS; найти строки с {pattern} без учёта регистра рекурсивно"
+    },
+    {
+     "name": "ext, path, days, log, pattern",
+     "domain": "генерируются; ФС создаётся с ловушками (пробелы в именах, вложенные каталоги)"
+    }
+   ],
+   "answer": "Вывод команды сравнивается с эталоном (нормализация пробелов).",
+   "scoring": "1/0; 2 попытки запуска без штрафа.",
+   "example": "Посчитать число уникальных IP-адресов в /var/log/nginx/access.log (IP — первое поле).",
+   "example_answer": "awk '{print $1}' /var/log/nginx/access.log | sort -u | wc -l",
+   "variants": 150,
+   "rubric": null
+  },
+  {
+   "id": "OPS-J-02",
+   "spec": "DevOps",
+   "grade": "Junior",
+   "format": "DEBUG",
+   "title": "Ошибки в Dockerfile",
+   "tags": [
+    "docker.basics"
+   ],
+   "a": 1.0,
+   "b": -0.6,
+   "time": 6,
+   "statement": "Dockerfile для {app} собирается, но {symptom}. Укажите строки с проблемами.",
+   "params": [
+    {
+     "name": "issues",
+     "domain": "2 из пула: COPY . . до установки зависимостей (кэш слоёв); запуск от root; latest-тег базового образа; секрет в ENV; отсутствие .dockerignore с node_modules; EXPOSE не тот порт"
+    },
+    {
+     "name": "app",
+     "domain": "Python/FastAPI, Node/Express, Go"
+    }
+   ],
+   "answer": "Номера строк с заложенными проблемами.",
+   "scoring": "k/2.",
+   "example": "FROM python:latest\nCOPY . /app\nRUN pip install -r /app/requirements.txt\nCMD python /app/main.py\nСимптом: каждая правка кода пересобирает зависимости 4 минуты.",
+   "example_answer": "Стр. 2–3: сначала COPY requirements.txt и pip install, затем COPY остального; стр. 1: зафиксировать версию образа.",
+   "variants": 60,
+   "anchor": false,
+   "rubric": null
+  },
+  {
+   "id": "OPS-J-03",
+   "spec": "DevOps",
+   "grade": "Junior",
+   "format": "MCQ",
+   "title": "Сети: порты, DNS, доступность",
+   "tags": [
+    "network.basics"
+   ],
+   "a": 1.0,
+   "b": -1.3,
+   "time": 3,
+   "statement": "{situation} Какая наиболее вероятная причина / какой командой проверить?",
+   "params": [
+    {
+     "name": "situation",
+     "domain": "пул из 25 ситуаций: curl по домену не работает, по IP работает; сервис слушает 127.0.0.1, а не 0.0.0.0; порт занят; firewall; TLS-сертификат истёк"
+    }
+   ],
+   "answer": "Из пула.",
+   "scoring": "1/0.",
+   "example": "Контейнер с API запущен с -p 8080:8080, curl localhost:8080 с хоста — connection reset. Внутри контейнера curl localhost:8080 работает.",
+   "example_answer": "Приложение слушает 127.0.0.1 внутри контейнера; нужно слушать 0.0.0.0.",
+   "variants": 25,
+   "anchor": false,
+   "rubric": null
+  },
+  {
+   "id": "OPS-J-04",
+   "spec": "DevOps",
+   "grade": "Junior",
+   "format": "MCQ",
+   "title": "CI: последовательность шагов пайплайна",
+   "tags": [
+    "ci.basics",
+    "git"
+   ],
+   "a": 0.9,
+   "b": -0.8,
+   "time": 3,
+   "statement": "Пайплайн {ci} для {app}: выберите корректный порядок этапов и условие запуска деплоя.",
+   "params": [
+    {
+     "name": "ci",
+     "domain": "GitLab CI | GitHub Actions"
+    },
+    {
+     "name": "app",
+     "domain": "веб-сервис, библиотека, мобильное приложение"
+    }
+   ],
+   "answer": "Из пула.",
+   "scoring": "1/0.",
+   "example": "Веб-сервис, GitLab CI: lint, test, build image, push, deploy staging, deploy prod.",
+   "example_answer": "lint → test → build → push → deploy staging (на merge в main) → deploy prod (вручную / по тегу).",
+   "variants": 18,
+   "anchor": false,
+   "rubric": null
+  },
+  {
+   "id": "OPS-M-01",
+   "spec": "DevOps",
+   "grade": "Middle",
+   "format": "CODE",
+   "anchor": true,
+   "title": "Multi-stage Dockerfile",
+   "tags": [
+    "docker.advanced",
+    "security.containers"
+   ],
+   "a": 1.2,
+   "b": 0.4,
+   "time": 12,
+   "statement": "Напишите Dockerfile для {app}. Требования: многоэтапная сборка, итоговый образ ≤ {size} МБ, запуск не от root, healthcheck, кэширование зависимостей.",
+   "params": [
+    {
+     "name": "app",
+     "domain": "Go-сервис, Node/TypeScript-сервис, Python-сервис с poetry, Java/Spring"
+    },
+    {
+     "name": "size",
+     "domain": "лимит размера под стек: 30 / 150 / 200 / 250"
+    }
+   ],
+   "answer": "Автопроверка: сборка, размер образа, USER ≠ root (docker inspect), healthcheck проходит, повторная сборка после правки кода не переустанавливает зависимости (по логу кэша), hadolint без ошибок.",
+   "scoring": "6 проверок; «решено» ≥ 5.",
+   "example": "Go-сервис, итоговый образ ≤ 30 МБ.",
+   "example_answer": "FROM golang:1.22 AS build; COPY go.mod go.sum; RUN go mod download; COPY .; RUN CGO_ENABLED=0 go build -o /app; FROM gcr.io/distroless/static:nonroot; COPY --from=build /app /app; USER nonroot; ENTRYPOINT [\"/app\"].",
+   "variants": 16,
+   "rubric": null
+  },
+  {
+   "id": "OPS-M-02",
+   "spec": "DevOps",
+   "grade": "Middle",
+   "format": "DEBUG",
+   "title": "Kubernetes: почему не работает",
+   "tags": [
+    "k8s.basics",
+    "debugging"
+   ],
+   "a": 1.4,
+   "b": 0.7,
+   "time": 8,
+   "statement": "Даны манифесты (Deployment, Service, Ingress) и вывод kubectl get/describe. Симптом: {symptom}. Найдите ошибку.",
+   "params": [
+    {
+     "name": "bug",
+     "domain": "селектор Service не совпадает с метками подов; targetPort ≠ containerPort; readinessProbe на неверный путь; лимит памяти ниже потребления (OOMKilled); образ из приватного реестра без imagePullSecret"
+    },
+    {
+     "name": "symptom",
+     "domain": "503 от Ingress; поды в CrashLoopBackOff; Endpoints пуст; ImagePullBackOff"
+    }
+   ],
+   "answer": "Поле манифеста с ошибкой + исправление.",
+   "scoring": "0.5 + 0.5.",
+   "example": "Service selector: app: api-server; Deployment labels: app: api. kubectl get endpoints api → <none>. Ingress отдаёт 503.",
+   "example_answer": "Селектор Service не совпадает с метками подов; исправить на app: api.",
+   "variants": 60,
+   "anchor": false,
+   "rubric": null
+  },
+  {
+   "id": "OPS-M-03",
+   "spec": "DevOps",
+   "grade": "Middle",
+   "format": "SHORT",
+   "title": "PromQL-запрос под задачу",
+   "tags": [
+    "observability.prometheus"
+   ],
+   "a": 1.2,
+   "b": 0.9,
+   "time": 6,
+   "statement": "Напишите PromQL-запрос, возвращающий {goal} за последние {window}.",
+   "params": [
+    {
+     "name": "goal",
+     "domain": "долю 5xx-ответов по сервису; p95 латентности из гистограммы; RPS по эндпоинту; число рестартов подов"
+    },
+    {
+     "name": "window",
+     "domain": "5m | 15m | 1h"
+    },
+    {
+     "name": "metrics",
+     "domain": "имена метрик и метки генерируются"
+    }
+   ],
+   "answer": "Запрос выполняется на синтетической TSDB; результат сравнивается с эталоном (допуск 1 %).",
+   "scoring": "1/0.",
+   "example": "p95 латентности по сервису за 5 минут; гистограмма http_request_duration_seconds_bucket с меткой service.",
+   "example_answer": "histogram_quantile(0.95, sum by (le, service) (rate(http_request_duration_seconds_bucket[5m])))",
+   "variants": 60,
+   "anchor": false,
+   "rubric": null
+  },
+  {
+   "id": "OPS-M-04",
+   "spec": "DevOps",
+   "grade": "Middle",
+   "format": "CODE",
+   "title": "CI-пайплайн с кэшем и окружениями",
+   "tags": [
+    "ci.advanced"
+   ],
+   "a": 1.0,
+   "b": 0.6,
+   "time": 12,
+   "statement": "Опишите пайплайн {ci} для {app}: {requirements}.",
+   "params": [
+    {
+     "name": "ci",
+     "domain": "GitHub Actions | GitLab CI"
+    },
+    {
+     "name": "requirements",
+     "domain": "тесты на PR, сборка образа с тегом по SHA, кэш зависимостей, деплой в staging на merge в main, в prod — вручную, секреты из хранилища"
+    }
+   ],
+   "answer": "Статическая проверка YAML (схема + правила): условия запуска, зависимости job, отсутствие секретов в открытом виде, кэш; прогон в act/gitlab-runner на тестовом репозитории.",
+   "scoring": "Доля правил (8); «решено» ≥ 6.",
+   "example": "GitHub Actions, Node-сервис.",
+   "example_answer": "on: pull_request + push main; jobs: test (actions/setup-node с cache: npm), build (needs: test, тег ${{ github.sha }}), deploy-staging (if: github.ref == 'refs/heads/main'), deploy-prod (environment: production с ручным подтверждением).",
+   "variants": 12,
+   "anchor": false,
+   "rubric": null
+  },
+  {
+   "id": "OPS-S-01",
+   "spec": "DevOps",
+   "grade": "Senior",
+   "format": "CASE",
+   "anchor": true,
+   "title": "Отказоустойчивая инфраструктура",
+   "tags": [
+    "infra.ha",
+    "system.design"
+   ],
+   "a": 1.3,
+   "b": 1.6,
+   "time": 25,
+   "statement": "Спроектируйте инфраструктуру для {service}: {rps} RPS, RPO {rpo}, RTO {rto}, бюджет {budget}, {constraint}. Опишите размещение, БД и резервирование, деплой, наблюдаемость и план аварийного восстановления.",
+   "params": [
+    {
+     "name": "service",
+     "domain": "платёжный шлюз; SaaS-CRM; медиа-стриминг; госуслуга с ПДн"
+    },
+    {
+     "name": "rpo, rto",
+     "domain": "0 / 5 мин; 15 мин / 1 ч; 24 ч / 4 ч"
+    },
+    {
+     "name": "constraint",
+     "domain": "данные только в РФ (152-ФЗ); одно облако; on-premise + облако"
+    }
+   ],
+   "answer": "Рубрика.",
+   "scoring": "5 × 0–2; «решено» ≥ 6.",
+   "rubric": [
+    "Решение выведено из RPO/RTO (синхронная/асинхронная репликация, бэкапы)",
+    "Устранены единые точки отказа",
+    "Деплой без простоя и откат",
+    "Наблюдаемость: SLO, алерты по симптомам",
+    "Учтены бюджет и ограничение; компромиссы названы"
+   ],
+   "example": "Госуслуга с ПДн, 2000 RPS, RPO 15 мин, RTO 1 ч, данные только в РФ, бюджет ограничен.",
+   "example_answer": "Две зоны одного российского облака, PostgreSQL c Patroni и асинхронной репликой в другой зоне + WAL-архив каждые 5 минут, k8s с PDB и rolling-деплоем, регулярные учения по восстановлению, шифрование ПДн.",
+   "variants": 48
+  },
+  {
+   "id": "OPS-S-02",
+   "spec": "DevOps",
+   "grade": "Senior",
+   "format": "CASE",
+   "title": "Постмортем инцидента",
+   "tags": [
+    "incident",
+    "observability"
+   ],
+   "a": 1.2,
+   "b": 1.4,
+   "time": 20,
+   "statement": "Дана хронология инцидента {incident} (логи, алерты, действия дежурных). Напишите постмортем: влияние, первопричина, факторы, почему обнаружили поздно, действия по предотвращению с приоритетами.",
+   "params": [
+    {
+     "name": "incident",
+     "domain": "истёкший сертификат; заполненный диск из-за логов; миграция БД с блокировкой таблицы; неудачный конфиг балансировщика; исчерпание квоты API у провайдера"
+    }
+   ],
+   "answer": "Рубрика; заложенные «скрытые» факторы (алерт был, но шумный; отсутствие runbook).",
+   "scoring": "4 × 0–2; «решено» ≥ 5.",
+   "rubric": [
+    "Первопричина отделена от триггера",
+    "Найдены скрытые факторы (обнаружение, процессы)",
+    "Действия конкретны, измеримы, приоритизированы",
+    "Blameless-формулировки"
+   ],
+   "example": "Миграция ALTER TABLE orders ADD COLUMN … DEFAULT now() заблокировала таблицу на 14 минут в пиковое время.",
+   "example_answer": "Первопричина: миграция с перезаписью таблицы без проверки; факторы: нет lock_timeout, нет ревью миграций, релиз в пик; действия: lock_timeout в миграциях, линтер миграций (squawk), окно релизов, алерт на блокировки.",
+   "variants": 30,
+   "anchor": false
+  },
+  {
+   "id": "OPS-S-03",
+   "spec": "DevOps",
+   "grade": "Senior",
+   "format": "SHORT",
+   "title": "Планирование ёмкости кластера",
+   "tags": [
+    "k8s.capacity",
+    "infra.capacity"
+   ],
+   "a": 1.3,
+   "b": 1.3,
+   "time": 8,
+   "statement": "Сервис потребляет {cpu} vCPU и {mem} ГБ на 1000 RPS. Пик — {peak} RPS, требуется запас {headroom} % и устойчивость к отказу {failures} узлов. Узел: {node}. Системные резервы: {reserved}. Сколько узлов нужно?",
+   "params": [
+    {
+     "name": "cpu, mem, peak, headroom, failures, node, reserved",
+     "domain": "генерируются согласованно; ответ — целое число"
+    }
+   ],
+   "answer": "Вычисляется формулой: ceil(max(CPU_needed / CPU_alloc, MEM_needed / MEM_alloc)) + failures.",
+   "scoring": "1/0 (точное целое).",
+   "example": "0,8 vCPU и 1,5 ГБ на 1000 RPS; пик 40 000 RPS; запас 30 %; отказ 1 узла; узел 8 vCPU / 32 ГБ, резерв 1 vCPU / 2 ГБ.",
+   "example_answer": "CPU: 32 × 1,3 = 41,6 vCPU / 7 = 5,94 → 6; память: 60 × 1,3 = 78 ГБ / 30 = 2,6 → 3; max = 6 + 1 = 7 узлов.",
+   "variants": 500,
+   "anchor": false,
+   "rubric": null
+  },
+  {
+   "id": "OPS-S-04",
+   "spec": "DevOps",
+   "grade": "Senior",
+   "format": "REVIEW",
+   "title": "Ревью безопасности IaC",
+   "tags": [
+    "security.cloud",
+    "iac.terraform",
+    "code_review"
+   ],
+   "a": 1.1,
+   "b": 1.7,
+   "time": 15,
+   "statement": "Ниже Terraform-конфигурация {stack}. Найдите проблемы безопасности и надёжности.",
+   "params": [
+    {
+     "name": "seeded_issues",
+     "domain": "4–5: security group 0.0.0.0/0 на 22/5432; бакет с публичным чтением; секрет в переменной по умолчанию; БД без бэкапов и шифрования; state без блокировок; IAM-роль с *:*"
+    }
+   ],
+   "answer": "Заложенные проблемы; проверяется также tfsec/checkov как подсказка эксперту, но не кандидату.",
+   "scoring": "k/N × 6 + 0–2 за приоритизацию; «решено» ≥ 5.",
+   "rubric": [
+    "Найдены заложенные проблемы",
+    "Правильно приоритизированы по риску",
+    "Даны конкретные исправления",
+    "Нет ложных срабатываний"
+   ],
+   "example": "resource \"aws_security_group_rule\" \"db\" { from_port = 5432 … cidr_blocks = [\"0.0.0.0/0\"] }",
+   "example_answer": "Доступ к БД из интернета — критично; ограничить SG приложения/VPN.",
+   "variants": 40,
+   "anchor": false
+  }
+ ],
+ "theory_templates": [
+  {
+   "id": "BE-T-01",
+   "spec": "Backend",
+   "grade": "Junior",
+   "topic": "Python: изменяемость",
+   "template": "Что будет в {x} после выполнения {snippet}?",
+   "params": "операции над list/tuple/dict/str, присваивание ссылок, копирование",
+   "rule": "выполнение в песочнице",
+   "a": 0.9,
+   "b": -1.8,
+   "format": "MCQ",
+   "time": 2
+  },
+  {
+   "id": "BE-T-02",
+   "spec": "Backend",
+   "grade": "Junior",
+   "topic": "HTTP: идемпотентность",
+   "template": "Какие из методов {methods} идемпотентны по RFC 9110?",
+   "params": "подмножество из GET, POST, PUT, PATCH, DELETE, HEAD",
+   "rule": "таблица RFC",
+   "a": 1.0,
+   "b": -1.2,
+   "format": "MCQ",
+   "time": 2
+  },
+  {
+   "id": "BE-T-03",
+   "spec": "Backend",
+   "grade": "Junior",
+   "topic": "Сложность алгоритмов",
+   "template": "Какова сложность {operation} для {structure} из n элементов?",
+   "params": "поиск/вставка/удаление × list, dict, set, deque, отсортированный список",
+   "rule": "справочная таблица",
+   "a": 1.1,
+   "b": -0.9,
+   "format": "MCQ",
+   "time": 2
+  },
+  {
+   "id": "BE-T-04",
+   "spec": "Backend",
+   "grade": "Junior",
+   "topic": "SQL: порядок выполнения",
+   "template": "В каком порядке логически выполняются части запроса {query}?",
+   "params": "запрос с WHERE/GROUP BY/HAVING/ORDER BY/LIMIT в разных комбинациях",
+   "rule": "фиксированный порядок",
+   "a": 1.0,
+   "b": -0.6,
+   "format": "MCQ",
+   "time": 2
+  },
+  {
+   "id": "BE-T-05",
+   "spec": "Backend",
+   "grade": "Middle",
+   "topic": "Кэширование",
+   "template": "Стратегия {strategy}: что произойдёт при {event}?",
+   "params": "cache-aside, write-through, write-back × падение кэша, конкурентная запись",
+   "rule": "таблица сценариев",
+   "a": 1.2,
+   "b": 0.2,
+   "format": "MCQ",
+   "time": 2
+  },
+  {
+   "id": "BE-T-06",
+   "spec": "Backend",
+   "grade": "Middle",
+   "topic": "Аутентификация",
+   "template": "JWT подписан {alg}, срок жизни {ttl}. Как отозвать токен пользователя при {event}?",
+   "params": "HS256/RS256; 15 мин/7 дней; блокировка, смена пароля",
+   "rule": "таблица сценариев",
+   "a": 1.1,
+   "b": 0.5,
+   "format": "MCQ",
+   "time": 2
+  },
+  {
+   "id": "BE-T-07",
+   "spec": "Backend",
+   "grade": "Middle",
+   "topic": "Python: GIL и параллелизм",
+   "template": "Задача {workload} на {cores} ядрах. Что даст наибольшее ускорение?",
+   "params": "CPU-bound / I/O-bound × threading, asyncio, multiprocessing",
+   "rule": "правило по типу нагрузки",
+   "a": 1.3,
+   "b": 0.7,
+   "format": "MCQ",
+   "time": 2
+  },
+  {
+   "id": "BE-T-08",
+   "spec": "Backend",
+   "grade": "Middle",
+   "topic": "Миграции БД",
+   "template": "Какая миграция {change} безопасна без простоя на таблице {rows} строк в PostgreSQL {ver}?",
+   "params": "добавление колонки с DEFAULT, NOT NULL, индекса, переименование",
+   "rule": "правила версий PostgreSQL",
+   "a": 1.2,
+   "b": 1.0,
+   "format": "MCQ",
+   "time": 2
+  },
+  {
+   "id": "BE-T-09",
+   "spec": "Backend",
+   "grade": "Senior",
+   "topic": "Консистентность",
+   "template": "Требование {req}. Какой уровень согласованности/паттерн минимально достаточен?",
+   "params": "read-your-writes, monotonic reads, linearizability × сценарии",
+   "rule": "таблица моделей",
+   "a": 1.2,
+   "b": 1.4,
+   "format": "MCQ",
+   "time": 2
+  },
+  {
+   "id": "BE-T-10",
+   "spec": "Backend",
+   "grade": "Senior",
+   "topic": "Saga",
+   "template": "Сага из {n} шагов, шаг {k} упал после {state}. Какие компенсации выполнить?",
+   "params": "оркестрация/хореография, 3–5 шагов",
+   "rule": "вычисляется по графу",
+   "a": 1.3,
+   "b": 1.6,
+   "format": "MCQ",
+   "time": 2
+  },
+  {
+   "id": "BE-T-11",
+   "spec": "Backend",
+   "grade": "Senior",
+   "topic": "Шардирование",
+   "template": "Ключ шардирования {key} для {workload}: какая проблема возникнет?",
+   "params": "user_id, created_at, хэш, регион × нагрузки",
+   "rule": "таблица сценариев",
+   "a": 1.2,
+   "b": 1.9,
+   "format": "MCQ",
+   "time": 2
+  },
+  {
+   "id": "BE-T-12",
+   "spec": "Backend",
+   "grade": "Senior",
+   "topic": "Очереди",
+   "template": "В Kafka топик с {p} партициями, группа из {c} потребителей. Сколько потребителей простаивает и как сохраняется порядок?",
+   "params": "p, c генерируются",
+   "rule": "формула max(0, c−p)",
+   "a": 1.0,
+   "b": 1.1,
+   "format": "MCQ",
+   "time": 2
+  },
+  {
+   "id": "FE-T-01",
+   "spec": "Frontend",
+   "grade": "Junior",
+   "topic": "Области видимости",
+   "template": "Что выведет код с var/let в цикле с setTimeout?",
+   "params": "тип объявления, число итераций",
+   "rule": "выполнение",
+   "a": 1.1,
+   "b": -0.9,
+   "format": "MCQ",
+   "time": 2
+  },
+  {
+   "id": "FE-T-02",
+   "spec": "Frontend",
+   "grade": "Junior",
+   "topic": "Box model",
+   "template": "Какова итоговая ширина элемента при {css}?",
+   "params": "width, padding, border, box-sizing",
+   "rule": "вычисление",
+   "a": 1.0,
+   "b": -1.4,
+   "format": "MCQ",
+   "time": 2
+  },
+  {
+   "id": "FE-T-03",
+   "spec": "Frontend",
+   "grade": "Junior",
+   "topic": "Flexbox",
+   "template": "Как распределятся элементы при {flex}?",
+   "params": "flex-grow/shrink/basis, ширина контейнера",
+   "rule": "headless-браузер",
+   "a": 1.0,
+   "b": -0.7,
+   "format": "MCQ",
+   "time": 2
+  },
+  {
+   "id": "FE-T-04",
+   "spec": "Frontend",
+   "grade": "Junior",
+   "topic": "HTTP и браузер",
+   "template": "Что произойдёт с {resource} при заголовке {header}?",
+   "params": "Cache-Control, ETag, CORS, Content-Type",
+   "rule": "таблица сценариев",
+   "a": 0.9,
+   "b": -0.5,
+   "format": "MCQ",
+   "time": 2
+  },
+  {
+   "id": "FE-T-05",
+   "spec": "Frontend",
+   "grade": "Middle",
+   "topic": "this",
+   "template": "Что будет this в {call}?",
+   "params": "метод, стрелочная функция, bind, обработчик события, класс",
+   "rule": "выполнение",
+   "a": 1.2,
+   "b": 0.1,
+   "format": "MCQ",
+   "time": 2
+  },
+  {
+   "id": "FE-T-06",
+   "spec": "Frontend",
+   "grade": "Middle",
+   "topic": "Прототипы",
+   "template": "Что выведет код с наследованием {snippet}?",
+   "params": "class/extends, Object.create, переопределение",
+   "rule": "выполнение",
+   "a": 1.1,
+   "b": 0.6,
+   "format": "MCQ",
+   "time": 2
+  },
+  {
+   "id": "FE-T-07",
+   "spec": "Frontend",
+   "grade": "Middle",
+   "topic": "Сборка",
+   "template": "Почему бандл {symptom}? Какая настройка поможет?",
+   "params": "tree-shaking не работает (CommonJS), дубли зависимостей, полифилы",
+   "rule": "таблица",
+   "a": 1.0,
+   "b": 0.9,
+   "format": "MCQ",
+   "time": 2
+  },
+  {
+   "id": "FE-T-08",
+   "spec": "Frontend",
+   "grade": "Middle",
+   "topic": "React: ключи и reconciliation",
+   "template": "Что произойдёт с состоянием инпутов при {change} списка с key={key}?",
+   "params": "вставка в начало, сортировка × key=index/id",
+   "rule": "выполнение в jsdom",
+   "a": 1.3,
+   "b": 0.4,
+   "format": "MCQ",
+   "time": 2
+  },
+  {
+   "id": "FE-T-09",
+   "spec": "Frontend",
+   "grade": "Senior",
+   "topic": "Рендеринг",
+   "template": "Для страницы {page} с требованиями {req} что лучше: SSR, SSG, ISR, CSR?",
+   "params": "8 профилей страниц",
+   "rule": "таблица решений",
+   "a": 1.1,
+   "b": 1.2,
+   "format": "MCQ",
+   "time": 2
+  },
+  {
+   "id": "FE-T-10",
+   "spec": "Frontend",
+   "grade": "Senior",
+   "topic": "Гидратация",
+   "template": "Сообщение {warning} при гидратации. Причина?",
+   "params": "Date.now в рендере, window в SSR, разный порядок данных",
+   "rule": "таблица",
+   "a": 1.3,
+   "b": 1.5,
+   "format": "MCQ",
+   "time": 2
+  },
+  {
+   "id": "FE-T-11",
+   "spec": "Frontend",
+   "grade": "Senior",
+   "topic": "Браузерный конвейер",
+   "template": "Какое изменение {change} вызовет только composite без layout/paint?",
+   "params": "transform, top, width, opacity, box-shadow",
+   "rule": "таблица CSS Triggers",
+   "a": 1.2,
+   "b": 1.3,
+   "format": "MCQ",
+   "time": 2
+  },
+  {
+   "id": "FE-T-12",
+   "spec": "Frontend",
+   "grade": "Senior",
+   "topic": "Микрофронтенды",
+   "template": "При {setup} две версии React загружаются дважды. Как исправить?",
+   "params": "module federation shared/singleton",
+   "rule": "таблица",
+   "a": 1.1,
+   "b": 1.8,
+   "format": "MCQ",
+   "time": 2
+  },
+  {
+   "id": "QA-T-01",
+   "spec": "QA",
+   "grade": "Junior",
+   "topic": "Виды тестирования",
+   "template": "Описание проверки {check}. Какой это вид тестирования?",
+   "params": "smoke, sanity, регресс, retest, приёмочное",
+   "rule": "пул",
+   "a": 0.9,
+   "b": -1.6,
+   "format": "MCQ",
+   "time": 2
+  },
+  {
+   "id": "QA-T-02",
+   "spec": "QA",
+   "grade": "Junior",
+   "topic": "Жизненный цикл дефекта",
+   "template": "Дефект в статусе {status}, разработчик {action}. Какой статус следующий?",
+   "params": "New/Open/Fixed/Reopened/Closed",
+   "rule": "граф статусов",
+   "a": 0.8,
+   "b": -1.2,
+   "format": "MCQ",
+   "time": 2
+  },
+  {
+   "id": "QA-T-03",
+   "spec": "QA",
+   "grade": "Junior",
+   "topic": "Таблица решений",
+   "template": "Сколько правил в полной таблице решений для {conditions}?",
+   "params": "2–4 бинарных условия, часть невозможна",
+   "rule": "вычисление",
+   "a": 1.0,
+   "b": -0.8,
+   "format": "MCQ",
+   "time": 2
+  },
+  {
+   "id": "QA-T-04",
+   "spec": "QA",
+   "grade": "Junior",
+   "topic": "SQL для тестировщика",
+   "template": "Какой запрос найдёт {anomaly} в таблице {table}?",
+   "params": "дубли, NULL, сироты по FK",
+   "rule": "выполнение",
+   "a": 1.1,
+   "b": -0.3,
+   "format": "MCQ",
+   "time": 2
+  },
+  {
+   "id": "QA-T-05",
+   "spec": "QA",
+   "grade": "Middle",
+   "topic": "Тестирование API",
+   "template": "Какой тест обнаружит {defect} в {endpoint}?",
+   "params": "IDOR, гонка, отсутствие идемпотентности",
+   "rule": "пул",
+   "a": 1.2,
+   "b": 0.5,
+   "format": "MCQ",
+   "time": 2
+  },
+  {
+   "id": "QA-T-06",
+   "spec": "QA",
+   "grade": "Middle",
+   "topic": "Контрактное тестирование",
+   "template": "Провайдер изменил {change}. Сломается ли потребитель с контрактом {contract}?",
+   "params": "добавление/удаление/переименование поля",
+   "rule": "правила Pact",
+   "a": 1.1,
+   "b": 0.8,
+   "format": "MCQ",
+   "time": 2
+  },
+  {
+   "id": "QA-T-07",
+   "spec": "QA",
+   "grade": "Middle",
+   "topic": "Переходы состояний",
+   "template": "Сколько тестов нужно для покрытия всех переходов графа {graph}?",
+   "params": "3–5 состояний",
+   "rule": "вычисление",
+   "a": 1.2,
+   "b": 0.6,
+   "format": "MCQ",
+   "time": 2
+  },
+  {
+   "id": "QA-T-08",
+   "spec": "QA",
+   "grade": "Middle",
+   "topic": "Тестовые данные",
+   "template": "Как подготовить данные для {scenario} без влияния на другие тесты?",
+   "params": "изоляция, фабрики, транзакции с откатом",
+   "rule": "пул",
+   "a": 1.0,
+   "b": 0.3,
+   "format": "MCQ",
+   "time": 2
+  },
+  {
+   "id": "QA-T-09",
+   "spec": "QA",
+   "grade": "Senior",
+   "topic": "Метрики",
+   "template": "Покрытие {cov} %, мутационный скор {ms} %. Какой вывод корректен?",
+   "params": "значения генерируются",
+   "rule": "таблица",
+   "a": 1.2,
+   "b": 1.4,
+   "format": "MCQ",
+   "time": 2
+  },
+  {
+   "id": "QA-T-10",
+   "spec": "QA",
+   "grade": "Senior",
+   "topic": "Тестирование в проде",
+   "template": "Какую технику применить для {goal} без риска для пользователей?",
+   "params": "canary, feature flags, shadow traffic, synthetic",
+   "rule": "пул",
+   "a": 1.1,
+   "b": 1.6,
+   "format": "MCQ",
+   "time": 2
+  },
+  {
+   "id": "QA-T-11",
+   "spec": "QA",
+   "grade": "Senior",
+   "topic": "Нагрузка",
+   "template": "Закон Литтла: при {rps} RPS и {latency} мс сколько одновременных запросов?",
+   "params": "генерация",
+   "rule": "формула L = λW",
+   "a": 1.3,
+   "b": 1.2,
+   "format": "MCQ",
+   "time": 2
+  },
+  {
+   "id": "QA-T-12",
+   "spec": "QA",
+   "grade": "Senior",
+   "topic": "Безопасность",
+   "template": "Какая проверка из OWASP ASVS закрывает {risk}?",
+   "params": "пул рисков",
+   "rule": "таблица",
+   "a": 1.0,
+   "b": 1.7,
+   "format": "MCQ",
+   "time": 2
+  },
+  {
+   "id": "OPS-T-01",
+   "spec": "DevOps",
+   "grade": "Junior",
+   "topic": "Права в Linux",
+   "template": "Что означает chmod {mode} / кто сможет {action}?",
+   "params": "восьмеричные режимы",
+   "rule": "вычисление",
+   "a": 1.0,
+   "b": -1.5,
+   "format": "MCQ",
+   "time": 2
+  },
+  {
+   "id": "OPS-T-02",
+   "spec": "DevOps",
+   "grade": "Junior",
+   "topic": "Docker",
+   "template": "Чем отличаются {a} и {b}?",
+   "params": "CMD/ENTRYPOINT, COPY/ADD, volume/bind mount",
+   "rule": "пул",
+   "a": 0.9,
+   "b": -1.1,
+   "format": "MCQ",
+   "time": 2
+  },
+  {
+   "id": "OPS-T-03",
+   "spec": "DevOps",
+   "grade": "Junior",
+   "topic": "Сети",
+   "template": "Сколько адресов в подсети {cidr}, входит ли {ip}?",
+   "params": "CIDR /16–/30",
+   "rule": "вычисление",
+   "a": 1.2,
+   "b": -0.7,
+   "format": "MCQ",
+   "time": 2
+  },
+  {
+   "id": "OPS-T-04",
+   "spec": "DevOps",
+   "grade": "Junior",
+   "topic": "Git-стратегии",
+   "template": "Какая стратегия ветвления подходит для {context}?",
+   "params": "trunk-based, GitFlow",
+   "rule": "пул",
+   "a": 0.8,
+   "b": -0.4,
+   "format": "MCQ",
+   "time": 2
+  },
+  {
+   "id": "OPS-T-05",
+   "spec": "DevOps",
+   "grade": "Middle",
+   "topic": "Kubernetes",
+   "template": "Что произойдёт с подом при {event} и настройках {settings}?",
+   "params": "requests/limits, probes, PDB",
+   "rule": "таблица",
+   "a": 1.3,
+   "b": 0.5,
+   "format": "MCQ",
+   "time": 2
+  },
+  {
+   "id": "OPS-T-06",
+   "spec": "DevOps",
+   "grade": "Middle",
+   "topic": "Стратегии деплоя",
+   "template": "Нужно {req}. Какая стратегия: rolling, blue-green, canary?",
+   "params": "требования к откату, ресурсам",
+   "rule": "таблица",
+   "a": 1.1,
+   "b": 0.2,
+   "format": "MCQ",
+   "time": 2
+  },
+  {
+   "id": "OPS-T-07",
+   "spec": "DevOps",
+   "grade": "Middle",
+   "topic": "Терраформ",
+   "template": "Что сделает terraform apply после {change}?",
+   "params": "изменение force-new атрибута, удаление ресурса из кода, import",
+   "rule": "таблица",
+   "a": 1.2,
+   "b": 0.8,
+   "format": "MCQ",
+   "time": 2
+  },
+  {
+   "id": "OPS-T-08",
+   "spec": "DevOps",
+   "grade": "Middle",
+   "topic": "Логи",
+   "template": "Как собрать логи {source} в {target} без потерь при рестарте?",
+   "params": "stdout контейнеров, файлы, journald",
+   "rule": "пул",
+   "a": 1.0,
+   "b": 0.6,
+   "format": "MCQ",
+   "time": 2
+  },
+  {
+   "id": "OPS-T-09",
+   "spec": "DevOps",
+   "grade": "Senior",
+   "topic": "SLO",
+   "template": "SLO {slo} % за 30 дней. Сколько минут error budget, сколько осталось после {incidents}?",
+   "params": "генерация",
+   "rule": "вычисление",
+   "a": 1.3,
+   "b": 1.2,
+   "format": "MCQ",
+   "time": 2
+  },
+  {
+   "id": "OPS-T-10",
+   "spec": "DevOps",
+   "grade": "Senior",
+   "topic": "Сеть k8s",
+   "template": "Под A не может обратиться к B при NetworkPolicy {policy}. Почему?",
+   "params": "ingress/egress, DNS-эгресс",
+   "rule": "вычисление",
+   "a": 1.2,
+   "b": 1.6,
+   "format": "MCQ",
+   "time": 2
+  },
+  {
+   "id": "OPS-T-11",
+   "spec": "DevOps",
+   "grade": "Senior",
+   "topic": "Секреты",
+   "template": "Как организовать ротацию {secret} без простоя?",
+   "params": "пароль БД, TLS, API-ключ",
+   "rule": "пул",
+   "a": 1.1,
+   "b": 1.5,
+   "format": "MCQ",
+   "time": 2
+  },
+  {
+   "id": "OPS-T-12",
+   "spec": "DevOps",
+   "grade": "Senior",
+   "topic": "Мультизональность",
+   "template": "Кворум etcd из {n} узлов в {z} зонах: переживёт ли отказ зоны?",
+   "params": "n, z генерируются",
+   "rule": "вычисление floor(n/2)+1",
+   "a": 1.2,
+   "b": 1.9,
+   "format": "MCQ",
+   "time": 2
+  }
+ ],
+ "extension_templates": [
+  {
+   "id": "BE-J-07",
+   "spec": "Backend",
+   "grade": "Junior",
+   "format": "MCQ",
+   "topic": "Python: срезы",
+   "template": "Что вернёт выражение {seq}[{i}:{j}:{k}]?",
+   "params": "seq — список/строка 6–10 элементов; i, j, k (в т. ч. отрицательные)",
+   "rule": "выполнение в песочнице",
+   "tags": [
+    "python.basics"
+   ],
+   "a": 1.0,
+   "b": -1.7,
+   "ext": true
+  },
+  {
+   "id": "BE-J-08",
+   "spec": "Backend",
+   "grade": "Junior",
+   "format": "SHORT",
+   "topic": "Python: словари",
+   "template": "Что выведет код, обновляющий словарь {d} через {ops}?",
+   "params": "d — 3–5 пар; ops — update, setdefault, get с default, pop, перезапись ключа",
+   "rule": "выполнение",
+   "tags": [
+    "python.collections"
+   ],
+   "a": 1.1,
+   "b": -1.4,
+   "ext": true
+  },
+  {
+   "id": "BE-J-09",
+   "spec": "Backend",
+   "grade": "Junior",
+   "format": "MCQ",
+   "topic": "Python: исключения",
+   "template": "Какой блок выполнится и что будет выведено при {situation} в try/except/else/finally?",
+   "params": "исключение в try / в except / return в try / без исключения",
+   "rule": "выполнение",
+   "tags": [
+    "python.basics"
+   ],
+   "a": 1.2,
+   "b": -0.9,
+   "ext": true
+  },
+  {
+   "id": "BE-J-10",
+   "spec": "Backend",
+   "grade": "Junior",
+   "format": "CODE",
+   "topic": "Строки: нормализация",
+   "template": "Напишите функцию {fn}(s), которая {rule}.",
+   "params": "rule: схлопнуть пробелы и привести к нижнему регистру; сделать slug; проверить палиндром без учёта знаков; посчитать частоты слов",
+   "rule": "8 скрытых тестов с юникодом и пустой строкой",
+   "tags": [
+    "python.basics",
+    "python.strings"
+   ],
+   "a": 1.0,
+   "b": -1.1,
+   "ext": true
+  },
+  {
+   "id": "BE-J-11",
+   "spec": "Backend",
+   "grade": "Junior",
+   "format": "CODE",
+   "topic": "Алгоритмы: два указателя",
+   "template": "Дан отсортированный массив и число {target}. Верните {result}.",
+   "params": "result: пару индексов с суммой target; число пар; удалить дубликаты in-place и вернуть длину",
+   "rule": "тесты + ограничение O(n) по времени на 10^6",
+   "tags": [
+    "algorithms"
+   ],
+   "a": 1.3,
+   "b": -0.3,
+   "ext": true
+  },
+  {
+   "id": "BE-J-12",
+   "spec": "Backend",
+   "grade": "Junior",
+   "format": "MCQ",
+   "topic": "HTTP: заголовки",
+   "template": "Какой заголовок нужен, чтобы {goal}?",
+   "params": "goal: передать JSON; запретить кэширование; авторизоваться по токену; указать язык; перенаправить",
+   "rule": "справочная таблица",
+   "tags": [
+    "http.status",
+    "api.rest"
+   ],
+   "a": 0.9,
+   "b": -1.5,
+   "ext": true
+  },
+  {
+   "id": "BE-J-13",
+   "spec": "Backend",
+   "grade": "Junior",
+   "format": "SHORT",
+   "topic": "SQL: агрегаты и NULL",
+   "template": "Что вернёт SELECT {agg}({col}) FROM {table} на показанных данных?",
+   "params": "agg: COUNT(*), COUNT(col), AVG, SUM, MIN; в колонке 1–2 NULL",
+   "rule": "выполнение в SQLite",
+   "tags": [
+    "sql.aggregate",
+    "sql.null"
+   ],
+   "a": 1.3,
+   "b": -1.0,
+   "ext": true
+  },
+  {
+   "id": "BE-J-14",
+   "spec": "Backend",
+   "grade": "Junior",
+   "format": "MSQ",
+   "topic": "REST: проектирование URL",
+   "template": "Отметьте эндпоинты, соответствующие REST-соглашениям для операции «{op}» над {resource}.",
+   "params": "op: создать, получить список с фильтром, удалить, вложенный ресурс; 6 вариантов",
+   "rule": "таблица соглашений",
+   "tags": [
+    "api.rest"
+   ],
+   "a": 0.9,
+   "b": -1.2,
+   "ext": true
+  },
+  {
+   "id": "BE-J-15",
+   "spec": "Backend",
+   "grade": "Junior",
+   "format": "DEBUG",
+   "topic": "SQL: ошибка в запросе",
+   "template": "Запрос должен {goal}, но возвращает неверный результат. Укажите ошибку.",
+   "params": "ошибки: WHERE вместо HAVING, INNER вместо LEFT JOIN, = NULL, неверная группировка",
+   "rule": "прогон эталона и дефектного запроса",
+   "tags": [
+    "sql.join",
+    "sql.aggregate",
+    "debugging"
+   ],
+   "a": 1.2,
+   "b": -0.6,
+   "ext": true
+  },
+  {
+   "id": "BE-J-16",
+   "spec": "Backend",
+   "grade": "Junior",
+   "format": "MCQ",
+   "topic": "Python: области видимости",
+   "template": "Что выведет функция, изменяющая переменную {var} во вложенной функции {mode}?",
+   "params": "mode: без nonlocal, с nonlocal, с global, через список",
+   "rule": "выполнение",
+   "tags": [
+    "python.basics"
+   ],
+   "a": 1.1,
+   "b": -0.5,
+   "ext": true
+  },
+  {
+   "id": "BE-J-17",
+   "spec": "Backend",
+   "grade": "Junior",
+   "format": "CODE",
+   "topic": "Работа с JSON",
+   "template": "Напишите функцию, которая читает JSON-строку с {entity} и возвращает {projection}; некорректный JSON — {error_mode}.",
+   "params": "entity: заказы, пользователи, события; error_mode: вернуть None / бросить ValueError",
+   "rule": "скрытые тесты",
+   "tags": [
+    "python.basics",
+    "api.rest"
+   ],
+   "a": 1.0,
+   "b": -0.8,
+   "ext": true
+  },
+  {
+   "id": "BE-J-18",
+   "spec": "Backend",
+   "grade": "Junior",
+   "format": "MCQ",
+   "topic": "Git: конфликты",
+   "template": "При слиянии {branch_a} в {branch_b} возник конфликт в {file}. Что покажет git status и что делать дальше?",
+   "params": "3 сценария: merge, rebase, cherry-pick",
+   "rule": "пул",
+   "tags": [
+    "git"
+   ],
+   "a": 0.9,
+   "b": -0.9,
+   "ext": true
+  },
+  {
+   "id": "BE-J-19",
+   "spec": "Backend",
+   "grade": "Junior",
+   "format": "SHORT",
+   "topic": "Сложность кода",
+   "template": "Какова асимптотика приведённой функции по времени?",
+   "params": "генератор вложенных циклов, бинарного поиска, рекурсии со срезами",
+   "rule": "вычисление по шаблону",
+   "tags": [
+    "algorithms"
+   ],
+   "a": 1.2,
+   "b": -0.2,
+   "ext": true
+  },
+  {
+   "id": "BE-J-20",
+   "spec": "Backend",
+   "grade": "Junior",
+   "format": "MCQ",
+   "topic": "Python: генераторы",
+   "template": "Что выведет код с генератором {gen} после {ops}?",
+   "params": "ops: двойной проход, next после исчерпания, list() дважды",
+   "rule": "выполнение",
+   "tags": [
+    "python.basics"
+   ],
+   "a": 1.2,
+   "b": -0.4,
+   "ext": true
+  },
+  {
+   "id": "BE-M-07",
+   "spec": "Backend",
+   "grade": "Middle",
+   "format": "CODE",
+   "topic": "SQL: рекурсивный CTE",
+   "template": "По таблице {tree_table} выведите {goal} с помощью WITH RECURSIVE.",
+   "params": "tree: сотрудники-руководители, категории, комментарии; goal: всех потомков узла X, глубину каждого узла, путь от корня",
+   "rule": "3 скрытых набора данных",
+   "tags": [
+    "sql.window",
+    "sql.advanced"
+   ],
+   "a": 1.4,
+   "b": 0.9,
+   "ext": true
+  },
+  {
+   "id": "BE-M-08",
+   "spec": "Backend",
+   "grade": "Middle",
+   "format": "MCQ",
+   "topic": "Блокировки",
+   "template": "Две транзакции выполняют {ops} в {dbms}. Возникнет ли deadlock и кто получит ошибку?",
+   "params": "порядок UPDATE двух строк, SELECT FOR UPDATE, вставка в уникальный индекс",
+   "rule": "таблица сценариев",
+   "tags": [
+    "db.transactions"
+   ],
+   "a": 1.3,
+   "b": 0.7,
+   "ext": true
+  },
+  {
+   "id": "BE-M-09",
+   "spec": "Backend",
+   "grade": "Middle",
+   "format": "DEBUG",
+   "topic": "Асинхронный код",
+   "template": "Обработчик на asyncio работает медленно / зависает: {symptom}. Найдите причину.",
+   "params": "time.sleep в корутине; забытый await; gather без return_exceptions; блокирующий requests",
+   "rule": "прогон",
+   "tags": [
+    "python.asyncio",
+    "debugging"
+   ],
+   "a": 1.3,
+   "b": 0.6,
+   "ext": true
+  },
+  {
+   "id": "BE-M-10",
+   "spec": "Backend",
+   "grade": "Middle",
+   "format": "SHORT",
+   "topic": "Кэш: расчёт hit-rate",
+   "template": "Кэш LRU ёмкостью {k}, последовательность запросов {seq}. Сколько попаданий?",
+   "params": "k 2–4, последовательность 10–14 ключей",
+   "rule": "симуляция",
+   "tags": [
+    "system.caching",
+    "algorithms.ds"
+   ],
+   "a": 1.2,
+   "b": 0.3,
+   "ext": true
+  },
+  {
+   "id": "BE-M-11",
+   "spec": "Backend",
+   "grade": "Middle",
+   "format": "CODE",
+   "topic": "Пагинация по курсору",
+   "template": "Реализуйте функцию выдачи страниц {entity} с keyset-пагинацией по ({sort_key}, id) и курсором в base64.",
+   "params": "entity, sort_key генерируются; направление сортировки",
+   "rule": "тесты на стабильность страниц при вставке новых строк",
+   "tags": [
+    "api.rest",
+    "db.performance"
+   ],
+   "a": 1.3,
+   "b": 0.8,
+   "ext": true
+  },
+  {
+   "id": "BE-M-12",
+   "spec": "Backend",
+   "grade": "Middle",
+   "format": "MCQ",
+   "topic": "Идемпотентность API",
+   "template": "Клиент повторил запрос {request} из-за таймаута. Какой механизм гарантирует отсутствие дубля?",
+   "params": "POST /payments, POST /orders, PUT /profile, PATCH /counter",
+   "rule": "таблица",
+   "tags": [
+    "api.rest",
+    "system.consistency"
+   ],
+   "a": 1.2,
+   "b": 0.4,
+   "ext": true
+  },
+  {
+   "id": "BE-M-13",
+   "spec": "Backend",
+   "grade": "Middle",
+   "format": "REVIEW",
+   "topic": "Ревью SQL-миграции",
+   "template": "Миграция {migration} будет применена на таблице {rows} строк. Укажите риски.",
+   "params": "добавление NOT NULL без default, индекс без CONCURRENTLY, переименование колонки, массовый UPDATE",
+   "rule": "список заложенных рисков",
+   "tags": [
+    "db.migrations",
+    "code_review"
+   ],
+   "a": 1.1,
+   "b": 0.9,
+   "ext": true
+  },
+  {
+   "id": "BE-M-14",
+   "spec": "Backend",
+   "grade": "Middle",
+   "format": "SHORT",
+   "topic": "EXPLAIN",
+   "template": "По плану запроса (EXPLAIN ANALYZE) определите узел, на который приходится большая часть времени, и причину.",
+   "params": "сгенерированный план: Seq Scan, Nested Loop с большим числом строк, Sort с диском",
+   "rule": "разметка генератора",
+   "tags": [
+    "db.performance"
+   ],
+   "a": 1.4,
+   "b": 1.0,
+   "ext": true
+  },
+  {
+   "id": "BE-M-15",
+   "spec": "Backend",
+   "grade": "Middle",
+   "format": "CODE",
+   "topic": "Валидация и сериализация",
+   "template": "Опишите Pydantic-модель {model} с правилами {rules} и функцию преобразования во внешний формат.",
+   "params": "model: заказ, пользователь, событие; rules: вложенные объекты, enum, ограничения длины, кастомный валидатор",
+   "rule": "скрытые тесты",
+   "tags": [
+    "python.oop",
+    "api.rest"
+   ],
+   "a": 1.0,
+   "b": 0.2,
+   "ext": true
+  },
+  {
+   "id": "BE-M-16",
+   "spec": "Backend",
+   "grade": "Middle",
+   "format": "MCQ",
+   "topic": "Аутентификация: OAuth2/OIDC",
+   "template": "Приложение типа {client} должно получить токен пользователя. Какой поток выбрать?",
+   "params": "SPA, мобильное приложение, сервер-сервер, CLI",
+   "rule": "таблица",
+   "tags": [
+    "security.auth"
+   ],
+   "a": 1.1,
+   "b": 0.5,
+   "ext": true
+  },
+  {
+   "id": "BE-M-17",
+   "spec": "Backend",
+   "grade": "Middle",
+   "format": "DEBUG",
+   "topic": "Гонка данных",
+   "template": "Счётчик {counter} иногда теряет обновления. Найдите место и выберите исправление.",
+   "params": "read-modify-write в ORM, кэш-счётчик в Redis без INCR, проверка остатка перед списанием",
+   "rule": "прогон с конкурентной нагрузкой",
+   "tags": [
+    "concurrency",
+    "db.transactions"
+   ],
+   "a": 1.4,
+   "b": 0.8,
+   "ext": true
+  },
+  {
+   "id": "BE-M-18",
+   "spec": "Backend",
+   "grade": "Middle",
+   "format": "SHORT",
+   "topic": "Очереди: расчёт",
+   "template": "Поток {rate} сообщений/с, обработка {t} мс, {c} потребителей. Будет ли расти очередь и с какой скоростью?",
+   "params": "числа генерируются",
+   "rule": "формула",
+   "tags": [
+    "system.messaging"
+   ],
+   "a": 1.2,
+   "b": 0.6,
+   "ext": true
+  },
+  {
+   "id": "BE-M-19",
+   "spec": "Backend",
+   "grade": "Middle",
+   "format": "MCQ",
+   "topic": "Тестирование backend",
+   "template": "Как протестировать {component} так, чтобы тест был быстрым и надёжным?",
+   "params": "внешний HTTP-клиент, репозиторий БД, время, очередь",
+   "rule": "пул",
+   "tags": [
+    "testing"
+   ],
+   "a": 1.0,
+   "b": 0.1,
+   "ext": true
+  },
+  {
+   "id": "BE-M-20",
+   "spec": "Backend",
+   "grade": "Middle",
+   "format": "CODE",
+   "topic": "Обход графа",
+   "template": "Найдите {goal} в графе зависимостей {domain}.",
+   "params": "goal: порядок сборки (топосорт), наличие цикла, кратчайший путь; domain: пакеты, задачи, курсы",
+   "rule": "скрытые тесты",
+   "tags": [
+    "algorithms"
+   ],
+   "a": 1.3,
+   "b": 0.5,
+   "ext": true
+  },
+  {
+   "id": "BE-S-07",
+   "spec": "Backend",
+   "grade": "Senior",
+   "format": "CASE",
+   "topic": "Мультиарендность",
+   "template": "Спроектируйте хранение данных SaaS {product} для {tenants} клиентов, часть из которых требует {req}.",
+   "params": "модели: общая схема, схема на клиента, БД на клиента; req: изоляция, свой регион, бэкапы по запросу",
+   "rule": "рубрика 4×0–2",
+   "tags": [
+    "system.design",
+    "architecture"
+   ],
+   "a": 1.3,
+   "b": 1.7,
+   "ext": true
+  },
+  {
+   "id": "BE-S-08",
+   "spec": "Backend",
+   "grade": "Senior",
+   "format": "CASE",
+   "topic": "Миграция монолита",
+   "template": "Монолит {domain} нужно разделить: выделите первые сервисы и опишите план перехода без остановки.",
+   "params": "domain: интернет-магазин, школа, логистика",
+   "rule": "рубрика 4×0–2",
+   "tags": [
+    "architecture",
+    "system.design"
+   ],
+   "a": 1.2,
+   "b": 1.9,
+   "ext": true
+  },
+  {
+   "id": "BE-S-09",
+   "spec": "Backend",
+   "grade": "Senior",
+   "format": "MCQ",
+   "topic": "Шардирование: перебалансировка",
+   "template": "Добавляем {n_new} узлов к кластеру из {n} с {scheme}. Какая доля ключей переедет?",
+   "params": "scheme: hash mod N, consistent hashing с виртуальными узлами, диапазоны",
+   "rule": "вычисление",
+   "tags": [
+    "system.scaling",
+    "system.distributed"
+   ],
+   "a": 1.3,
+   "b": 1.3,
+   "ext": true
+  },
+  {
+   "id": "BE-S-10",
+   "spec": "Backend",
+   "grade": "Senior",
+   "format": "SHORT",
+   "topic": "Ёмкость БД",
+   "template": "Запись {wps} строк/с по {size} байт, хранение {days} дней, индексы +{idx} %. Какой объём через год?",
+   "params": "числа генерируются",
+   "rule": "формула",
+   "tags": [
+    "system.scaling"
+   ],
+   "a": 1.2,
+   "b": 1.1,
+   "ext": true
+  },
+  {
+   "id": "BE-S-11",
+   "spec": "Backend",
+   "grade": "Senior",
+   "format": "DEBUG",
+   "topic": "Распределённая трассировка",
+   "template": "По трассе запроса (таблица спанов) найдите причину задержки p99.",
+   "params": "последовательные вызовы, которые можно распараллелить; ретраи; ожидание пула",
+   "rule": "разметка генератора",
+   "tags": [
+    "observability",
+    "system.distributed"
+   ],
+   "a": 1.4,
+   "b": 1.4,
+   "ext": true
+  },
+  {
+   "id": "BE-S-12",
+   "spec": "Backend",
+   "grade": "Senior",
+   "format": "CASE",
+   "topic": "Ограничение нагрузки",
+   "template": "Партнёрский API {api} получает всплески до {x}× от нормы. Предложите защиту: лимиты, очереди, деградация, коммуникация с клиентами.",
+   "params": "api: платёжный, поиск, нотификации",
+   "rule": "рубрика 4×0–2",
+   "tags": [
+    "resilience",
+    "system.design"
+   ],
+   "a": 1.3,
+   "b": 1.5,
+   "ext": true
+  },
+  {
+   "id": "BE-S-13",
+   "spec": "Backend",
+   "grade": "Senior",
+   "format": "REVIEW",
+   "topic": "Ревью схемы БД",
+   "template": "Схема {domain} (DDL на 6–8 таблиц) проектируется под {load}. Найдите проблемы.",
+   "params": "деньги во float, отсутствие FK, EAV, JSON для всего, лишняя денормализация",
+   "rule": "заложенные проблемы",
+   "tags": [
+    "db.design",
+    "code_review"
+   ],
+   "a": 1.2,
+   "b": 1.2,
+   "ext": true
+  },
+  {
+   "id": "BE-S-14",
+   "spec": "Backend",
+   "grade": "Senior",
+   "format": "MCQ",
+   "topic": "Кэш-консистентность",
+   "template": "Схема: {write_path}. При каком порядке событий в кэше останется устаревшее значение?",
+   "params": "delete-then-write, write-then-delete, write-through с репликой",
+   "rule": "перебор порядков",
+   "tags": [
+    "system.caching",
+    "system.consistency"
+   ],
+   "a": 1.4,
+   "b": 1.6,
+   "ext": true
+  },
+  {
+   "id": "BE-S-15",
+   "spec": "Backend",
+   "grade": "Senior",
+   "format": "CODE",
+   "topic": "Consistent hashing",
+   "template": "Реализуйте кольцо с {v} виртуальными узлами: add_node, remove_node, get_node(key).",
+   "params": "v 50–200, хэш-функция задана",
+   "rule": "тесты на распределение (отклонение ≤ 15 %) и долю перемещённых ключей",
+   "tags": [
+    "system.distributed",
+    "algorithms"
+   ],
+   "a": 1.3,
+   "b": 1.8,
+   "ext": true
+  },
+  {
+   "id": "BE-S-16",
+   "spec": "Backend",
+   "grade": "Senior",
+   "format": "MCQ",
+   "topic": "Безопасность API",
+   "template": "В сервисе {setup}. Какая атака возможна и какая мера приоритетна?",
+   "params": "SSRF через загрузку по URL, mass assignment, JWT alg=none, перебор ID",
+   "rule": "таблица",
+   "tags": [
+    "security.basics"
+   ],
+   "a": 1.2,
+   "b": 1.2,
+   "ext": true
+  },
+  {
+   "id": "BE-S-17",
+   "spec": "Backend",
+   "grade": "Senior",
+   "format": "CASE",
+   "topic": "Технический долг",
+   "template": "Сервис {service}: метрики релизов и инцидентов за полгода (таблица). Составьте план работы с техдолгом на квартал и обоснуйте бизнесу.",
+   "params": "метрики генерируются: lead time, change failure rate, MTTR",
+   "rule": "рубрика 4×0–2",
+   "tags": [
+    "architecture",
+    "engineering_management"
+   ],
+   "a": 1.1,
+   "b": 2.1,
+   "ext": true
+  },
+  {
+   "id": "BE-S-18",
+   "spec": "Backend",
+   "grade": "Senior",
+   "format": "SHORT",
+   "topic": "SLO и error budget",
+   "template": "SLO доступности {slo} %, за {days} дней было {incidents}. Сколько бюджета осталось и можно ли выкатывать рискованный релиз?",
+   "params": "числа генерируются",
+   "rule": "вычисление + правило политики",
+   "tags": [
+    "observability"
+   ],
+   "a": 1.2,
+   "b": 1.0,
+   "ext": true
+  },
+  {
+   "id": "BE-S-19",
+   "spec": "Backend",
+   "grade": "Senior",
+   "format": "DEBUG",
+   "topic": "Утечка памяти в сервисе",
+   "template": "График памяти процесса и выдержка tracemalloc/py-spy. Найдите источник роста.",
+   "params": "кэш без ограничения, замыкание в обработчике, накопление в глобальном списке, незакрытые сессии",
+   "rule": "разметка",
+   "tags": [
+    "debugging",
+    "python.basics"
+   ],
+   "a": 1.3,
+   "b": 1.3,
+   "ext": true
+  },
+  {
+   "id": "BE-S-20",
+   "spec": "Backend",
+   "grade": "Senior",
+   "format": "CASE",
+   "topic": "Выбор хранилища",
+   "template": "Для {usecase} выберите хранилище из {options} и обоснуйте.",
+   "params": "usecase: поиск по товарам, временные ряды, граф друзей, лента событий; options: PostgreSQL, ClickHouse, Elasticsearch, Redis, Cassandra",
+   "rule": "рубрика 3×0–2",
+   "tags": [
+    "system.design"
+   ],
+   "a": 1.2,
+   "b": 1.4,
+   "ext": true
+  },
+  {
+   "id": "FE-J-07",
+   "spec": "Frontend",
+   "grade": "Junior",
+   "format": "SHORT",
+   "topic": "JS: деструктуризация",
+   "template": "Что выведет код с деструктуризацией {pattern}?",
+   "params": "объекты/массивы, значения по умолчанию, rest, переименование",
+   "rule": "выполнение",
+   "tags": [
+    "js.basics"
+   ],
+   "a": 1.0,
+   "b": -1.6,
+   "ext": true
+  },
+  {
+   "id": "FE-J-08",
+   "spec": "Frontend",
+   "grade": "Junior",
+   "format": "MCQ",
+   "topic": "DOM: события",
+   "template": "Что произойдёт при клике по {target} при обработчиках {handlers}?",
+   "params": "всплытие, capture, stopPropagation, preventDefault",
+   "rule": "jsdom",
+   "tags": [
+    "js.dom"
+   ],
+   "a": 1.1,
+   "b": -0.8,
+   "ext": true
+  },
+  {
+   "id": "FE-J-09",
+   "spec": "Frontend",
+   "grade": "Junior",
+   "format": "CODE",
+   "topic": "Работа со строками",
+   "template": "Напишите функцию {fn}(str), которая {rule}.",
+   "params": "форматирование цены, маскирование телефона, truncate с многоточием, capitalize слов",
+   "rule": "скрытые тесты",
+   "tags": [
+    "js.strings"
+   ],
+   "a": 1.0,
+   "b": -1.1,
+   "ext": true
+  },
+  {
+   "id": "FE-J-10",
+   "spec": "Frontend",
+   "grade": "Junior",
+   "format": "MCQ",
+   "topic": "CSS: позиционирование",
+   "template": "Где окажется элемент с {css} внутри родителя {parent_css}?",
+   "params": "absolute/relative/fixed/sticky, z-index, контекст наложения",
+   "rule": "headless-браузер",
+   "tags": [
+    "css.layout"
+   ],
+   "a": 1.1,
+   "b": -0.5,
+   "ext": true
+  },
+  {
+   "id": "FE-J-11",
+   "spec": "Frontend",
+   "grade": "Junior",
+   "format": "MCQ",
+   "topic": "CSS Grid",
+   "template": "Сколько колонок и какой ширины получится при grid-template-columns: {value} в контейнере {w}px?",
+   "params": "repeat, fr, minmax, auto-fill/auto-fit",
+   "rule": "headless-браузер",
+   "tags": [
+    "css.layout"
+   ],
+   "a": 1.2,
+   "b": -0.3,
+   "ext": true
+  },
+  {
+   "id": "FE-J-12",
+   "spec": "Frontend",
+   "grade": "Junior",
+   "format": "CODE",
+   "topic": "fetch и JSON",
+   "template": "Напишите async-функцию, которая загружает {resource} по URL, обрабатывает {errors} и возвращает {projection}.",
+   "params": "errors: не-2xx статус, невалидный JSON; projection генерируется",
+   "rule": "тесты с моком fetch",
+   "tags": [
+    "js.async"
+   ],
+   "a": 1.2,
+   "b": -0.4,
+   "ext": true
+  },
+  {
+   "id": "FE-J-13",
+   "spec": "Frontend",
+   "grade": "Junior",
+   "format": "MCQ",
+   "topic": "React: пропсы и состояние",
+   "template": "Где хранить {data} в компоненте {component}: props, state, вычислять при рендере?",
+   "params": "данные из родителя, ввод пользователя, производные значения",
+   "rule": "пул",
+   "tags": [
+    "react.state"
+   ],
+   "a": 1.0,
+   "b": -1.0,
+   "ext": true
+  },
+  {
+   "id": "FE-J-14",
+   "spec": "Frontend",
+   "grade": "Junior",
+   "format": "DEBUG",
+   "topic": "Ошибки в HTML-форме",
+   "template": "Форма {form} отправляется с неверными данными / перезагружает страницу. Найдите ошибку.",
+   "params": "нет preventDefault, неверный name, type=button vs submit, value вместо defaultValue",
+   "rule": "jsdom",
+   "tags": [
+    "forms",
+    "debugging"
+   ],
+   "a": 1.0,
+   "b": -0.7,
+   "ext": true
+  },
+  {
+   "id": "FE-J-15",
+   "spec": "Frontend",
+   "grade": "Junior",
+   "format": "SHORT",
+   "topic": "JS: сравнение массивов и объектов",
+   "template": "Что выведет код со сравнением {a} и {b}?",
+   "params": "===, ==, Object.is, копии через spread",
+   "rule": "выполнение",
+   "tags": [
+    "js.types"
+   ],
+   "a": 1.1,
+   "b": -1.3,
+   "ext": true
+  },
+  {
+   "id": "FE-J-16",
+   "spec": "Frontend",
+   "grade": "Junior",
+   "format": "MSQ",
+   "topic": "Адаптивная вёрстка",
+   "template": "Отметьте правила, которые сделают {layout} адаптивным для ширины < {bp}px.",
+   "params": "media queries, flex-wrap, относительные единицы, фиксированные ширины (неверно)",
+   "rule": "пул",
+   "tags": [
+    "css.layout"
+   ],
+   "a": 0.9,
+   "b": -1.4,
+   "ext": true
+  },
+  {
+   "id": "FE-J-17",
+   "spec": "Frontend",
+   "grade": "Junior",
+   "format": "MCQ",
+   "topic": "Хранилища браузера",
+   "template": "Где хранить {data}?",
+   "params": "токен сессии, настройки темы, кэш ответов, черновик формы",
+   "rule": "таблица",
+   "tags": [
+    "web.storage"
+   ],
+   "a": 0.9,
+   "b": -0.9,
+   "ext": true
+  },
+  {
+   "id": "FE-J-18",
+   "spec": "Frontend",
+   "grade": "Junior",
+   "format": "CODE",
+   "topic": "Сортировка и группировка",
+   "template": "Сгруппируйте {entity} по {field} и отсортируйте группы по {order}.",
+   "params": "домены генерируются",
+   "rule": "скрытые тесты",
+   "tags": [
+    "js.arrays"
+   ],
+   "a": 1.2,
+   "b": -0.6,
+   "ext": true
+  },
+  {
+   "id": "FE-J-19",
+   "spec": "Frontend",
+   "grade": "Junior",
+   "format": "MCQ",
+   "topic": "Git для фронтенда",
+   "template": "Что делать с файлом {file} в репозитории?",
+   "params": "node_modules, .env, package-lock.json, dist",
+   "rule": "пул",
+   "tags": [
+    "git"
+   ],
+   "a": 0.8,
+   "b": -1.7,
+   "ext": true
+  },
+  {
+   "id": "FE-J-20",
+   "spec": "Frontend",
+   "grade": "Junior",
+   "format": "SHORT",
+   "topic": "JS: map/filter/reduce",
+   "template": "Что вернёт выражение {expr}?",
+   "params": "цепочки методов на массиве из 5–7 чисел",
+   "rule": "выполнение",
+   "tags": [
+    "js.arrays"
+   ],
+   "a": 1.2,
+   "b": -0.2,
+   "ext": true
+  },
+  {
+   "id": "FE-M-07",
+   "spec": "Frontend",
+   "grade": "Middle",
+   "format": "CODE",
+   "topic": "Promise.all / allSettled",
+   "template": "Реализуйте {fn} без использования встроенного аналога.",
+   "params": "promiseAll, allSettled, any, race с таймаутом",
+   "rule": "тесты порядка и ошибок",
+   "tags": [
+    "js.async"
+   ],
+   "a": 1.4,
+   "b": 0.8,
+   "ext": true
+  },
+  {
+   "id": "FE-M-08",
+   "spec": "Frontend",
+   "grade": "Middle",
+   "format": "DEBUG",
+   "topic": "useEffect и зависимости",
+   "template": "Компонент {component} вызывает лишние запросы / не обновляет данные. Найдите ошибку в зависимостях.",
+   "params": "объект в зависимостях, отсутствующая зависимость, функция без useCallback",
+   "rule": "jsdom + счётчик запросов",
+   "tags": [
+    "react.hooks",
+    "debugging"
+   ],
+   "a": 1.3,
+   "b": 0.6,
+   "ext": true
+  },
+  {
+   "id": "FE-M-09",
+   "spec": "Frontend",
+   "grade": "Middle",
+   "format": "MCQ",
+   "topic": "Состояние приложения",
+   "template": "Где хранить {data} в приложении {app}: локально, в контексте, в store, в серверном кэше?",
+   "params": "корзина, фильтры каталога, ответы API, тема",
+   "rule": "таблица",
+   "tags": [
+    "react.state",
+    "fe.architecture"
+   ],
+   "a": 1.1,
+   "b": 0.3,
+   "ext": true
+  },
+  {
+   "id": "FE-M-10",
+   "spec": "Frontend",
+   "grade": "Middle",
+   "format": "CODE",
+   "topic": "Кастомный хук",
+   "template": "Напишите хук {hook} с поведением {spec}.",
+   "params": "useDebouncedValue, useLocalStorage с синхронизацией вкладок, usePrevious, useFetch с отменой",
+   "rule": "тесты в React Testing Library",
+   "tags": [
+    "react.hooks"
+   ],
+   "a": 1.3,
+   "b": 0.9,
+   "ext": true
+  },
+  {
+   "id": "FE-M-11",
+   "spec": "Frontend",
+   "grade": "Middle",
+   "format": "SHORT",
+   "topic": "Специфичность: вычисление",
+   "template": "Вычислите специфичность селектора {selector} в формате (a, b, c).",
+   "params": "сложные селекторы с :not, :is, псевдоэлементами",
+   "rule": "вычисление",
+   "tags": [
+    "css.selectors"
+   ],
+   "a": 1.2,
+   "b": 0.2,
+   "ext": true
+  },
+  {
+   "id": "FE-M-12",
+   "spec": "Frontend",
+   "grade": "Middle",
+   "format": "MCQ",
+   "topic": "Кэширование HTTP",
+   "template": "Ресурс {resource} отдан с заголовками {headers}. Что сделает браузер при повторном запросе через {t}?",
+   "params": "max-age, no-cache, ETag, immutable",
+   "rule": "таблица",
+   "tags": [
+    "web.http",
+    "fe.performance"
+   ],
+   "a": 1.3,
+   "b": 0.7,
+   "ext": true
+  },
+  {
+   "id": "FE-M-13",
+   "spec": "Frontend",
+   "grade": "Middle",
+   "format": "REVIEW",
+   "topic": "Ревью формы",
+   "template": "Компонент формы {form} (60 строк). Найдите проблемы UX, доступности и логики.",
+   "params": "нет связи label, ошибки только цветом, двойная отправка, потеря ввода при ошибке сервера",
+   "rule": "заложенные проблемы",
+   "tags": [
+    "forms",
+    "a11y",
+    "code_review"
+   ],
+   "a": 1.1,
+   "b": 0.5,
+   "ext": true
+  },
+  {
+   "id": "FE-M-14",
+   "spec": "Frontend",
+   "grade": "Middle",
+   "format": "CODE",
+   "topic": "Глубокое сравнение",
+   "template": "Реализуйте deepEqual(a, b) с поддержкой {types}.",
+   "params": "Date, массивы, вложенные объекты, NaN, циклические ссылки (опционально)",
+   "rule": "скрытые тесты",
+   "tags": [
+    "js.types",
+    "algorithms"
+   ],
+   "a": 1.2,
+   "b": 0.6,
+   "ext": true
+  },
+  {
+   "id": "FE-M-15",
+   "spec": "Frontend",
+   "grade": "Middle",
+   "format": "MCQ",
+   "topic": "Тестирование фронтенда",
+   "template": "Какой тест написать для {case}: unit, компонентный, e2e, визуальный?",
+   "params": "логика форматирования, поведение модалки, оплата, вёрстка кнопки",
+   "rule": "пул",
+   "tags": [
+    "testing"
+   ],
+   "a": 1.0,
+   "b": 0.1,
+   "ext": true
+  },
+  {
+   "id": "FE-M-16",
+   "spec": "Frontend",
+   "grade": "Middle",
+   "format": "DEBUG",
+   "topic": "TypeScript-ошибка",
+   "template": "Код не компилируется с ошибкой {error}. Выберите корректное исправление (без any).",
+   "params": "сужение union, optional chaining, неверный generic, readonly",
+   "rule": "tsc",
+   "tags": [
+    "ts.types",
+    "debugging"
+   ],
+   "a": 1.3,
+   "b": 0.8,
+   "ext": true
+  },
+  {
+   "id": "FE-M-17",
+   "spec": "Frontend",
+   "grade": "Middle",
+   "format": "SHORT",
+   "topic": "Event loop с async/await",
+   "template": "Порядок вывода для кода с {n} async-функциями и await.",
+   "params": "генератор",
+   "rule": "выполнение",
+   "tags": [
+    "js.eventloop"
+   ],
+   "a": 1.5,
+   "b": 1.0,
+   "ext": true
+  },
+  {
+   "id": "FE-M-18",
+   "spec": "Frontend",
+   "grade": "Middle",
+   "format": "MCQ",
+   "topic": "Сборщики",
+   "template": "Почему изменение {file} пересобирает весь бандл / не попадает в чанк?",
+   "params": "динамический импорт, sideEffects, barrel-файлы",
+   "rule": "таблица",
+   "tags": [
+    "fe.build"
+   ],
+   "a": 1.0,
+   "b": 0.9,
+   "ext": true
+  },
+  {
+   "id": "FE-M-19",
+   "spec": "Frontend",
+   "grade": "Middle",
+   "format": "CODE",
+   "topic": "Бесконечная прокрутка",
+   "template": "Реализуйте загрузку следующей страницы {entity} через IntersectionObserver без дублей запросов.",
+   "params": "entity генерируется",
+   "rule": "тесты с моком observer",
+   "tags": [
+    "react.hooks",
+    "js.async"
+   ],
+   "a": 1.2,
+   "b": 0.4,
+   "ext": true
+  },
+  {
+   "id": "FE-M-20",
+   "spec": "Frontend",
+   "grade": "Middle",
+   "format": "MCQ",
+   "topic": "Формы и контролируемые компоненты",
+   "template": "Что произойдёт при {action} в поле с value={value} и onChange={handler}?",
+   "params": "нет onChange, onChange без setState, defaultValue + value",
+   "rule": "jsdom",
+   "tags": [
+    "forms",
+    "react.state"
+   ],
+   "a": 1.1,
+   "b": 0.2,
+   "ext": true
+  },
+  {
+   "id": "FE-S-07",
+   "spec": "Frontend",
+   "grade": "Senior",
+   "format": "CASE",
+   "topic": "Офлайн-режим",
+   "template": "Добавьте офлайн-режим в {app}: кэширование, очередь изменений, разрешение конфликтов.",
+   "params": "заметки, CRM полевых сотрудников, список покупок",
+   "rule": "рубрика 4×0–2",
+   "tags": [
+    "fe.architecture",
+    "pwa"
+   ],
+   "a": 1.3,
+   "b": 1.7,
+   "ext": true
+  },
+  {
+   "id": "FE-S-08",
+   "spec": "Frontend",
+   "grade": "Senior",
+   "format": "CASE",
+   "topic": "Миграция фреймворка",
+   "template": "Приложение на {old} (300 экранов) нужно перевести на {new}. Предложите поэтапный план.",
+   "params": "AngularJS→React, CRA→Vite/Next, классы→хуки",
+   "rule": "рубрика 4×0–2",
+   "tags": [
+    "fe.architecture"
+   ],
+   "a": 1.2,
+   "b": 1.9,
+   "ext": true
+  },
+  {
+   "id": "FE-S-09",
+   "spec": "Frontend",
+   "grade": "Senior",
+   "format": "MCQ",
+   "topic": "Микрофронтенды: изоляция",
+   "template": "Два микрофронтенда {issue}. Какое решение?",
+   "params": "конфликт CSS, разные версии библиотеки, общий роутинг, общий стейт",
+   "rule": "таблица",
+   "tags": [
+    "fe.architecture"
+   ],
+   "a": 1.2,
+   "b": 1.3,
+   "ext": true
+  },
+  {
+   "id": "FE-S-10",
+   "spec": "Frontend",
+   "grade": "Senior",
+   "format": "SHORT",
+   "topic": "Бюджет производительности",
+   "template": "Страница: JS {js} КБ, изображения {img} КБ, сеть {net}. Уложится ли LCP в {target} с? Что сократить первым?",
+   "params": "числа генерируются",
+   "rule": "расчёт по модели загрузки",
+   "tags": [
+    "fe.performance"
+   ],
+   "a": 1.3,
+   "b": 1.4,
+   "ext": true
+  },
+  {
+   "id": "FE-S-11",
+   "spec": "Frontend",
+   "grade": "Senior",
+   "format": "DEBUG",
+   "topic": "Гидратация",
+   "template": "Ошибка гидратации / мерцание на {page}. По фрагменту кода найдите причину.",
+   "params": "Date/random в рендере, проверка window, разные данные сервер/клиент",
+   "rule": "прогон SSR",
+   "tags": [
+    "fe.ssr",
+    "debugging"
+   ],
+   "a": 1.4,
+   "b": 1.2,
+   "ext": true
+  },
+  {
+   "id": "FE-S-12",
+   "spec": "Frontend",
+   "grade": "Senior",
+   "format": "CODE",
+   "topic": "Планировщик задач",
+   "template": "Реализуйте очередь задач с приоритетами и разбиением долгих задач через {api}, чтобы не блокировать ввод.",
+   "params": "scheduler.yield / setTimeout / MessageChannel",
+   "rule": "тесты с фейковым временем",
+   "tags": [
+    "fe.performance",
+    "js.eventloop"
+   ],
+   "a": 1.3,
+   "b": 1.8,
+   "ext": true
+  },
+  {
+   "id": "FE-S-13",
+   "spec": "Frontend",
+   "grade": "Senior",
+   "format": "REVIEW",
+   "topic": "Ревью архитектуры состояния",
+   "template": "Схема store приложения {app} (≈ 1 стр.). Найдите проблемы.",
+   "params": "дублирование серверных данных, нормализация, глобальный стейт для локального",
+   "rule": "заложенные проблемы",
+   "tags": [
+    "fe.architecture",
+    "code_review"
+   ],
+   "a": 1.1,
+   "b": 1.5,
+   "ext": true
+  },
+  {
+   "id": "FE-S-14",
+   "spec": "Frontend",
+   "grade": "Senior",
+   "format": "MCQ",
+   "topic": "CSP",
+   "template": "Политика {csp}. Будет ли выполнен {script}?",
+   "params": "inline, nonce, strict-dynamic, внешние домены",
+   "rule": "таблица",
+   "tags": [
+    "web.csp",
+    "security.xss"
+   ],
+   "a": 1.3,
+   "b": 1.6,
+   "ext": true
+  },
+  {
+   "id": "FE-S-15",
+   "spec": "Frontend",
+   "grade": "Senior",
+   "format": "CASE",
+   "topic": "Дизайн-система для нескольких продуктов",
+   "template": "Сделайте дизайн-систему для {n} продуктов с разными брендами: токены, темы, версионирование, внедрение.",
+   "params": "n 3–6",
+   "rule": "рубрика 4×0–2",
+   "tags": [
+    "design_system"
+   ],
+   "a": 1.2,
+   "b": 1.4,
+   "ext": true
+  },
+  {
+   "id": "FE-S-16",
+   "spec": "Frontend",
+   "grade": "Senior",
+   "format": "SHORT",
+   "topic": "Расчёт рендера списка",
+   "template": "Список из {n} элементов, рендер элемента {t} мс. Сколько кадров пропустит прокрутка без виртуализации и с окном {w}?",
+   "params": "числа генерируются",
+   "rule": "вычисление",
+   "tags": [
+    "fe.performance"
+   ],
+   "a": 1.2,
+   "b": 1.1,
+   "ext": true
+  },
+  {
+   "id": "FE-S-17",
+   "spec": "Frontend",
+   "grade": "Senior",
+   "format": "MCQ",
+   "topic": "Аутентификация в SPA",
+   "template": "Где хранить токены и как обновлять при {setup}?",
+   "params": "BFF, refresh-token rotation, третьи cookie заблокированы",
+   "rule": "таблица",
+   "tags": [
+    "security.auth",
+    "security.csrf"
+   ],
+   "a": 1.3,
+   "b": 1.5,
+   "ext": true
+  },
+  {
+   "id": "FE-S-18",
+   "spec": "Frontend",
+   "grade": "Senior",
+   "format": "CASE",
+   "topic": "Наблюдаемость фронтенда",
+   "template": "Предложите систему мониторинга ошибок и производительности для {app} с {users} пользователями.",
+   "params": "RUM, source maps, сэмплирование, алерты",
+   "rule": "рубрика 3×0–2",
+   "tags": [
+    "observability",
+    "fe.performance"
+   ],
+   "a": 1.1,
+   "b": 1.2,
+   "ext": true
+  },
+  {
+   "id": "FE-S-19",
+   "spec": "Frontend",
+   "grade": "Senior",
+   "format": "DEBUG",
+   "topic": "Регрессия производительности",
+   "template": "После релиза INP вырос с {x} до {y} мс. Дан профиль Performance. Найдите причину.",
+   "params": "синхронный layout в цикле, тяжёлый обработчик ввода, ререндер дерева контекста",
+   "rule": "разметка",
+   "tags": [
+    "fe.performance",
+    "debugging"
+   ],
+   "a": 1.4,
+   "b": 1.6,
+   "ext": true
+  },
+  {
+   "id": "FE-S-20",
+   "spec": "Frontend",
+   "grade": "Senior",
+   "format": "MCQ",
+   "topic": "Интернационализация",
+   "template": "Что сломается при {change} в приложении на {n} языках?",
+   "params": "плюрализация, RTL, форматы дат/валют, конкатенация строк",
+   "rule": "таблица",
+   "tags": [
+    "i18n"
+   ],
+   "a": 1.0,
+   "b": 2.0,
+   "ext": true
+  },
+  {
+   "id": "QA-J-05",
+   "spec": "QA",
+   "grade": "Junior",
+   "format": "MCQ",
+   "topic": "Уровни тестирования",
+   "template": "Проверка {check} относится к какому уровню: unit, интеграционный, системный, приёмочный?",
+   "params": "пул из 20 описаний",
+   "rule": "пул",
+   "tags": [
+    "qa.basics"
+   ],
+   "a": 0.9,
+   "b": -1.7,
+   "ext": true
+  },
+  {
+   "id": "QA-J-06",
+   "spec": "QA",
+   "grade": "Junior",
+   "format": "MSQ",
+   "topic": "Классы эквивалентности",
+   "template": "Поле «{field}» с правилом {rule}. Отметьте значения из разных классов эквивалентности.",
+   "params": "поля и правила генерируются",
+   "rule": "вычисление",
+   "tags": [
+    "qa.test_design"
+   ],
+   "a": 1.1,
+   "b": -1.0,
+   "ext": true
+  },
+  {
+   "id": "QA-J-07",
+   "spec": "QA",
+   "grade": "Junior",
+   "format": "SHORT",
+   "topic": "Граничные значения: дата",
+   "template": "Поле даты принимает {range}. Перечислите граничные значения.",
+   "params": "диапазоны с високосным годом и концом месяца",
+   "rule": "вычисление",
+   "tags": [
+    "qa.test_design"
+   ],
+   "a": 1.2,
+   "b": -0.5,
+   "ext": true
+  },
+  {
+   "id": "QA-J-08",
+   "spec": "QA",
+   "grade": "Junior",
+   "format": "MCQ",
+   "topic": "Баг или фича",
+   "template": "Поведение {behavior} при требовании {req}. Это дефект?",
+   "params": "пул пар с неоднозначными требованиями",
+   "rule": "пул",
+   "tags": [
+    "qa.bug_reporting"
+   ],
+   "a": 0.9,
+   "b": -1.3,
+   "ext": true
+  },
+  {
+   "id": "QA-J-09",
+   "spec": "QA",
+   "grade": "Junior",
+   "format": "CASE",
+   "topic": "Баг-репорт",
+   "template": "По описанию ситуации {situation} напишите баг-репорт.",
+   "params": "10 ситуаций с логом и скриншотом",
+   "rule": "рубрика 3×0–2: шаги, ожидаемый/фактический результат, окружение",
+   "tags": [
+    "qa.bug_reporting"
+   ],
+   "a": 1.0,
+   "b": -0.9,
+   "ext": true
+  },
+  {
+   "id": "QA-J-10",
+   "spec": "QA",
+   "grade": "Junior",
+   "format": "MCQ",
+   "topic": "DevTools",
+   "template": "Как в DevTools проверить {goal}?",
+   "params": "статус запроса, куки, ошибку JS, мобильный вид, медленную сеть",
+   "rule": "пул",
+   "tags": [
+    "qa.tools"
+   ],
+   "a": 1.0,
+   "b": -1.1,
+   "ext": true
+  },
+  {
+   "id": "QA-J-11",
+   "spec": "QA",
+   "grade": "Junior",
+   "format": "SHORT",
+   "topic": "SQL: проверка данных",
+   "template": "Напишите SELECT, который проверит {check} в таблице {table}.",
+   "params": "заказ создан с верной суммой, пользователь удалён, статус изменён",
+   "rule": "выполнение",
+   "tags": [
+    "sql.select"
+   ],
+   "a": 1.2,
+   "b": -0.4,
+   "ext": true
+  },
+  {
+   "id": "QA-J-12",
+   "spec": "QA",
+   "grade": "Junior",
+   "format": "MSQ",
+   "topic": "Чек-лист",
+   "template": "Отметьте проверки, которые обязательно входят в чек-лист для {feature}.",
+   "params": "8 вариантов, 4–5 верных",
+   "rule": "пул",
+   "tags": [
+    "qa.test_design"
+   ],
+   "a": 0.9,
+   "b": -1.5,
+   "ext": true
+  },
+  {
+   "id": "QA-J-13",
+   "spec": "QA",
+   "grade": "Junior",
+   "format": "MCQ",
+   "topic": "Статусы HTTP для тестировщика",
+   "template": "API на {action} вернул {code}. Это ожидаемо?",
+   "params": "пары действие–код",
+   "rule": "таблица",
+   "tags": [
+    "qa.api",
+    "http.status"
+   ],
+   "a": 1.0,
+   "b": -0.8,
+   "ext": true
+  },
+  {
+   "id": "QA-J-14",
+   "spec": "QA",
+   "grade": "Junior",
+   "format": "DEBUG",
+   "topic": "Ошибка в тест-кейсе",
+   "template": "В тест-кейсе {case} допущена ошибка. Найдите её.",
+   "params": "неверный ожидаемый результат, пропущен шаг, две проверки в одном кейсе",
+   "rule": "разметка",
+   "tags": [
+    "qa.documentation"
+   ],
+   "a": 1.0,
+   "b": -0.6,
+   "ext": true
+  },
+  {
+   "id": "QA-J-15",
+   "spec": "QA",
+   "grade": "Junior",
+   "format": "MCQ",
+   "topic": "Мобильное тестирование",
+   "template": "Что важно проверить при {event} в мобильном приложении?",
+   "params": "сворачивание, входящий звонок, потеря сети, смена ориентации",
+   "rule": "пул",
+   "tags": [
+    "qa.mobile"
+   ],
+   "a": 0.9,
+   "b": -1.2,
+   "ext": true
+  },
+  {
+   "id": "QA-J-16",
+   "spec": "QA",
+   "grade": "Junior",
+   "format": "SHORT",
+   "topic": "Таблица решений",
+   "template": "Сколько тестов нужно для правил скидки {rules}?",
+   "params": "2–3 условия",
+   "rule": "вычисление",
+   "tags": [
+    "qa.test_design"
+   ],
+   "a": 1.2,
+   "b": -0.3,
+   "ext": true
+  },
+  {
+   "id": "QA-J-17",
+   "spec": "QA",
+   "grade": "Junior",
+   "format": "MCQ",
+   "topic": "Локализация",
+   "template": "Какая проблема видна на экране {screen} с языком {lang}?",
+   "params": "обрезанный текст, неверный формат даты, непереведённая строка",
+   "rule": "пул",
+   "tags": [
+    "qa.i18n"
+   ],
+   "a": 0.9,
+   "b": -1.4,
+   "ext": true
+  },
+  {
+   "id": "QA-J-18",
+   "spec": "QA",
+   "grade": "Junior",
+   "format": "MCQ",
+   "topic": "Регресс vs retest",
+   "template": "Разработчик исправил дефект {bug}. Что проверить?",
+   "params": "пул",
+   "rule": "пул",
+   "tags": [
+    "qa.basics"
+   ],
+   "a": 1.0,
+   "b": -1.9,
+   "ext": true
+  },
+  {
+   "id": "QA-J-19",
+   "spec": "QA",
+   "grade": "Junior",
+   "format": "SHORT",
+   "topic": "Postman: переменные",
+   "template": "Что отправит запрос с URL {url} и окружением {env}?",
+   "params": "переменные окружения и коллекции",
+   "rule": "вычисление",
+   "tags": [
+    "qa.api",
+    "qa.tools"
+   ],
+   "a": 1.1,
+   "b": -0.7,
+   "ext": true
+  },
+  {
+   "id": "QA-J-20",
+   "spec": "QA",
+   "grade": "Junior",
+   "format": "MCQ",
+   "topic": "Приоритизация тестов",
+   "template": "Времени на тестирование {hours} ч. Какие проверки сделать в первую очередь для {feature}?",
+   "params": "пул",
+   "rule": "пул",
+   "tags": [
+    "qa.risk"
+   ],
+   "a": 1.0,
+   "b": -0.2,
+   "ext": true
+  },
+  {
+   "id": "QA-M-05",
+   "spec": "QA",
+   "grade": "Middle",
+   "format": "CODE",
+   "topic": "Page Object",
+   "template": "Перепишите UI-тест {test} с использованием Page Object и явных ожиданий.",
+   "params": "форма входа, корзина, поиск",
+   "rule": "статический анализ + прогон на стенде",
+   "tags": [
+    "qa.automation"
+   ],
+   "a": 1.2,
+   "b": 0.6,
+   "ext": true
+  },
+  {
+   "id": "QA-M-06",
+   "spec": "QA",
+   "grade": "Middle",
+   "format": "CODE",
+   "topic": "Фикстуры pytest",
+   "template": "Напишите фикстуры для {resource} с очисткой и параметризацией по {params}.",
+   "params": "пользователь через API, временная БД, файл",
+   "rule": "прогон тестов на эталоне и мутантах",
+   "tags": [
+    "qa.automation",
+    "python.basics"
+   ],
+   "a": 1.2,
+   "b": 0.7,
+   "ext": true
+  },
+  {
+   "id": "QA-M-07",
+   "spec": "QA",
+   "grade": "Middle",
+   "format": "MCQ",
+   "topic": "Контрактные тесты",
+   "template": "Изменение {change} в API. Какой тест его поймает раньше всего?",
+   "params": "пул",
+   "rule": "пул",
+   "tags": [
+    "qa.api",
+    "qa.contract"
+   ],
+   "a": 1.1,
+   "b": 0.5,
+   "ext": true
+  },
+  {
+   "id": "QA-M-08",
+   "spec": "QA",
+   "grade": "Middle",
+   "format": "SHORT",
+   "topic": "Покрытие переходов",
+   "template": "Нарисован граф состояний заказа ({states}). Минимальное число тест-путей для покрытия всех переходов?",
+   "params": "3–6 состояний",
+   "rule": "вычисление",
+   "tags": [
+    "qa.test_design"
+   ],
+   "a": 1.3,
+   "b": 0.9,
+   "ext": true
+  },
+  {
+   "id": "QA-M-09",
+   "spec": "QA",
+   "grade": "Middle",
+   "format": "DEBUG",
+   "topic": "Ложноположительный тест",
+   "template": "Тест {test} всегда зелёный, хотя функция сломана. Найдите проблему.",
+   "params": "assert без сравнения, mock подменяет проверяемую функцию, try/except глотает ошибку",
+   "rule": "мутационный прогон",
+   "tags": [
+    "qa.automation",
+    "debugging"
+   ],
+   "a": 1.4,
+   "b": 0.8,
+   "ext": true
+  },
+  {
+   "id": "QA-M-10",
+   "spec": "QA",
+   "grade": "Middle",
+   "format": "MCQ",
+   "topic": "Тестирование безопасности",
+   "template": "Какая проверка обнаружит {vuln} в {feature}?",
+   "params": "IDOR, XSS, отсутствие rate limit, раскрытие данных в ошибке",
+   "rule": "таблица",
+   "tags": [
+    "qa.security"
+   ],
+   "a": 1.1,
+   "b": 0.4,
+   "ext": true
+  },
+  {
+   "id": "QA-M-11",
+   "spec": "QA",
+   "grade": "Middle",
+   "format": "CASE",
+   "topic": "Тест-план фичи",
+   "template": "Составьте тест-план для {feature}: объём, риски, окружения, критерии выхода.",
+   "params": "оплата частями, двухфакторная аутентификация, импорт CSV",
+   "rule": "рубрика 4×0–2",
+   "tags": [
+    "qa.strategy"
+   ],
+   "a": 1.1,
+   "b": 0.3,
+   "ext": true
+  },
+  {
+   "id": "QA-M-12",
+   "spec": "QA",
+   "grade": "Middle",
+   "format": "SHORT",
+   "topic": "Анализ логов",
+   "template": "По фрагменту логов {service} найдите запрос, вызвавший ошибку, и его correlation-id.",
+   "params": "генерация логов с шумом",
+   "rule": "разметка",
+   "tags": [
+    "qa.observability"
+   ],
+   "a": 1.2,
+   "b": 0.2,
+   "ext": true
+  },
+  {
+   "id": "QA-M-13",
+   "spec": "QA",
+   "grade": "Middle",
+   "format": "MCQ",
+   "topic": "CI для автотестов",
+   "template": "Тесты {n} мин в CI блокируют разработку. Что сделать?",
+   "params": "параллелизация, теги smoke, тест-импакт-анализ",
+   "rule": "пул",
+   "tags": [
+    "qa.automation",
+    "ci.basics"
+   ],
+   "a": 1.0,
+   "b": 0.1,
+   "ext": true
+  },
+  {
+   "id": "QA-M-14",
+   "spec": "QA",
+   "grade": "Middle",
+   "format": "CODE",
+   "topic": "Тестовые данные",
+   "template": "Напишите фабрику данных для {entity} с валидными и граничными вариантами.",
+   "params": "пользователь, заказ, документ",
+   "rule": "тесты",
+   "tags": [
+    "qa.automation"
+   ],
+   "a": 1.1,
+   "b": 0.6,
+   "ext": true
+  },
+  {
+   "id": "QA-M-15",
+   "spec": "QA",
+   "grade": "Middle",
+   "format": "MSQ",
+   "topic": "Мобильные автотесты",
+   "template": "Отметьте причины нестабильности Appium-тестов в {scenario}.",
+   "params": "пул",
+   "rule": "пул",
+   "tags": [
+    "qa.mobile",
+    "qa.flaky"
+   ],
+   "a": 1.0,
+   "b": 0.7,
+   "ext": true
+  },
+  {
+   "id": "QA-M-16",
+   "spec": "QA",
+   "grade": "Middle",
+   "format": "SHORT",
+   "topic": "Pairwise с ограничениями",
+   "template": "Параметры {params} и ограничения {constraints}. Минимальное число тестов?",
+   "params": "генерация",
+   "rule": "решатель",
+   "tags": [
+    "qa.combinatorics"
+   ],
+   "a": 1.3,
+   "b": 1.0,
+   "ext": true
+  },
+  {
+   "id": "QA-M-17",
+   "spec": "QA",
+   "grade": "Middle",
+   "format": "MCQ",
+   "topic": "Тестирование БД",
+   "template": "После миграции {migration} что проверить в первую очередь?",
+   "params": "пул",
+   "rule": "пул",
+   "tags": [
+    "qa.data"
+   ],
+   "a": 1.1,
+   "b": 0.9,
+   "ext": true
+  },
+  {
+   "id": "QA-M-18",
+   "spec": "QA",
+   "grade": "Middle",
+   "format": "DEBUG",
+   "topic": "Ошибка в проверке API-ответа",
+   "template": "Автотест падает на корректном ответе {response}. Найдите ошибку в проверке.",
+   "params": "порядок элементов, тип числа, часовой пояс",
+   "rule": "прогон",
+   "tags": [
+    "qa.api",
+    "debugging"
+   ],
+   "a": 1.2,
+   "b": 0.4,
+   "ext": true
+  },
+  {
+   "id": "QA-M-19",
+   "spec": "QA",
+   "grade": "Middle",
+   "format": "MCQ",
+   "topic": "Оценка трудозатрат",
+   "template": "Как оценить тестирование {feature} при неполных требованиях?",
+   "params": "пул",
+   "rule": "пул",
+   "tags": [
+    "qa.strategy"
+   ],
+   "a": 0.9,
+   "b": 0.2,
+   "ext": true
+  },
+  {
+   "id": "QA-M-20",
+   "spec": "QA",
+   "grade": "Middle",
+   "format": "SHORT",
+   "topic": "Метрики автотестов",
+   "template": "По таблице прогонов за неделю вычислите долю flaky-тестов и выберите 3 для исправления.",
+   "params": "генерация",
+   "rule": "вычисление",
+   "tags": [
+    "qa.metrics",
+    "qa.flaky"
+   ],
+   "a": 1.2,
+   "b": 0.8,
+   "ext": true
+  },
+  {
+   "id": "QA-S-05",
+   "spec": "QA",
+   "grade": "Senior",
+   "format": "CASE",
+   "topic": "Качество в микросервисах",
+   "template": "{n} сервисов, e2e-тесты нестабильны и долгие. Предложите стратегию тестирования.",
+   "params": "n 10–40",
+   "rule": "рубрика 4×0–2",
+   "tags": [
+    "qa.strategy",
+    "qa.contract"
+   ],
+   "a": 1.3,
+   "b": 1.5,
+   "ext": true
+  },
+  {
+   "id": "QA-S-06",
+   "spec": "QA",
+   "grade": "Senior",
+   "format": "CASE",
+   "topic": "Внедрение автоматизации с нуля",
+   "template": "В компании {context} нет автотестов. План на 6 месяцев: инструменты, приоритеты, команда, метрики.",
+   "params": "пул контекстов",
+   "rule": "рубрика 4×0–2",
+   "tags": [
+    "qa.automation",
+    "qa.strategy"
+   ],
+   "a": 1.2,
+   "b": 1.3,
+   "ext": true
+  },
+  {
+   "id": "QA-S-07",
+   "spec": "QA",
+   "grade": "Senior",
+   "format": "SHORT",
+   "topic": "Закон Литтла",
+   "template": "Система обслуживает {rps} RPS, средняя задержка {lat} мс. Сколько одновременных запросов и хватит ли пула {pool}?",
+   "params": "генерация",
+   "rule": "формула L = λW",
+   "tags": [
+    "qa.performance"
+   ],
+   "a": 1.3,
+   "b": 1.2,
+   "ext": true
+  },
+  {
+   "id": "QA-S-08",
+   "spec": "QA",
+   "grade": "Senior",
+   "format": "MCQ",
+   "topic": "Интерпретация нагрузочного теста",
+   "template": "График: при {rps} RPS латентность растёт, CPU {cpu} %. Узкое место?",
+   "params": "пул графиков",
+   "rule": "разметка",
+   "tags": [
+    "qa.performance"
+   ],
+   "a": 1.3,
+   "b": 1.4,
+   "ext": true
+  },
+  {
+   "id": "QA-S-09",
+   "spec": "QA",
+   "grade": "Senior",
+   "format": "REVIEW",
+   "topic": "Ревью тест-стратегии",
+   "template": "Документ тест-стратегии {product} (1 стр.). Найдите пробелы.",
+   "params": "нет нефункциональных, нет данных, нет критериев выхода",
+   "rule": "заложенные проблемы",
+   "tags": [
+    "qa.strategy",
+    "code_review"
+   ],
+   "a": 1.1,
+   "b": 1.6,
+   "ext": true
+  },
+  {
+   "id": "QA-S-10",
+   "spec": "QA",
+   "grade": "Senior",
+   "format": "CASE",
+   "topic": "Инцидент из-за пропущенного дефекта",
+   "template": "Дефект {bug} попал в прод. Проведите разбор: почему пропустили и что изменить в процессе.",
+   "params": "пул",
+   "rule": "рубрика 4×0–2",
+   "tags": [
+    "qa.strategy",
+    "incident"
+   ],
+   "a": 1.2,
+   "b": 1.2,
+   "ext": true
+  },
+  {
+   "id": "QA-S-11",
+   "spec": "QA",
+   "grade": "Senior",
+   "format": "MCQ",
+   "topic": "Тестирование в проде",
+   "template": "Как проверить {change} на проде без риска?",
+   "params": "feature flags, canary, shadow, dark launch",
+   "rule": "таблица",
+   "tags": [
+    "qa.strategy"
+   ],
+   "a": 1.1,
+   "b": 1.1,
+   "ext": true
+  },
+  {
+   "id": "QA-S-12",
+   "spec": "QA",
+   "grade": "Senior",
+   "format": "SHORT",
+   "topic": "Расчёт выборки для A/B",
+   "template": "Конверсия {p} %, ожидаемый эффект {d} п. п., мощность 80 %. Сколько пользователей нужно в группе (порядок величины)?",
+   "params": "генерация",
+   "rule": "формула",
+   "tags": [
+    "qa.metrics"
+   ],
+   "a": 1.2,
+   "b": 1.9,
+   "ext": true
+  },
+  {
+   "id": "QA-S-13",
+   "spec": "QA",
+   "grade": "Senior",
+   "format": "CASE",
+   "topic": "Тестирование ML-функции",
+   "template": "Как тестировать {feature} на основе модели?",
+   "params": "рекомендации, распознавание документов, антифрод",
+   "rule": "рубрика 3×0–2",
+   "tags": [
+    "qa.strategy",
+    "ml"
+   ],
+   "a": 1.1,
+   "b": 2.0,
+   "ext": true
+  },
+  {
+   "id": "QA-S-14",
+   "spec": "QA",
+   "grade": "Senior",
+   "format": "DEBUG",
+   "topic": "Деградация автотестов",
+   "template": "Время прогона выросло с {t1} до {t2} мин. По отчёту найдите причину.",
+   "params": "sleep, рост данных, последовательные тесты",
+   "rule": "разметка",
+   "tags": [
+    "qa.automation",
+    "debugging"
+   ],
+   "a": 1.2,
+   "b": 1.3,
+   "ext": true
+  },
+  {
+   "id": "QA-S-15",
+   "spec": "QA",
+   "grade": "Senior",
+   "format": "MCQ",
+   "topic": "Доступность",
+   "template": "Требование WCAG {level}. Какой дефект блокирует соответствие?",
+   "params": "пул",
+   "rule": "таблица",
+   "tags": [
+    "a11y",
+    "qa.strategy"
+   ],
+   "a": 1.1,
+   "b": 1.5,
+   "ext": true
+  },
+  {
+   "id": "QA-S-16",
+   "spec": "QA",
+   "grade": "Senior",
+   "format": "CASE",
+   "topic": "Найм и развитие QA",
+   "template": "Команда из {n} QA, разный уровень. Выстройте матрицу компетенций и план развития.",
+   "params": "n 3–10",
+   "rule": "рубрика 3×0–2",
+   "tags": [
+    "engineering_management"
+   ],
+   "a": 1.0,
+   "b": 1.7,
+   "ext": true
+  },
+  {
+   "id": "QA-S-17",
+   "spec": "QA",
+   "grade": "Senior",
+   "format": "MCQ",
+   "topic": "Метрики процесса",
+   "template": "Метрика {metric} улучшилась, а жалобы пользователей выросли. Что не так с метрикой?",
+   "params": "coverage, число найденных багов, процент прохождения",
+   "rule": "пул",
+   "tags": [
+    "qa.metrics"
+   ],
+   "a": 1.2,
+   "b": 1.0,
+   "ext": true
+  },
+  {
+   "id": "QA-S-18",
+   "spec": "QA",
+   "grade": "Senior",
+   "format": "SHORT",
+   "topic": "Надёжность тестов",
+   "template": "Тест падает ложно с вероятностью {p}. Набор из {n} таких тестов: вероятность зелёного прогона?",
+   "params": "генерация",
+   "rule": "вычисление (1−p)^n",
+   "tags": [
+    "qa.flaky",
+    "qa.metrics"
+   ],
+   "a": 1.3,
+   "b": 1.1,
+   "ext": true
+  },
+  {
+   "id": "QA-S-19",
+   "spec": "QA",
+   "grade": "Senior",
+   "format": "CASE",
+   "topic": "Тестирование миграции данных",
+   "template": "Перенос {n} млн записей между системами. План проверки полноты и корректности.",
+   "params": "пул",
+   "rule": "рубрика 4×0–2",
+   "tags": [
+    "qa.data"
+   ],
+   "a": 1.2,
+   "b": 1.8,
+   "ext": true
+  },
+  {
+   "id": "QA-S-20",
+   "spec": "QA",
+   "grade": "Senior",
+   "format": "MCQ",
+   "topic": "Хаос-инженерия",
+   "template": "Какой эксперимент первым провести для {system}?",
+   "params": "пул",
+   "rule": "пул",
+   "tags": [
+    "qa.performance",
+    "resilience"
+   ],
+   "a": 1.1,
+   "b": 2.1,
+   "ext": true
+  },
+  {
+   "id": "OPS-J-05",
+   "spec": "DevOps",
+   "grade": "Junior",
+   "format": "SHORT",
+   "topic": "Права файлов",
+   "template": "Какие права даёт chmod {mode} владельцу, группе и остальным?",
+   "params": "восьмеричные и символьные режимы",
+   "rule": "вычисление",
+   "tags": [
+    "linux.cli"
+   ],
+   "a": 1.1,
+   "b": -1.6,
+   "ext": true
+  },
+  {
+   "id": "OPS-J-06",
+   "spec": "DevOps",
+   "grade": "Junior",
+   "format": "CODE",
+   "topic": "Bash-скрипт",
+   "template": "Напишите скрипт, который {goal}, с обработкой ошибок (set -euo pipefail).",
+   "params": "бэкап каталога с датой, ротация логов старше N дней, проверка доступности списка URL",
+   "rule": "прогон в контейнере",
+   "tags": [
+    "linux.cli",
+    "bash"
+   ],
+   "a": 1.2,
+   "b": -0.4,
+   "ext": true
+  },
+  {
+   "id": "OPS-J-07",
+   "spec": "DevOps",
+   "grade": "Junior",
+   "format": "MCQ",
+   "topic": "Процессы",
+   "template": "Процесс {proc} не завершается по Ctrl+C. Какая команда и сигнал?",
+   "params": "SIGTERM/SIGKILL, kill, pkill, systemctl",
+   "rule": "пул",
+   "tags": [
+    "linux.cli"
+   ],
+   "a": 1.0,
+   "b": -1.1,
+   "ext": true
+  },
+  {
+   "id": "OPS-J-08",
+   "spec": "DevOps",
+   "grade": "Junior",
+   "format": "SHORT",
+   "topic": "Подсети",
+   "template": "Сколько адресов для хостов в {cidr} и входит ли {ip}?",
+   "params": "CIDR /20–/30",
+   "rule": "вычисление",
+   "tags": [
+    "network.basics"
+   ],
+   "a": 1.2,
+   "b": -0.7,
+   "ext": true
+  },
+  {
+   "id": "OPS-J-09",
+   "spec": "DevOps",
+   "grade": "Junior",
+   "format": "MCQ",
+   "topic": "Docker: тома",
+   "template": "Данные {data} пропадают после перезапуска контейнера. Почему и что сделать?",
+   "params": "volume, bind mount, tmpfs",
+   "rule": "пул",
+   "tags": [
+    "docker.basics"
+   ],
+   "a": 1.0,
+   "b": -1.0,
+   "ext": true
+  },
+  {
+   "id": "OPS-J-10",
+   "spec": "DevOps",
+   "grade": "Junior",
+   "format": "DEBUG",
+   "topic": "docker-compose",
+   "template": "Сервисы {services} не видят друг друга / порт недоступен. Найдите ошибку в compose-файле.",
+   "params": "неверное имя хоста, ports vs expose, depends_on без healthcheck",
+   "rule": "прогон",
+   "tags": [
+    "docker.basics",
+    "debugging"
+   ],
+   "a": 1.1,
+   "b": -0.5,
+   "ext": true
+  },
+  {
+   "id": "OPS-J-11",
+   "spec": "DevOps",
+   "grade": "Junior",
+   "format": "MCQ",
+   "topic": "DNS",
+   "template": "Запись {record} для {goal}?",
+   "params": "A, CNAME, MX, TXT; TTL",
+   "rule": "таблица",
+   "tags": [
+    "network.basics"
+   ],
+   "a": 0.9,
+   "b": -1.4,
+   "ext": true
+  },
+  {
+   "id": "OPS-J-12",
+   "spec": "DevOps",
+   "grade": "Junior",
+   "format": "SHORT",
+   "topic": "Логи systemd",
+   "template": "Какая команда покажет логи {unit} за последний час с обновлением?",
+   "params": "пул",
+   "rule": "сравнение с эталоном",
+   "tags": [
+    "linux.cli"
+   ],
+   "a": 1.0,
+   "b": -0.9,
+   "ext": true
+  },
+  {
+   "id": "OPS-J-13",
+   "spec": "DevOps",
+   "grade": "Junior",
+   "format": "MCQ",
+   "topic": "SSH",
+   "template": "Как {goal} по SSH?",
+   "params": "вход по ключу, проброс порта, копирование файла, jump host",
+   "rule": "пул",
+   "tags": [
+    "linux.cli",
+    "network.basics"
+   ],
+   "a": 0.9,
+   "b": -1.3,
+   "ext": true
+  },
+  {
+   "id": "OPS-J-14",
+   "spec": "DevOps",
+   "grade": "Junior",
+   "format": "MSQ",
+   "topic": "Безопасность сервера",
+   "template": "Отметьте меры базовой защиты сервера {role}.",
+   "params": "пул",
+   "rule": "пул",
+   "tags": [
+    "security.basics"
+   ],
+   "a": 0.9,
+   "b": -1.7,
+   "ext": true
+  },
+  {
+   "id": "OPS-J-15",
+   "spec": "DevOps",
+   "grade": "Junior",
+   "format": "CODE",
+   "topic": "Nginx: reverse proxy",
+   "template": "Напишите location-блок, проксирующий {path} на {upstream} с {requirement}.",
+   "params": "передача заголовков, websocket, лимит тела",
+   "rule": "nginx -t + прогон запросов",
+   "tags": [
+    "web.nginx"
+   ],
+   "a": 1.2,
+   "b": -0.3,
+   "ext": true
+  },
+  {
+   "id": "OPS-J-16",
+   "spec": "DevOps",
+   "grade": "Junior",
+   "format": "MCQ",
+   "topic": "Переменные окружения",
+   "template": "Как передать секрет {secret} в контейнер безопаснее всего (из вариантов)?",
+   "params": "пул",
+   "rule": "пул",
+   "tags": [
+    "docker.basics",
+    "security.containers"
+   ],
+   "a": 1.0,
+   "b": -0.6,
+   "ext": true
+  },
+  {
+   "id": "OPS-J-17",
+   "spec": "DevOps",
+   "grade": "Junior",
+   "format": "SHORT",
+   "topic": "Использование диска",
+   "template": "Диск заполнен на 100 %. Какой командой найти самый большой каталог в {path}?",
+   "params": "пул",
+   "rule": "сравнение вывода",
+   "tags": [
+    "linux.cli"
+   ],
+   "a": 1.1,
+   "b": -0.8,
+   "ext": true
+  },
+  {
+   "id": "OPS-J-18",
+   "spec": "DevOps",
+   "grade": "Junior",
+   "format": "MCQ",
+   "topic": "Git: теги и релизы",
+   "template": "Как пометить релиз {ver} и запустить по нему пайплайн?",
+   "params": "пул",
+   "rule": "пул",
+   "tags": [
+    "git",
+    "ci.basics"
+   ],
+   "a": 0.9,
+   "b": -1.2,
+   "ext": true
+  },
+  {
+   "id": "OPS-J-19",
+   "spec": "DevOps",
+   "grade": "Junior",
+   "format": "SHORT",
+   "topic": "HTTP-проверка",
+   "template": "Что покажет curl -I {url} при {situation}?",
+   "params": "редирект, истёкший сертификат, 503",
+   "rule": "эталон",
+   "tags": [
+    "network.basics",
+    "http.status"
+   ],
+   "a": 1.1,
+   "b": -0.2,
+   "ext": true
+  },
+  {
+   "id": "OPS-J-20",
+   "spec": "DevOps",
+   "grade": "Junior",
+   "format": "MCQ",
+   "topic": "Мониторинг: базовые метрики",
+   "template": "Какая метрика первой укажет на {problem}?",
+   "params": "нехватка памяти, переполнение диска, перегрев CPU, сетевые ошибки",
+   "rule": "пул",
+   "tags": [
+    "observability"
+   ],
+   "a": 1.0,
+   "b": -0.4,
+   "ext": true
+  },
+  {
+   "id": "OPS-M-05",
+   "spec": "DevOps",
+   "grade": "Middle",
+   "format": "CODE",
+   "topic": "Helm-чарт",
+   "template": "Параметризуйте манифест {resource} через values.yaml: {params}.",
+   "params": "образ, реплики, ресурсы, ingress host",
+   "rule": "helm lint + helm template + проверки",
+   "tags": [
+    "k8s.helm"
+   ],
+   "a": 1.2,
+   "b": 0.7,
+   "ext": true
+  },
+  {
+   "id": "OPS-M-06",
+   "spec": "DevOps",
+   "grade": "Middle",
+   "format": "MCQ",
+   "topic": "Ресурсы пода",
+   "template": "Под с requests {req} и limits {lim}. Что произойдёт при {event}?",
+   "params": "превышение памяти, CPU throttling, эвикция",
+   "rule": "таблица",
+   "tags": [
+    "k8s.basics"
+   ],
+   "a": 1.3,
+   "b": 0.5,
+   "ext": true
+  },
+  {
+   "id": "OPS-M-07",
+   "spec": "DevOps",
+   "grade": "Middle",
+   "format": "DEBUG",
+   "topic": "Terraform plan",
+   "template": "План показывает пересоздание {resource}. Почему и как избежать?",
+   "params": "изменение force-new атрибута, переименование ресурса без moved, count→for_each",
+   "rule": "разметка",
+   "tags": [
+    "iac.terraform",
+    "debugging"
+   ],
+   "a": 1.3,
+   "b": 0.9,
+   "ext": true
+  },
+  {
+   "id": "OPS-M-08",
+   "spec": "DevOps",
+   "grade": "Middle",
+   "format": "SHORT",
+   "topic": "Alertmanager",
+   "template": "Напишите правило алерта: {condition} дольше {for} минут.",
+   "params": "ошибки 5xx > X %, диск > Y %, отсутствие метрики",
+   "rule": "проверка promtool",
+   "tags": [
+    "observability.prometheus"
+   ],
+   "a": 1.2,
+   "b": 0.8,
+   "ext": true
+  },
+  {
+   "id": "OPS-M-09",
+   "spec": "DevOps",
+   "grade": "Middle",
+   "format": "MCQ",
+   "topic": "Стратегии деплоя",
+   "template": "Требование: {req}. Какая стратегия?",
+   "params": "мгновенный откат, ограниченные ресурсы, тест на части трафика",
+   "rule": "таблица",
+   "tags": [
+    "k8s.deploy"
+   ],
+   "a": 1.1,
+   "b": 0.2,
+   "ext": true
+  },
+  {
+   "id": "OPS-M-10",
+   "spec": "DevOps",
+   "grade": "Middle",
+   "format": "CODE",
+   "topic": "Ansible",
+   "template": "Напишите плейбук, который {goal}, идемпотентно.",
+   "params": "установить nginx с шаблоном конфига, создать пользователей, настроить ufw",
+   "rule": "прогон дважды: второй — без изменений",
+   "tags": [
+    "iac.ansible"
+   ],
+   "a": 1.1,
+   "b": 0.6,
+   "ext": true
+  },
+  {
+   "id": "OPS-M-11",
+   "spec": "DevOps",
+   "grade": "Middle",
+   "format": "DEBUG",
+   "topic": "Сеть в Kubernetes",
+   "template": "Под {a} не достучится до {b}: {symptom}. Найдите причину.",
+   "params": "NetworkPolicy, неверный namespace в DNS, сервис без endpoints",
+   "rule": "разметка",
+   "tags": [
+    "k8s.network",
+    "debugging"
+   ],
+   "a": 1.4,
+   "b": 1.0,
+   "ext": true
+  },
+  {
+   "id": "OPS-M-12",
+   "spec": "DevOps",
+   "grade": "Middle",
+   "format": "MCQ",
+   "topic": "Секреты в CI",
+   "template": "Как передать {secret} в пайплайн, чтобы он не попал в логи и форки?",
+   "params": "пул",
+   "rule": "пул",
+   "tags": [
+    "ci.advanced",
+    "security.basics"
+   ],
+   "a": 1.1,
+   "b": 0.4,
+   "ext": true
+  },
+  {
+   "id": "OPS-M-13",
+   "spec": "DevOps",
+   "grade": "Middle",
+   "format": "SHORT",
+   "topic": "LogQL/grep по логам",
+   "template": "Выберите запрос, который найдёт {pattern} в логах {service} за {window}.",
+   "params": "Loki/ELK",
+   "rule": "эталон",
+   "tags": [
+    "observability"
+   ],
+   "a": 1.1,
+   "b": 0.3,
+   "ext": true
+  },
+  {
+   "id": "OPS-M-14",
+   "spec": "DevOps",
+   "grade": "Middle",
+   "format": "CODE",
+   "topic": "Скрипт healthcheck",
+   "template": "Напишите проверку готовности сервиса {service} с ретраями и таймаутом для использования в CI.",
+   "params": "HTTP, TCP, БД",
+   "rule": "прогон",
+   "tags": [
+    "bash",
+    "ci.advanced"
+   ],
+   "a": 1.0,
+   "b": 0.1,
+   "ext": true
+  },
+  {
+   "id": "OPS-M-15",
+   "spec": "DevOps",
+   "grade": "Middle",
+   "format": "MCQ",
+   "topic": "Бэкапы БД",
+   "template": "Для {db} с требованием RPO {rpo} какой способ бэкапа?",
+   "params": "pg_dump, WAL-архивирование, снапшоты",
+   "rule": "таблица",
+   "tags": [
+    "db.ops"
+   ],
+   "a": 1.2,
+   "b": 0.6,
+   "ext": true
+  },
+  {
+   "id": "OPS-M-16",
+   "spec": "DevOps",
+   "grade": "Middle",
+   "format": "SHORT",
+   "topic": "Автомасштабирование",
+   "template": "HPA: target CPU {t} %, текущее {c} %, реплик {r}. Сколько станет?",
+   "params": "формула HPA",
+   "rule": "вычисление",
+   "tags": [
+    "k8s.capacity"
+   ],
+   "a": 1.3,
+   "b": 0.7,
+   "ext": true
+  },
+  {
+   "id": "OPS-M-17",
+   "spec": "DevOps",
+   "grade": "Middle",
+   "format": "REVIEW",
+   "topic": "Ревью пайплайна",
+   "template": "Пайплайн {ci} (YAML). Найдите проблемы надёжности и безопасности.",
+   "params": "секрет в echo, latest-образы, нет кэша, деплой без условий",
+   "rule": "заложенные проблемы",
+   "tags": [
+    "ci.advanced",
+    "code_review"
+   ],
+   "a": 1.1,
+   "b": 0.9,
+   "ext": true
+  },
+  {
+   "id": "OPS-M-18",
+   "spec": "DevOps",
+   "grade": "Middle",
+   "format": "MCQ",
+   "topic": "TLS",
+   "template": "Ошибка {error} при обращении к сервису. Причина?",
+   "params": "цепочка без промежуточного, несовпадение SAN, истёк",
+   "rule": "таблица",
+   "tags": [
+    "network.tls"
+   ],
+   "a": 1.2,
+   "b": 0.3,
+   "ext": true
+  },
+  {
+   "id": "OPS-M-19",
+   "spec": "DevOps",
+   "grade": "Middle",
+   "format": "DEBUG",
+   "topic": "Медленный контейнер",
+   "template": "Сборка образа {app} занимает {t} мин. По Dockerfile и логу найдите причины.",
+   "params": "нет кэша слоёв, большой контекст, установка dev-зависимостей",
+   "rule": "разметка",
+   "tags": [
+    "docker.advanced",
+    "debugging"
+   ],
+   "a": 1.1,
+   "b": 0.2,
+   "ext": true
+  },
+  {
+   "id": "OPS-M-20",
+   "spec": "DevOps",
+   "grade": "Middle",
+   "format": "SHORT",
+   "topic": "SLI",
+   "template": "Вычислите доступность за период по таблице запросов {data} с учётом {rules}.",
+   "params": "исключение плановых работ, 4xx не считаются",
+   "rule": "вычисление",
+   "tags": [
+    "observability"
+   ],
+   "a": 1.2,
+   "b": 1.0,
+   "ext": true
+  },
+  {
+   "id": "OPS-S-05",
+   "spec": "DevOps",
+   "grade": "Senior",
+   "format": "CASE",
+   "topic": "Платформа для разработчиков",
+   "template": "Спроектируйте внутреннюю платформу для {n} команд: шаблоны сервисов, CI/CD, окружения, самообслуживание.",
+   "params": "n 5–50",
+   "rule": "рубрика 4×0–2",
+   "tags": [
+    "platform",
+    "system.design"
+   ],
+   "a": 1.2,
+   "b": 1.8,
+   "ext": true
+  },
+  {
+   "id": "OPS-S-06",
+   "spec": "DevOps",
+   "grade": "Senior",
+   "format": "CASE",
+   "topic": "Миграция в Kubernetes",
+   "template": "{n} сервисов на виртуальных машинах переносятся в k8s. План, риски, порядок.",
+   "params": "n 10–60",
+   "rule": "рубрика 4×0–2",
+   "tags": [
+    "k8s.basics",
+    "architecture"
+   ],
+   "a": 1.2,
+   "b": 1.4,
+   "ext": true
+  },
+  {
+   "id": "OPS-S-07",
+   "spec": "DevOps",
+   "grade": "Senior",
+   "format": "SHORT",
+   "topic": "Error budget",
+   "template": "SLO {slo} %, окно 30 дней, инциденты {incidents}. Остаток бюджета в минутах и решение о релизе.",
+   "params": "генерация",
+   "rule": "вычисление",
+   "tags": [
+    "observability"
+   ],
+   "a": 1.3,
+   "b": 1.1,
+   "ext": true
+  },
+  {
+   "id": "OPS-S-08",
+   "spec": "DevOps",
+   "grade": "Senior",
+   "format": "MCQ",
+   "topic": "Кворум",
+   "template": "Кластер {system} из {n} узлов в {z} зонах. Переживёт ли отказ {failure}?",
+   "params": "etcd, Patroni, Kafka KRaft",
+   "rule": "вычисление",
+   "tags": [
+    "infra.ha",
+    "system.distributed"
+   ],
+   "a": 1.3,
+   "b": 1.5,
+   "ext": true
+  },
+  {
+   "id": "OPS-S-09",
+   "spec": "DevOps",
+   "grade": "Senior",
+   "format": "DEBUG",
+   "topic": "Сеть: потеря пакетов",
+   "template": "По выводу mtr/tcpdump/метрикам найдите причину таймаутов между {a} и {b}.",
+   "params": "MTU, conntrack переполнен, DNS-таймауты",
+   "rule": "разметка",
+   "tags": [
+    "network.advanced",
+    "debugging"
+   ],
+   "a": 1.4,
+   "b": 1.7,
+   "ext": true
+  },
+  {
+   "id": "OPS-S-10",
+   "spec": "DevOps",
+   "grade": "Senior",
+   "format": "CASE",
+   "topic": "Стоимость облака",
+   "template": "Счёт за облако вырос на {x} %. Дана разбивка расходов. План оптимизации без потери надёжности.",
+   "params": "генерация",
+   "rule": "рубрика 4×0–2",
+   "tags": [
+    "infra.cost"
+   ],
+   "a": 1.1,
+   "b": 1.3,
+   "ext": true
+  },
+  {
+   "id": "OPS-S-11",
+   "spec": "DevOps",
+   "grade": "Senior",
+   "format": "REVIEW",
+   "topic": "Ревью Kubernetes-манифестов",
+   "template": "Манифесты сервиса {svc} для прода. Найдите проблемы надёжности и безопасности.",
+   "params": "нет PDB, privileged, нет limits, один replica, нет anti-affinity",
+   "rule": "заложенные проблемы",
+   "tags": [
+    "k8s.basics",
+    "security.containers",
+    "code_review"
+   ],
+   "a": 1.2,
+   "b": 1.2,
+   "ext": true
+  },
+  {
+   "id": "OPS-S-12",
+   "spec": "DevOps",
+   "grade": "Senior",
+   "format": "MCQ",
+   "topic": "Восстановление после катастрофы",
+   "template": "Регион {region} недоступен. Что произойдёт при текущей схеме {setup}?",
+   "params": "пул",
+   "rule": "таблица",
+   "tags": [
+    "infra.ha"
+   ],
+   "a": 1.2,
+   "b": 1.6,
+   "ext": true
+  },
+  {
+   "id": "OPS-S-13",
+   "spec": "DevOps",
+   "grade": "Senior",
+   "format": "SHORT",
+   "topic": "Расчёт RPO",
+   "template": "WAL отправляется каждые {t} мин, реплика отстаёт на {lag}. Максимальная потеря данных при отказе мастера?",
+   "params": "генерация",
+   "rule": "вычисление",
+   "tags": [
+    "infra.ha",
+    "db.ops"
+   ],
+   "a": 1.2,
+   "b": 1.0,
+   "ext": true
+  },
+  {
+   "id": "OPS-S-14",
+   "spec": "DevOps",
+   "grade": "Senior",
+   "format": "CASE",
+   "topic": "Дежурства и инциденты",
+   "template": "Выстройте процесс дежурств для {n} команд: ротация, эскалация, runbook, постмортемы, борьба с алерт-фатигом.",
+   "params": "пул",
+   "rule": "рубрика 4×0–2",
+   "tags": [
+    "incident",
+    "engineering_management"
+   ],
+   "a": 1.1,
+   "b": 1.9,
+   "ext": true
+  },
+  {
+   "id": "OPS-S-15",
+   "spec": "DevOps",
+   "grade": "Senior",
+   "format": "MCQ",
+   "topic": "Безопасность цепочки поставки",
+   "template": "Как защититься от {threat} в CI/CD?",
+   "params": "подмена зависимости, скомпрометированный раннер, утечка токена",
+   "rule": "таблица",
+   "tags": [
+    "security.supply_chain"
+   ],
+   "a": 1.2,
+   "b": 2.0,
+   "ext": true
+  },
+  {
+   "id": "OPS-S-16",
+   "spec": "DevOps",
+   "grade": "Senior",
+   "format": "CODE",
+   "topic": "Оператор/контроллер",
+   "template": "Напишите цикл reconcile для ресурса {crd}: приведение фактического состояния к желаемому.",
+   "params": "бэкап по расписанию, DNS-запись, пользователь БД",
+   "rule": "тесты с фейковым API",
+   "tags": [
+    "k8s.advanced"
+   ],
+   "a": 1.3,
+   "b": 2.2,
+   "ext": true
+  },
+  {
+   "id": "OPS-S-17",
+   "spec": "DevOps",
+   "grade": "Senior",
+   "format": "SHORT",
+   "topic": "Ёмкость хранилища логов",
+   "template": "{services} сервисов × {rps} RPS × {bytes} байт на запись, хранение {days} дней, сжатие ×{c}. Объём?",
+   "params": "генерация",
+   "rule": "формула",
+   "tags": [
+    "infra.capacity",
+    "observability"
+   ],
+   "a": 1.2,
+   "b": 1.2,
+   "ext": true
+  },
+  {
+   "id": "OPS-S-18",
+   "spec": "DevOps",
+   "grade": "Senior",
+   "format": "DEBUG",
+   "topic": "Деградация после обновления",
+   "template": "После обновления {component} выросла латентность. По метрикам и changelog найдите причину.",
+   "params": "смена дефолта GC, лимиты conntrack, новая версия ingress",
+   "rule": "разметка",
+   "tags": [
+    "incident",
+    "debugging"
+   ],
+   "a": 1.3,
+   "b": 1.4,
+   "ext": true
+  },
+  {
+   "id": "OPS-S-19",
+   "spec": "DevOps",
+   "grade": "Senior",
+   "format": "CASE",
+   "topic": "Zero-downtime миграция БД",
+   "template": "Перенос PostgreSQL {size} ТБ в новый кластер без простоя.",
+   "params": "генерация",
+   "rule": "рубрика 4×0–2",
+   "tags": [
+    "db.ops",
+    "infra.ha"
+   ],
+   "a": 1.3,
+   "b": 1.6,
+   "ext": true
+  },
+  {
+   "id": "OPS-S-20",
+   "spec": "DevOps",
+   "grade": "Senior",
+   "format": "MCQ",
+   "topic": "Политики доступа",
+   "template": "Какая модель доступа к прод-кластеру для {n} инженеров?",
+   "params": "RBAC, break-glass, JIT-доступ, аудит",
+   "rule": "пул",
+   "tags": [
+    "security.cloud"
+   ],
+   "a": 1.1,
+   "b": 1.1,
+   "ext": true
+  }
+ ],
+ "micro_tasks": [
+  {
+   "id": "MT-01",
+   "spec": "Backend",
+   "grades": "Middle–Senior",
+   "source": "Вакансия V-01 (финтех)",
+   "kind": "Подход",
+   "text": "Платёжный провайдер присылает вебхуки повторно до 5 раз. Опишите, как обработать вебхук «платёж прошёл», чтобы деньги не зачислились дважды. До 1200 знаков.",
+   "rubric": "идемпотентный ключ; уникальное ограничение; транзакция; ответ 200 при повторе; проверка подписи (0–2 каждый, итог 0–10)"
+  },
+  {
+   "id": "MT-02",
+   "spec": "Backend",
+   "grades": "Junior–Middle",
+   "source": "Банк (BE-J-06)",
+   "kind": "Решение",
+   "text": "Напишите SQL-запрос: клиенты, не сделавшие ни одного заказа за последние 90 дней.",
+   "rubric": "автотесты на 3 наборах данных"
+  },
+  {
+   "id": "MT-03",
+   "spec": "Frontend",
+   "grades": "Middle",
+   "source": "Вакансия V-02 (e-commerce)",
+   "kind": "Подход",
+   "text": "Список из 5000 товаров с фильтрами тормозит на мобильных. Назовите 3 первых шага диагностики и 3 вероятных исправления.",
+   "rubric": "профилирование (Performance/Profiler); виртуализация; мемоизация/дебаунс фильтров; серверная фильтрация"
+  },
+  {
+   "id": "MT-04",
+   "spec": "Frontend",
+   "grades": "Junior–Middle",
+   "source": "Банк (FE-J-02)",
+   "kind": "Решение",
+   "text": "Функция groupByStatus(tasks) → объект {status: число задач}.",
+   "rubric": "автотесты"
+  },
+  {
+   "id": "MT-05",
+   "spec": "QA",
+   "grades": "Junior–Middle",
+   "source": "Вакансия V-03 (EdTech)",
+   "kind": "Решение",
+   "text": "Составьте чек-лист из 8–10 проверок для формы записи на пробный урок (имя, телефон, дата, время, согласие на обработку данных).",
+   "rubric": "границы, негатив, 152-ФЗ-согласие, часовые пояса, дубль записи"
+  },
+  {
+   "id": "MT-06",
+   "spec": "DevOps",
+   "grades": "Middle–Senior",
+   "source": "Вакансия V-04 (SaaS)",
+   "kind": "Подход",
+   "text": "После деплоя каждые 2–3 дня под с сервисом получает OOMKilled. Опишите план расследования.",
+   "rubric": "метрики памяти во времени; heap-профиль; сравнение с прошлым релизом; limits vs реальное потребление; временные меры"
+  },
+  {
+   "id": "MT-07",
+   "spec": "DevOps",
+   "grades": "Junior",
+   "source": "Банк (OPS-J-01)",
+   "kind": "Решение",
+   "text": "Одной командой выведите 10 самых больших файлов в /var/log.",
+   "rubric": "сравнение вывода"
+  },
+  {
+   "id": "MT-08",
+   "spec": "Backend",
+   "grades": "Senior",
+   "source": "Вакансия V-01 (финтех)",
+   "kind": "Подход",
+   "text": "Как перенести таблицу transactions (2 млрд строк) на новую схему с партиционированием по месяцам без простоя?",
+   "rubric": "двойная запись/CDC; бэкфилл батчами; сверка; переключение чтения; откат"
+  }
+ ],
+ "vacancies": [
+  {
+   "id": "V-01",
+   "company": "ФинТех «Альфа-Пэй» (вымышленная)",
+   "title": "Backend-разработчик (Python)",
+   "grade": "Middle+",
+   "salary": "250 000 – 330 000 ₽",
+   "text": "Разрабатываем платёжный процессинг. Python 3.12, FastAPI, PostgreSQL (высоконагруженный, партиционирование), Kafka, Redis. Важно: транзакции и идемпотентность, оптимизация запросов, интеграции с внешними API, покрытие тестами.",
+   "skills": [
+    {
+     "tag": "db.transactions",
+     "weight": 1.0
+    },
+    {
+     "tag": "db.performance",
+     "weight": 0.9
+    },
+    {
+     "tag": "system.messaging",
+     "weight": 0.8
+    },
+    {
+     "tag": "api.rest",
+     "weight": 0.7
+    },
+    {
+     "tag": "system.caching",
+     "weight": 0.5
+    },
+    {
+     "tag": "python.asyncio",
+     "weight": 0.6
+    }
+   ],
+   "blueprint": "Теория 30 % (адаптивно, с повышенным весом db.*), практика 40 %: BE-M-01 + BE-M-04 (вариант TokenBucket), отладка 20 %: BE-M-03, кейс 10 %: BE-S-02 в упрощённой версии (рубрика 0–8, порог 4)",
+   "sample": [
+    "BE-M-02 · write skew при списании с баланса",
+    "BE-M-03 · N+1 в выгрузке транзакций",
+    "BE-M-01 · top-3 мерчанта по обороту в регионе",
+    "MT-01 · обработка повторных вебхуков"
+   ]
+  },
+  {
+   "id": "V-02",
+   "company": "E-commerce «Маркет-Лайн» (вымышленная)",
+   "title": "Frontend-разработчик (React)",
+   "grade": "Middle",
+   "salary": "200 000 – 260 000 ₽",
+   "text": "Каталог и корзина маркетплейса. React 18, TypeScript, Next.js, TanStack Query. Нужны: производительность на мобильных, работа с формами, доступность, покрытие тестами.",
+   "skills": [
+    {
+     "tag": "react.performance",
+     "weight": 1.0
+    },
+    {
+     "tag": "ts.generics",
+     "weight": 0.7
+    },
+    {
+     "tag": "fe.performance",
+     "weight": 0.9
+    },
+    {
+     "tag": "a11y",
+     "weight": 0.5
+    },
+    {
+     "tag": "js.async",
+     "weight": 0.6
+    }
+   ],
+   "blueprint": "Теория 30 % (вес react.*, fe.performance), практика 40 %: FE-M-02 + FE-M-04, отладка/ревью 20 %: FE-M-03 + FE-M-06, кейс 10 %: укороченный FE-S-02",
+   "sample": [
+    "FE-M-05 · ререндеры карточек товаров",
+    "FE-M-03 · гонка запросов в поиске",
+    "FE-M-04 · типизация groupBy",
+    "MT-03 · тормозящий список"
+   ]
+  },
+  {
+   "id": "V-03",
+   "company": "EdTech «Умный урок» (вымышленная)",
+   "title": "QA-инженер (manual + API)",
+   "grade": "Junior+",
+   "salary": "110 000 – 150 000 ₽",
+   "text": "Тестируем веб-платформу онлайн-уроков. Ручное тестирование, тест-дизайн, Postman, базовый SQL, работа с баг-трекером. Плюсом — автотесты на Python.",
+   "skills": [
+    {
+     "tag": "qa.test_design",
+     "weight": 1.0
+    },
+    {
+     "tag": "qa.api",
+     "weight": 0.8
+    },
+    {
+     "tag": "qa.bug_reporting",
+     "weight": 0.7
+    },
+    {
+     "tag": "sql.select",
+     "weight": 0.5
+    },
+    {
+     "tag": "qa.automation",
+     "weight": 0.3
+    }
+   ],
+   "blueprint": "Теория 50 %, практика 40 %: QA-J-01 + QA-J-03 + QA-J-04, отладка 10 %: упрощённый QA-M-03; опциональный бонусный блок QA-M-01 (не влияет на грейд, отражается в профиле)",
+   "sample": [
+    "QA-J-01 · граничные значения для длительности урока",
+    "QA-J-04 · нарушение контракта API расписания",
+    "QA-T-04 · поиск дублей записей SQL",
+    "MT-05 · чек-лист формы записи"
+   ]
+  },
+  {
+   "id": "V-04",
+   "company": "SaaS «Облако-Док» (вымышленная)",
+   "title": "DevOps / SRE-инженер",
+   "grade": "Senior",
+   "salary": "350 000 – 450 000 ₽",
+   "text": "Kubernetes в нескольких зонах, Terraform, GitLab CI, Prometheus/Grafana, PostgreSQL. Отвечаем за SLO 99,95 %, дежурства, разбор инцидентов, хранение ПДн в РФ.",
+   "skills": [
+    {
+     "tag": "infra.ha",
+     "weight": 1.0
+    },
+    {
+     "tag": "k8s.capacity",
+     "weight": 0.8
+    },
+    {
+     "tag": "incident",
+     "weight": 0.9
+    },
+    {
+     "tag": "observability.prometheus",
+     "weight": 0.7
+    },
+    {
+     "tag": "iac.terraform",
+     "weight": 0.7
+    },
+    {
+     "tag": "security.cloud",
+     "weight": 0.6
+    }
+   ],
+   "blueprint": "Теория 20 % (вес OPS-T-09…12), практика 25 %: OPS-S-03 + OPS-M-03, отладка/ревью 20 %: OPS-S-04, кейсы 35 %: OPS-S-01 (ограничение 152-ФЗ) + OPS-S-02",
+   "sample": [
+    "OPS-S-01 · HA для сервиса с ПДн, RPO 15 мин",
+    "OPS-S-03 · расчёт числа узлов",
+    "OPS-T-09 · error budget при SLO 99,95 %",
+    "MT-06 · расследование OOMKilled"
+   ]
+  }
+ ]
+}

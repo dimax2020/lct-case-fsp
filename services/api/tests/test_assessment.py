@@ -43,6 +43,11 @@ def _admin() -> dict[str, str]:
 
 
 @pytest.fixture(autouse=True)
+def _yaml_engine(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("ASSESSMENT_ENGINE", "yaml")
+
+
+@pytest.fixture(autouse=True)
 def _debug_auth() -> Iterator[None]:
     async def debug_principal(request: Request) -> Principal:
         role = request.headers.get("x-debug-role", "candidate")

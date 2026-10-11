@@ -6,6 +6,7 @@ from uuid import UUID
 from sqlalchemy import and_, func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.assessment.item_bank import micro_tasks as bank_micro_tasks
 from app.assessment.models import MicroAnswer, MicroTask
 from app.assessment.schemas import MicroAnswerIn, MicroAnswerOut, MicroTaskCreate, MicroTaskOut
 from app.assessment.service import ensure_candidate_id
@@ -34,7 +35,12 @@ async def _ensure_builtin(session: AsyncSession) -> None:
     if total:
         return
     now = datetime.now(UTC)
-    for index, (title, body) in enumerate(BUILTIN_MICRO_TASKS):
+    seeded = list(BUILTIN_MICRO_TASKS)
+    for item in bank_micro_tasks():
+        pair = (item["title"], item["body"])
+        if pair not in seeded:
+            seeded.append(pair)
+    for index, (title, body) in enumerate(seeded):
         session.add(
             MicroTask(
                 title=title,

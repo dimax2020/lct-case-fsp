@@ -1,3 +1,4 @@
+from typing import Any
 from uuid import UUID
 
 from pydantic import BaseModel, Field, model_validator
@@ -123,3 +124,4 @@ class CandidateCard(BaseModel):
     current_job: str | None = None
     pdf_available: bool = False
     psych_available: bool = False
+    daily_stories: list[dict[str, Any]] = Field(default_factory=list)

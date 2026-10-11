@@ -1,7 +1,7 @@
 """Pure §6 scoring. Every threshold is read from matching.config or settings."""
 
 import math
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 
 from app.core.enums import GRADE_ORDER, Grade, grade_distance
 from app.core.settings import get_settings
@@ -12,6 +12,7 @@ from app.matching.config import (
     COVERAGE_NONE,
     COVERAGE_PROJECT,
     COVERAGE_RESUME,
+    DAILY_BOOST,
     DEPTH,
     DOMAIN_BLOCKED,
     DOMAIN_LIKED,
@@ -160,6 +161,15 @@ def fresh_score(last_active: datetime | date | None, today: date) -> float:
     if days < 0:
         days = 0
     return math.exp(-days / FRESH_TAU_DAYS)
+
+
+def daily_boost_score(until: datetime | None, today: date) -> float:
+    if until is None:
+        return 0.0
+    end = utc_date(until)
+    if end is None or today >= end:
+        return 0.0
+    return 1.0
 
 
 def fsp_score(candidate: CandidateFeatures, specialization: str | None) -> float:
@@ -490,7 +500,13 @@ def score_breakdown(need: NeedView, candidate: CandidateFeatures, today: date | 
         "fresh": fresh_score(candidate.last_active_at, moment),
         "nice_cov": mean_coverage(nice),
     }
+    boosted = daily_boost_score(candidate.daily_boost_until, moment)
+    features["daily_boost"] = boosted
+    if boosted:
+        features["fresh"] = 1.0
     employer = weighted_sum(features, e_weights_for(need.grades))
+    if boosted:
+        employer = min(1.0, employer + DAILY_BOOST)
     candidate_features = {
         "salary_fit": salary_fit(need.salary_to, candidate.min_salary),
         "format_fit": format_fit(need.formats, candidate.formats),
@@ -510,6 +526,11 @@ def score_breakdown(need: NeedView, candidate: CandidateFeatures, today: date | 
         features["grade_fit"],
         pairs,
     )
+    if boosted:
+        until_day = utc_date(candidate.daily_boost_until)
+        last_day = until_day - timedelta(days=1) if until_day else moment
+        label = f"Ежедневная задача: буст в подборке до {last_day.strftime('%d.%m')}"
+        explanations = [label, *explanations][:EXPLANATION_MAX]
     return ScoreBreakdown(
         s=total,
         e=employer,

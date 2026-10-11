@@ -7,7 +7,7 @@ from uuid import UUID, uuid4
 from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.assessment import piston
+from app.assessment import cat_service, piston
 from app.assessment.bank import TaskSpec, load_tasks, read_task_specs, task_by_id
 from app.assessment.models import Attempt, AttemptAnswer
 from app.assessment.schemas import (
@@ -17,6 +17,7 @@ from app.assessment.schemas import (
     AttemptResult,
     AttemptView,
     DemoFinishIn,
+    EligibilityOut,
     PublicTest,
     RetakeIn,
     RunOut,
@@ -74,7 +75,12 @@ def _pending(total: int) -> RunResult:
 async def run_code(task_id: str, code: str, language: str, hidden: bool) -> RunResult:
     spec = task_by_id(task_id)
     if spec is None:
-        raise AppError("task_not_found", "Задание не найдено", status_code=404)
+        from app.assessment.item_bank import item_by_id
+
+        item = item_by_id(task_id)
+        if item is None:
+            raise AppError("task_not_found", "Задание не найдено", status_code=404)
+        return _pending(0)
     if spec.kind != "code":
         raise AppError("not_code_task", "Для этого задания нет запуска кода", status_code=400)
     normalized = piston.canonical_language(language)
@@ -249,6 +255,19 @@ def _result_from(attempt: Attempt, rank: int | None, size: int | None) -> Attemp
 
 
 async def _view(session: AsyncSession, attempt: Attempt) -> AttemptView:
+    if cat_service.is_cat(attempt):
+        result = None
+        if attempt.finished_at is not None:
+            rank, size = await _rank_of(session, attempt.candidate_id)
+            result = _result_from(attempt, rank, size)
+            state = attempt.cat if isinstance(attempt.cat, dict) else {}
+            result.theta = state.get("theta")
+            result.se = state.get("se")
+            result.decision = state.get("decision")
+            result.measured_grade = state.get("measured_grade")
+            result.percentile = state.get("percentile")
+            result.message = state.get("message")
+        return cat_service.view_from(attempt, result=result)
     specs = _specs_for(attempt.specialization)
     answers = await _answers(session, attempt.id)
     finished = attempt.finished_at is not None
@@ -436,6 +455,9 @@ async def _open_attempt(
 
 async def create_attempt(session: AsyncSession, principal: Principal, body: AttemptCreate) -> AttemptView:
     candidate_id = await _candidate_id(session, principal)
+    if cat_service.engine_enabled():
+        attempt = await cat_service.start(session, candidate_id, body.specialization.value, body.declared_grade.value)
+        return await _view(session, attempt)
     attempt = await _open_attempt(session, candidate_id, body.specialization.value, body.declared_grade.value)
     return await _view(session, attempt)
 
@@ -453,6 +475,11 @@ async def retake(session: AsyncSession, principal: Principal, body: RetakeIn) ->
         declared = neighbor_grade(grade, body.direction)
     except ValueError:
         raise AppError("grade_boundary", "Соседнего грейда нет", status_code=400) from None
+    if cat_service.engine_enabled():
+        attempt = await cat_service.start(
+            session, candidate_id, specialization, declared, grade_change=True
+        )
+        return await _view(session, attempt)
     attempt = await _open_attempt(session, candidate_id, specialization, declared, grade_change=True)
     return await _view(session, attempt)
 
@@ -468,6 +495,13 @@ async def save_answer(session: AsyncSession, principal: Principal, attempt_id: U
     attempt = await _owned_attempt(session, attempt_id, candidate_id)
     _ensure_open(attempt)
     _ensure_deadline(attempt)
+    if cat_service.is_cat(attempt):
+        attempt, done = await cat_service.answer(session, attempt, body)
+        if done:
+            current, _, _ = await _candidate_state(session, candidate_id)
+            await cat_service.close(session, attempt, _apply_result, current_grade=current)
+            attempt = await _owned_attempt(session, attempt_id, candidate_id)
+        return await _view(session, attempt)
     spec = task_by_id(body.task_id)
     if spec is None or spec.specialization != attempt.specialization:
         raise AppError("task_not_found", "Задание не входит в эту попытку", status_code=404)
@@ -517,6 +551,9 @@ async def finish_attempt(session: AsyncSession, principal: Principal, attempt_id
     candidate_id = await _candidate_id(session, principal)
     attempt = await _owned_attempt(session, attempt_id, candidate_id)
     _ensure_open(attempt)
+    if cat_service.is_cat(attempt):
+        current, _, _ = await _candidate_state(session, candidate_id)
+        return await cat_service.close(session, attempt, _apply_result, current_grade=current)
     specs = _specs_for(attempt.specialization)
     answers = await _answers(session, attempt.id)
     score, skill_scores = _graded(specs, answers)
@@ -555,6 +592,13 @@ async def demo_finish_attempt(session: AsyncSession, attempt_id: UUID, body: Dem
         grade = body.grade.value
     ready = body.score >= 75
     return await _apply_result(session, attempt, score=body.score, grade=grade, ready=ready, skill_scores=skill_scores)
+
+
+async def get_eligibility(session: AsyncSession, principal: Principal) -> EligibilityOut:
+    candidate_id = await _candidate_id(session, principal)
+    if not cat_service.engine_enabled():
+        return EligibilityOut(can_start=True, message="Классический тест из YAML-банка.")
+    return await cat_service.eligibility(session, candidate_id)
 
 
 def to_run_out(result: RunResult) -> RunOut:
