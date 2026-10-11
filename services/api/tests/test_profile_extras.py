@@ -320,7 +320,7 @@ def test_bank_helpers_and_public_fields() -> None:
 
 def test_migration_adds_profile_columns_if_missing() -> None:
     text = MIGRATION.read_text(encoding="utf-8")
-    assert 'down_revision = "001_initial"' in text
+    assert 'down_revision = "003_grade_policy"' in text
     assert text.count("ADD COLUMN IF NOT EXISTS") == 3
     assert "consent_processing" in text
     assert "consent_publication" in text

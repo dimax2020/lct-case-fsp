@@ -1,6 +1,7 @@
 from uuid import UUID
 
 from fastapi import APIRouter, Depends
+from fastapi.responses import Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import Principal, require_role
@@ -15,6 +16,7 @@ from app.need.schemas import (
     ShortlistOut,
 )
 from app.need.service import (
+    candidate_pdf,
     create_need,
     enqueue_match,
     get_candidate_card,
@@ -135,3 +137,21 @@ async def get_candidate_card_route(
     session: AsyncSession = Depends(get_session),
 ) -> CandidateCard:
     return await get_candidate_card(session, principal, id, candidate_id)
+
+
+@router.get(
+    "/needs/{id}/candidates/{candidate_id}/profile.pdf",
+    responses={200: {"content": {"application/pdf": {}}}, 403: {"description": "Кандидат закрыл PDF"}},
+)
+async def get_candidate_pdf_route(
+    id: UUID,
+    candidate_id: UUID,
+    principal: Principal = Depends(require_role("employer")),
+    session: AsyncSession = Depends(get_session),
+) -> Response:
+    payload = await candidate_pdf(session, principal, id, candidate_id)
+    return Response(
+        content=payload,
+        media_type="application/pdf",
+        headers={"Content-Disposition": 'attachment; filename="candidate-profile.pdf"'},
+    )

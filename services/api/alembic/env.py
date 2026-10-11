@@ -15,6 +15,7 @@ from app.core.settings import get_settings
 from app.invitation import models as invitation_models  # noqa: F401
 from app.need import models as need_models  # noqa: F401
 from app.profile import models as profile_models  # noqa: F401
+from app.psych import models as psych_models  # noqa: F401
 from app.resume import models as resume_models  # noqa: F401
 
 config = context.config

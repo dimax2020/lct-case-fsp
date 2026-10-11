@@ -3,7 +3,7 @@
 import json
 import logging
 import sys
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from typing import Any
 from uuid import UUID
 
@@ -26,6 +26,7 @@ from app.profile.schemas import (
     CandidateUpdate,
     GradeHistoryItem,
     GradeView,
+    HiddenCompany,
     Me,
     ProjectIn,
     ProjectOut,
@@ -550,24 +551,196 @@ async def grade_view(session: AsyncSession, candidate: Candidate) -> GradeView:
 
 
 async def settings_view(candidate: Candidate) -> CandidateSettings:
+    """Настройки кандидата. Поля приватности читаются через getattr, чтобы тестовые
+    заглушки без новых колонок продолжали работать."""
     return CandidateSettings(
         visible=bool(candidate.visible),
         hidden_company_ids=list(candidate.hidden_company_ids or []),
         consent_processing=bool(candidate.consent_processing),
         consent_publication=bool(candidate.consent_publication),
         soft_skills=list(candidate.soft_skills or []),
+        show_full_name=bool(getattr(candidate, "show_full_name", False)),
+        show_current_job=bool(getattr(candidate, "show_current_job", True)),
+        show_fsp=bool(getattr(candidate, "show_fsp", True)),
+        show_pdf=bool(getattr(candidate, "show_pdf", True)),
+        show_psych=bool(getattr(candidate, "show_psych", False)),
+        consent_processing_at=getattr(candidate, "consent_processing_at", None),
+        consent_publication_at=getattr(candidate, "consent_publication_at", None),
     )
 
 
+async def settings_full(session: AsyncSession, candidate: Candidate) -> CandidateSettings:
+    """Настройки для экрана: плюс названия скрытых компаний и признак связи с ФСП ID."""
+    view = await settings_view(candidate)
+    ids = list(candidate.hidden_company_ids or [])
+    if ids:
+        sql = text("SELECT id, name FROM companies WHERE id = ANY(:ids)")
+        try:
+            async with session.begin_nested():
+                rows = (await session.execute(sql, {"ids": ids})).mappings().all()
+        except Exception:
+            logger.info("company names are unavailable for %s", candidate.id)
+            rows = []
+        names = {row["id"]: row["name"] or "Компания без названия" for row in rows}
+        view.hidden_companies = [HiddenCompany(id=item, name=names.get(item, "Компания удалена")) for item in ids]
+    view.fsp_linked = bool(await _load_achievements(session, candidate.id))
+    return view
+
+
+def _consent_moment(before: bool, after: bool, moment: datetime | None) -> datetime | None:
+    if not after:
+        return None
+    if before and moment is not None:
+        return moment
+    return datetime.now(UTC)
+
+
 async def update_settings(session: AsyncSession, candidate: Candidate, body: CandidateSettings) -> CandidateSettings:
+    if hasattr(candidate, "consent_processing_at"):
+        candidate.consent_processing_at = _consent_moment(
+            bool(candidate.consent_processing), body.consent_processing, candidate.consent_processing_at
+        )
+        candidate.consent_publication_at = _consent_moment(
+            bool(candidate.consent_publication), body.consent_publication, candidate.consent_publication_at
+        )
     candidate.visible = body.visible
-    candidate.hidden_company_ids = list(body.hidden_company_ids)
+    candidate.hidden_company_ids = list(dict.fromkeys(body.hidden_company_ids))
     candidate.consent_processing = body.consent_processing
     candidate.consent_publication = body.consent_publication
     candidate.soft_skills = clean_soft_skills(body.soft_skills)
+    if hasattr(candidate, "show_full_name"):
+        candidate.show_full_name = body.show_full_name
+        candidate.show_current_job = body.show_current_job
+        candidate.show_fsp = body.show_fsp
+        candidate.show_pdf = body.show_pdf
+        candidate.show_psych = body.show_psych
     await _touch(candidate)
     await session.flush()
     return await settings_view(candidate)
+
+
+async def set_psych_sharing(session: AsyncSession, candidate: Candidate, value: bool) -> None:
+    candidate.show_psych = bool(value)
+    await session.flush()
+
+
+async def unlink_fsp(session: AsyncSession, candidate: Candidate) -> CandidateProfile:
+    """Отвязка ФСП ID: удаляет достижения и навыки, полученные из реестра ФСП."""
+    await session.execute(delete(FspAchievement).where(FspAchievement.candidate_id == candidate.id))
+    await replace_skills(session, candidate.id, SkillSource.fsp_id.value, [])
+    await _touch(candidate)
+    await finish_evidence(session, candidate.id)
+    return await profile_view(session, candidate)
+
+
+# ---------------------------------------------------------------- приватность для работодателя
+
+
+def _current_job(experiences: list[Experience]) -> str | None:
+    if not experiences:
+        return None
+    open_items = [item for item in experiences if item.end is None]
+    pool = open_items or experiences
+    latest = max(pool, key=lambda item: item.start or date.min)
+    parts = [part for part in (latest.role, latest.company) if part]
+    if not parts:
+        return None
+    prefix = "" if latest.end is None else "Последнее место: "
+    return prefix + " · ".join(parts)
+
+
+async def privacy_for(session: AsyncSession, candidate_ids: list[UUID]) -> dict[UUID, dict[str, Any]]:
+    """Что разрешено показать работодателю по каждому кандидату."""
+    if not candidate_ids:
+        return {}
+    rows = list(await session.scalars(select(Candidate).where(Candidate.id.in_(candidate_ids))))
+    result: dict[UUID, dict[str, Any]] = {}
+    for row in rows:
+        full = (row.full_name or "").strip()
+        show_job = bool(row.show_current_job)
+        job = None
+        if show_job:
+            job = _current_job(await _load_experiences(session, row.id))
+        result[row.id] = {
+            "visible": bool(row.visible),
+            "hidden_company_ids": set(row.hidden_company_ids or []),
+            "name": full if (row.show_full_name and full) else display_name(full),
+            "show_full_name": bool(row.show_full_name),
+            "show_fsp": bool(row.show_fsp),
+            "show_pdf": bool(row.show_pdf),
+            "show_psych": bool(row.show_psych),
+            "current_job": job,
+        }
+    return result
+
+
+async def employer_company_id(session: AsyncSession, principal: Principal) -> UUID | None:
+    user = await provision_user(session, principal)
+    return await _company_id(session, user.id)
+
+
+async def basic_card(session: AsyncSession, candidate_id: UUID) -> dict[str, Any] | None:
+    """Карточка кандидата из банка, когда он не попал в подборку по потребности."""
+    candidate = await session.get(Candidate, candidate_id)
+    if candidate is None or not candidate.visible:
+        return None
+    skills = await _load_skills(session, candidate.id)
+    achievements = await _load_achievements(session, candidate.id)
+    experiences = await _load_experiences(session, candidate.id)
+    projects = await _load_projects(session, candidate.id)
+    skill_ids: list[str] = []
+    for item in skills:
+        if item.skill_id not in skill_ids:
+            skill_ids.append(item.skill_id)
+    category = " · ".join(
+        part for part in ((candidate.specialization or "").replace("data_ml", "Data/ML").capitalize(),
+                          (candidate.grade or "").capitalize()) if part
+    ) or "Категория не присвоена"
+    badge = None
+    if achievements:
+        best = min(achievements, key=lambda item: (item.place or 99, -(item.year or 0)))
+        place = f"{best.place} место · " if best.place else ""
+        badge = {"discipline": best.discipline, "text": f"{place}{best.event}"}
+    explanations = ["Кандидат из банка: по этой потребности он не попал в подборку, совпадение не рассчитано."]
+    if candidate.grade_score is not None:
+        explanations.append(f"Тест на грейд: {round(float(candidate.grade_score))} из 100")
+    return {
+        "candidate_id": candidate.id,
+        "display_name": display_name(candidate.full_name or ""),
+        "full_name_initials": display_name(candidate.full_name or ""),
+        "category": category,
+        "city": candidate.city,
+        "experience_years": experience_years(experiences) if experiences else None,
+        "match": 0,
+        "test_score": None if candidate.grade_score is None else float(candidate.grade_score),
+        "explanations": explanations,
+        "skills": skill_ids[:12],
+        "projects": [item.task for item in projects][:5],
+        "fsp_badge": badge,
+        "invitation_status": None,
+    }
+
+
+async def employer_profile_pdf(
+    session: AsyncSession, candidate_id: UUID, contacts_revealed: bool
+) -> bytes | None:
+    """Стандартизированный PDF для работодателя с учётом приватности кандидата."""
+    from app.profile.pdf import render_profile_pdf
+
+    candidate = await session.get(Candidate, candidate_id)
+    if candidate is None or not candidate.visible or not candidate.show_pdf:
+        return None
+    profile = await profile_view(session, candidate)
+    if not candidate.show_full_name:
+        profile.full_name = profile.display_name
+    if not candidate.show_fsp:
+        profile.fsp_achievements = []
+    if not candidate.show_current_job:
+        profile.experiences = []
+    if not contacts_revealed:
+        profile.phone = None
+        profile.contact_email = None
+    return render_profile_pdf(profile)
 
 
 def _as_grade(value: object) -> Grade | None:

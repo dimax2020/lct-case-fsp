@@ -9,7 +9,10 @@ export function safeNext(value: unknown): string {
 
 export function afterRole(role: 'candidate' | 'employer', next: string): string {
   if (next.startsWith('/candidate') || next.startsWith('/employer')) return next
-  return role === 'employer' ? '/employer/company' : '/candidate/profile'
+  // Повторный вход: в рабочий кабинет своей роли.
+  if (next === '/cabinet') return role === 'employer' ? '/employer/need' : '/candidate/profile'
+  // Новый кандидат сразу попадает в обязательный путь: опрос по отрасли и специализации, затем тест.
+  return role === 'employer' ? '/employer/company' : '/candidate/onboarding'
 }
 
 function esc(value: string): string {

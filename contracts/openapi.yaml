@@ -179,6 +179,19 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CandidateProfile'
+    delete:
+      tags:
+      - profile
+      summary: Unlink Fsp
+      description: Отвязать ФСП ID. Достижения и навыки из реестра ФСП удаляются из профиля.
+      operationId: unlink_my_fsp_api_v1_candidates_me_fsp_link_delete
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CandidateProfile'
   /api/v1/candidates/me/grade:
     get:
       tags:
@@ -1313,6 +1326,231 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ReseedOut'
+  /api/v1/companies:
+    get:
+      tags:
+      - company
+      summary: Search Companies
+      description: Поиск компании по названию (от 2 символов) — кандидат скрывает от неё профиль.
+      operationId: search_companies_route_api_v1_companies_get
+      parameters:
+      - name: q
+        in: query
+        required: false
+        schema:
+          type: string
+          default: ''
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 10
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CompanyBrief'
+  /api/v1/needs/{id}/candidates/{candidate_id}/profile.pdf:
+    get:
+      tags:
+      - needs
+      summary: Get Candidate Pdf
+      description: Стандартизированный PDF кандидата для работодателя. Учитывает приватность кандидата; контакты — только после принятия приглашения.
+      operationId: get_candidate_pdf_route_api_v1_needs__id__candidates__candidate_id__profile_pdf_get
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: candidate_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: PDF
+          content:
+            application/pdf: {}
+        '403':
+          description: Кандидат закрыл PDF-профиль
+        '404':
+          description: Кандидат не найден или скрыл профиль от компании
+  /api/v1/psych/test:
+    get:
+      tags:
+      - psych
+      summary: Get Psych Test
+      description: Вопросы теста рабочего стиля (три части) без ключа подсчёта.
+      operationId: get_psych_test_api_v1_psych_test_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PsychTest'
+  /api/v1/psych/me:
+    get:
+      tags:
+      - psych
+      summary: Get My Psych
+      description: Черновик прохождения, последний результат (без флагов HR) и право пересдачи.
+      operationId: get_my_psych_api_v1_psych_me_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PsychState'
+  /api/v1/psych/me/share:
+    put:
+      tags:
+      - psych
+      summary: Share My Psych
+      description: Открыть или закрыть результаты теста для работодателей.
+      operationId: share_my_psych_api_v1_psych_me_share_put
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PsychShareIn'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PsychState'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/psych/attempts:
+    post:
+      tags:
+      - psych
+      summary: Start Psych Attempt
+      description: Начать тест или вернуть незавершённое прохождение. Пересдача — не чаще раза в 30 дней.
+      operationId: start_psych_attempt_api_v1_psych_attempts_post
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PsychAttemptOut'
+        '409':
+          description: Пересдача раньше срока (code retake_too_early)
+  /api/v1/psych/attempts/{id}:
+    put:
+      tags:
+      - psych
+      summary: Save Psych Attempt
+      description: Сохранить черновик ответов. Недопустимые значения отбрасываются.
+      operationId: save_psych_attempt_api_v1_psych_attempts__id__put
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PsychAnswers'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PsychAttemptOut'
+        '404':
+          description: Прохождение не найдено
+        '409':
+          description: Тест уже завершён
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/psych/attempts/{id}/finish:
+    post:
+      tags:
+      - psych
+      summary: Finish Psych Attempt
+      description: Завершить тест — сервер считает DISC, четыре шкалы, индексы соответствия и флаги надёжности.
+      operationId: finish_psych_attempt_api_v1_psych_attempts__id__finish_post
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PsychFinishIn'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PsychState'
+        '404':
+          description: Прохождение не найдено
+        '409':
+          description: Тест уже завершён
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/psych/candidates/{candidate_id}:
+    get:
+      tags:
+      - psych
+      summary: Get Candidate Psych
+      description: Результат кандидата для работодателя (с флагами надёжности) — только с согласия кандидата и не старше 12 месяцев.
+      operationId: get_candidate_psych_api_v1_psych_candidates__candidate_id__get
+      parameters:
+      - name: candidate_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PsychEmployerView'
+        '404':
+          description: Кандидат не найден или скрыл профиль от компании
 components:
   schemas:
     AnswerIn:
@@ -1542,6 +1780,20 @@ components:
           - type: string
           - type: 'null'
           title: Phone
+        in_shortlist:
+          type: boolean
+          default: true
+          description: false — карточка открыта из банка, кандидат не в подборке этой потребности
+        current_job:
+          anyOf:
+          - type: string
+          - type: 'null'
+        pdf_available:
+          type: boolean
+          default: false
+        psych_available:
+          type: boolean
+          default: false
       type: object
       required:
       - candidate_id
@@ -1721,10 +1973,79 @@ components:
             format: uuid
           type: array
           title: Hidden Company Ids
+        consent_processing:
+          type: boolean
+          default: false
+        consent_publication:
+          type: boolean
+          default: false
+        soft_skills:
+          type: array
+          items:
+            type: string
+        show_full_name:
+          type: boolean
+          default: false
+          description: Показывать работодателю полное имя (иначе — имя и инициал фамилии)
+        show_current_job:
+          type: boolean
+          default: true
+        show_fsp:
+          type: boolean
+          default: true
+        show_pdf:
+          type: boolean
+          default: true
+        show_psych:
+          type: boolean
+          default: false
+          description: Показывать работодателям результаты теста рабочего стиля
+        consent_processing_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          readOnly: true
+        consent_publication_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          readOnly: true
+        hidden_companies:
+          type: array
+          readOnly: true
+          items:
+            $ref: '#/components/schemas/HiddenCompany'
+        fsp_linked:
+          type: boolean
+          readOnly: true
       type: object
       required:
       - visible
       title: CandidateSettings
+    HiddenCompany:
+      type: object
+      required: [id, name]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+    CompanyBrief:
+      type: object
+      required: [id, name]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        city:
+          anyOf:
+          - type: string
+          - type: 'null'
     CandidateStatus:
       type: string
       enum:
@@ -1889,6 +2210,15 @@ components:
           type: string
           format: uuid
           title: Id
+        website:
+          anyOf:
+          - type: string
+          - type: 'null'
+        logo:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: Логотип как data URL (PNG, JPEG или WebP)
       type: object
       required:
       - name
@@ -1928,6 +2258,18 @@ components:
             $ref: '#/components/schemas/Benefit'
           type: array
           title: Benefits
+        website:
+          anyOf:
+          - type: string
+            maxLength: 300
+          - type: 'null'
+          description: Адрес сайта; без схемы дополняется https://
+        logo:
+          anyOf:
+          - type: string
+            maxLength: 400000
+          - type: 'null'
+          description: data:image/png|jpeg|webp;base64,...
       type: object
       required:
       - name
@@ -3446,6 +3788,254 @@ components:
       - hybrid
       - office
       title: WorkFormat
+    PsychItem:
+      type: object
+      required: [key, text]
+      properties:
+        key:
+          type: string
+          enum: [а, б, в, г]
+        text:
+          type: string
+    PsychTest:
+      type: object
+      description: Публичная часть теста рабочего стиля. Ключ подсчёта не передаётся.
+      required: [version, title, subtitle, instruction, parts, blocks, statements, likert, cases]
+      properties:
+        version: {type: string}
+        title: {type: string}
+        subtitle: {type: string}
+        instruction: {type: string}
+        parts:
+          type: array
+          items:
+            type: object
+            properties:
+              id: {type: integer}
+              title: {type: string}
+              meta: {type: string}
+              hint: {type: string}
+        blocks:
+          type: array
+          description: 12 блоков по 4 утверждения — отметить одно «+» и одно «−»
+          items:
+            type: object
+            properties:
+              id: {type: integer}
+              items:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PsychItem'
+        statements:
+          type: array
+          description: 30 утверждений, шкала 1–5
+          items:
+            type: object
+            properties:
+              id: {type: integer}
+              text: {type: string}
+        likert:
+          type: array
+          items:
+            type: object
+            properties:
+              value: {type: integer}
+              label: {type: string}
+        cases:
+          type: array
+          description: 5 рабочих ситуаций, один вариант из четырёх
+          items:
+            type: object
+            properties:
+              id: {type: integer}
+              text: {type: string}
+              options:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PsychItem'
+    PsychAnswers:
+      type: object
+      properties:
+        disc:
+          type: object
+          description: 'Номер блока → {most, least}: буквы а–г, разные'
+          additionalProperties:
+            type: object
+            properties:
+              most: {type: string}
+              least: {type: string}
+        statements:
+          type: object
+          description: Номер утверждения → ответ 1–5
+          additionalProperties:
+            type: integer
+            minimum: 1
+            maximum: 5
+        cases:
+          type: object
+          description: Номер ситуации → буква а–г
+          additionalProperties:
+            type: string
+    PsychProgress:
+      type: object
+      properties:
+        blocks_done: {type: integer}
+        blocks_total: {type: integer}
+        statements_done: {type: integer}
+        statements_total: {type: integer}
+        cases_done: {type: integer}
+        cases_total: {type: integer}
+    PsychAttemptOut:
+      type: object
+      required: [id, version, answers, progress, started_at]
+      properties:
+        id: {type: string, format: uuid}
+        version: {type: string}
+        answers:
+          $ref: '#/components/schemas/PsychAnswers'
+        progress:
+          $ref: '#/components/schemas/PsychProgress'
+        started_at: {type: string, format: date-time}
+        finished_at:
+          anyOf:
+          - {type: string, format: date-time}
+          - {type: 'null'}
+    PsychFinishIn:
+      type: object
+      properties:
+        answers:
+          anyOf:
+          - $ref: '#/components/schemas/PsychAnswers'
+          - {type: 'null'}
+        share_with_employers:
+          anyOf:
+          - {type: boolean}
+          - {type: 'null'}
+    PsychShareIn:
+      type: object
+      required: [share_with_employers]
+      properties:
+        share_with_employers: {type: boolean}
+    PsychResult:
+      type: object
+      description: >-
+        Результат подсчёта. disc — проценты (сумма+12)/24; scales — Л/К/С/Т в процентах от min–max, уровни
+        low ≤33, mid ≤66, high; fits — индекс соответствия пяти профилям позиций. Поля social_desirability,
+        flags, skipped, duration_seconds и сырые баллы шкал есть только в ответе для работодателя.
+      properties:
+        version: {type: string}
+        disc:
+          type: array
+          items:
+            type: object
+            properties:
+              scale: {type: string, enum: [D, I, S, C]}
+              sum: {type: integer}
+              pct: {type: integer}
+              color: {type: string}
+              color_name: {type: string}
+              title: {type: string}
+              text: {type: string}
+        disc_profile:
+          type: object
+          properties:
+            balanced: {type: boolean}
+            primary: {type: array, items: {type: string}}
+            secondary: {type: array, items: {type: string}}
+            label: {type: string}
+        scales:
+          type: array
+          items:
+            type: object
+            properties:
+              scale: {type: string, enum: [leadership, teamwork, stress, diligence]}
+              title: {type: string}
+              pct: {type: integer}
+              level: {type: string, enum: [low, mid, high]}
+              level_title: {type: string}
+              level_text: {type: string}
+              statements: {type: number}
+              situations: {type: number}
+              raw: {type: number}
+              min: {type: integer}
+              max: {type: integer}
+        fits:
+          type: array
+          items:
+            type: object
+            properties:
+              id: {type: string}
+              title: {type: string}
+              disc: {type: string}
+              weights: {type: object, additionalProperties: {type: integer}}
+              index: {type: integer}
+              level: {type: string}
+              level_title: {type: string}
+        social_desirability:
+          type: object
+          properties:
+            sum: {type: number}
+            pct: {type: integer}
+            flag: {type: boolean}
+        flags:
+          type: array
+          items:
+            type: object
+            properties:
+              id: {type: string, enum: [social_desirability, straight_line, too_fast, too_slow, skips]}
+              text: {type: string}
+        skipped:
+          type: object
+          additionalProperties: {type: integer}
+        duration_seconds:
+          anyOf:
+          - {type: integer}
+          - {type: 'null'}
+        reliable: {type: boolean}
+    PsychState:
+      type: object
+      properties:
+        attempt:
+          anyOf:
+          - $ref: '#/components/schemas/PsychAttemptOut'
+          - {type: 'null'}
+        result:
+          anyOf:
+          - $ref: '#/components/schemas/PsychResult'
+          - {type: 'null'}
+        finished_at:
+          anyOf:
+          - {type: string, format: date-time}
+          - {type: 'null'}
+        can_start: {type: boolean}
+        next_attempt_at:
+          anyOf:
+          - {type: string, format: date-time}
+          - {type: 'null'}
+        share_with_employers: {type: boolean}
+        limitations:
+          type: array
+          items: {type: string}
+    PsychEmployerView:
+      type: object
+      required: [available]
+      properties:
+        available: {type: boolean}
+        reason:
+          anyOf:
+          - {type: string}
+          - {type: 'null'}
+        finished_at:
+          anyOf:
+          - {type: string, format: date-time}
+          - {type: 'null'}
+        result:
+          anyOf:
+          - $ref: '#/components/schemas/PsychResult'
+          - {type: 'null'}
+        limitations:
+          type: array
+          items: {type: string}
   securitySchemes:
     bearerAuth:
       type: http

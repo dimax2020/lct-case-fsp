@@ -64,12 +64,27 @@ class CandidateUpdate(BaseModel):
     soft_skills: list[str] | None = None
 
 
+class HiddenCompany(BaseModel):
+    id: UUID
+    name: str
+
+
 class CandidateSettings(BaseModel):
     visible: bool
     hidden_company_ids: list[UUID] = Field(default_factory=list)
     consent_processing: bool = False
     consent_publication: bool = False
     soft_skills: list[str] = Field(default_factory=list)
+    show_full_name: bool = False
+    show_current_job: bool = True
+    show_fsp: bool = True
+    show_pdf: bool = True
+    show_psych: bool = False
+    # Только для чтения: время, когда согласие было дано, и названия скрытых компаний.
+    consent_processing_at: datetime | None = None
+    consent_publication_at: datetime | None = None
+    hidden_companies: list[HiddenCompany] = Field(default_factory=list)
+    fsp_linked: bool = False
 
 
 class CandidateProfile(BaseModel):

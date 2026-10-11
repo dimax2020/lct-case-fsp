@@ -16,3 +16,5 @@ fi
 
 cd "$root/apps/web"
 npx eslint .
+npx vue-tsc --noEmit
+npm run build

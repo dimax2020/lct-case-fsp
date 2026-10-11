@@ -120,3 +120,25 @@ async def apply_confirmed_resume(
 
 async def finish_evidence(session: AsyncSession, candidate_id: UUID) -> None:
     await _api().finish_evidence(session, candidate_id)
+
+
+async def privacy_for(session: AsyncSession, candidate_ids: list[UUID]) -> dict[UUID, dict[str, Any]]:
+    """Что кандидат разрешил показывать работодателю: имя, работа, ФСП, PDF, психотест, скрытые компании."""
+    return await _api().privacy_for(session, candidate_ids)
+
+
+async def employer_company_id(session: AsyncSession, principal: Principal) -> UUID | None:
+    return await _api().employer_company_id(session, principal)
+
+
+async def basic_card(session: AsyncSession, candidate_id: UUID) -> dict[str, Any] | None:
+    """Карточка кандидата из банка, если он не попал в подборку потребности."""
+    return await _api().basic_card(session, candidate_id)
+
+
+async def employer_profile_pdf(session: AsyncSession, candidate_id: UUID, contacts_revealed: bool) -> bytes | None:
+    return await _api().employer_profile_pdf(session, candidate_id, contacts_revealed)
+
+
+async def set_psych_sharing(session: AsyncSession, candidate: Any, value: bool) -> None:
+    await _api().set_psych_sharing(session, candidate, value)

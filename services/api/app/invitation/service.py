@@ -261,6 +261,16 @@ async def _need(session: AsyncSession, need_id: UUID) -> _Need | None:
     return _Need(id=_uuid(row["id"]), company_id=_uuid(row["company_id"]), title=str(row["title"]))
 
 
+async def _hidden_from(session: AsyncSession, candidate_id: UUID, company_id: UUID) -> bool:
+    row = (
+        await session.execute(
+            text("SELECT (NOT visible) OR (:company = ANY(hidden_company_ids)) FROM candidates WHERE id = :id"),
+            {"id": candidate_id, "company": company_id},
+        )
+    ).first()
+    return bool(row[0]) if row is not None else False
+
+
 async def _candidate(session: AsyncSession, candidate_id: UUID) -> _Candidate | None:
     row = (
         (
@@ -445,6 +455,9 @@ async def create_invitation(session: AsyncSession, principal: Principal, body: I
     if need is None or profile is None or profile.owner_user_id != user.id:
         raise AppError("not_found", "Потребность не найдена", status_code=404)
     if await _candidate(session, body.candidate_id) is None:
+        raise AppError("not_found", "Кандидат не найден", status_code=404)
+    if await _hidden_from(session, body.candidate_id, need.company_id):
+        # Кандидат скрыл профиль от этой компании в настройках приватности.
         raise AppError("not_found", "Кандидат не найден", status_code=404)
     existing = await session.scalar(
         select(Invitation.id).where(

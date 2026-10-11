@@ -89,10 +89,10 @@ const reasonName = (id?: string | null) => screen.data.value?.reasons.find(r => 
 </script>
 
 <template>
-  <div style="background: var(--bg); color: var(--text); font-family: var(--font-sans); min-height: 100vh;">
+  <div class="fsp-shell">
     <FspHeader product="Карьера" :user="cabinetUser" :links="candidateLinks" />
-    <main style="max-width: 1240px; margin: 0 auto; padding: 40px 32px 64px;">
-      <h1 class="fsp-display" style="font-size: 40px; line-height: 44px; margin-bottom: 8px;">Приглашения</h1>
+    <main class="fsp-page">
+      <h1 class="fsp-display fsp-title">Приглашения</h1>
       <p style="margin: 0 0 24px; font-size: 16px; color: var(--text-muted);">Контакты компании открываются только после принятия.</p>
       <ScreenState :phase="screen.phase.value" :error="screen.error.value" @retry="screen.load">
         <FspTabs v-model="tab" :items="tabs" />
@@ -103,7 +103,7 @@ const reasonName = (id?: string | null) => screen.data.value?.reasons.find(r => 
               <FspCompanyLogo :name="i.company_name || 'Компания'" :size="48" />
               <span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; align-items: flex-start;">
                 <span style="display: flex; justify-content: space-between; gap: 8px; width: 100%;"><b>{{ i.title }}</b><span style="font-size: 12px; color: var(--text-muted);">{{ whenLabel(i.created_at) }}</span></span>
-                <span style="font-size: 14px; color: var(--text-muted);">{{ i.company_name }}</span>
+                <span class="u-note-sm">{{ i.company_name }}</span>
                 <span style="font-weight: 700;">{{ salaryRange(i.salary_from, i.salary_to) }}</span>
                 <FspStatusBadge :status="inviteTone(i.status)">{{ i.status === 'sent' ? 'Новое' : inviteLabel(i.status) }}</FspStatusBadge>
               </span>
@@ -115,14 +115,14 @@ const reasonName = (id?: string | null) => screen.data.value?.reasons.find(r => 
               <div style="font-size: 15px; color: var(--text-muted);">{{ current.company_name }} · {{ current.need_title }}</div>
             </div>
             <FspPlate>
-              <div style="font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--on-plate-muted);">Зарплата</div>
+              <div class="fsp-eyebrow fsp-eyebrow--plate">Зарплата</div>
               <div style="font-size: 30px; line-height: 36px; font-weight: 700; margin-top: 6px;">{{ salaryRange(current.salary_from, current.salary_to) }}</div>
             </FspPlate>
             <p style="margin: 0; font-size: 16px; line-height: 24px;">{{ current.message || 'Без текста предложения' }}</p>
             <section style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 16px; padding: 20px 0; box-shadow: inset 0 1px 0 var(--line), inset 0 -1px 0 var(--line);">
-              <div><div style="font-size: 13px; color: var(--text-muted);">Ответить до</div><div style="font-weight: 600; margin-top: 4px;">{{ shortDate(current.deadline) }}</div></div>
-              <div><div style="font-size: 13px; color: var(--text-muted);">Связь</div><div style="font-weight: 600; margin-top: 4px;">{{ current.status === 'accepted' ? (current.recruiter_contact || 'Контакт не указан') : 'Откроется после принятия' }}</div></div>
-              <div v-if="current.status === 'declined'"><div style="font-size: 13px; color: var(--text-muted);">Причина</div><div style="font-weight: 600; margin-top: 4px;">{{ reasonName(current.decline_reason) }}</div></div>
+              <div><div class="u-small">Ответить до</div><div class="u-strong u-mt-4">{{ shortDate(current.deadline) }}</div></div>
+              <div><div class="u-small">Связь</div><div class="u-strong u-mt-4">{{ current.status === 'accepted' ? (current.recruiter_contact || 'Контакт не указан') : 'Откроется после принятия' }}</div></div>
+              <div v-if="current.status === 'declined'"><div class="u-small">Причина</div><div class="u-strong u-mt-4">{{ reasonName(current.decline_reason) }}</div></div>
             </section>
             <div v-if="current.status === 'sent' || current.status === 'viewed'">
               <div v-if="!declining" style="display: flex; flex-wrap: wrap; gap: 12px;">
@@ -130,10 +130,10 @@ const reasonName = (id?: string | null) => screen.data.value?.reasons.find(r => 
                 <FspButton variant="decline" icon="x" @click="declining = true">Отклонить</FspButton>
               </div>
               <div v-else style="display: flex; flex-direction: column; gap: 12px;">
-                <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                <div class="u-row-wrap">
                   <FspChip v-for="r in screen.data.value?.reasons ?? []" :key="r.id" :selected="reason === r.id" locked @click="reason = r.id as Reason">{{ r.name }}</FspChip>
                 </div>
-                <div style="display: flex; gap: 8px;">
+                <div class="u-row">
                   <FspButton variant="decline" @click="decline">Отправить отказ</FspButton>
                   <FspButton variant="ghost" @click="declining = false; reason = ''">Отмена</FspButton>
                 </div>

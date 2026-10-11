@@ -139,6 +139,79 @@ async def _apply(
     from app.vacancy.seed_extra import seed_demo_vacancies
 
     await seed_demo_vacancies(session)
+    await _seed_psych(session, candidates)
+
+
+_DELETE_PSYCH = text("DELETE FROM psych_attempts WHERE candidate_id = ANY(:ids)").bindparams(
+    bindparam("ids", type_=_UUIDS)
+)
+_PSYCH = text(
+    """
+    INSERT INTO psych_attempts (id, candidate_id, version, answers, result, started_at, updated_at, finished_at)
+    VALUES (:id, :candidate_id, :version, :answers, :result, :started_at, :finished_at, :finished_at)
+    """
+).bindparams(bindparam("answers", type_=JSONB), bindparam("result", type_=JSONB))
+_SHARE_PSYCH = text("UPDATE candidates SET show_psych = true WHERE id = ANY(:ids)").bindparams(
+    bindparam("ids", type_=_UUIDS)
+)
+
+
+def psych_demo_answers(seed: str) -> dict[str, Any]:
+    """Детерминированные ответы для демо: у каждого кандидата свой выраженный стиль DISC."""
+    import random
+
+    from app.psych import bank
+
+    rnd = random.Random(seed)
+    style = rnd.choice(bank.DISC_SCALES)
+    disc: dict[str, dict[str, str]] = {}
+    for number, block in enumerate(bank.DISC_BLOCKS, start=1):
+        letters = list(bank.LETTERS)
+        styled = next(bank.LETTERS[i] for i, (_, scale) in enumerate(block) if scale == style)
+        most = styled if rnd.random() < 0.7 else rnd.choice(letters)
+        least = rnd.choice([letter for letter in letters if letter != most])
+        disc[str(number)] = {"most": most, "least": least}
+    statements = {str(n): rnd.choice([2, 3, 3, 4, 4, 4, 5]) for n in range(1, len(bank.STATEMENTS) + 1)}
+    cases = {str(n): rnd.choice(["б", "б", "в", "г", "а"]) for n in range(1, len(bank.CASES) + 1)}
+    return {"disc": disc, "statements": statements, "cases": cases}
+
+
+async def _seed_psych(session: AsyncSession, candidates: list[dict[str, Any]]) -> None:
+    """Тест рабочего стиля у двух третей демо-кандидатов, чтобы работодатель видел блок в карточке."""
+    from datetime import UTC, timedelta
+
+    from app.psych import bank
+    from app.psych.scoring import score
+
+    exists = (await session.execute(text("SELECT to_regclass('psych_attempts') IS NOT NULL"))).scalar()
+    if not exists:
+        # Схема без миграции 005 (например, в старых тестовых базах) — тест рабочего стиля не сидим.
+        return
+    ids = _uuids([row["id"] for row in candidates])
+    await session.execute(_DELETE_PSYCH, {"ids": ids})
+    # Демо-кандидат (candidate@demo.fsp) проходит тест вживую на показе, поэтому ему результат не заводим.
+    chosen = [
+        row
+        for index, row in enumerate(candidates)
+        if index % 3 != 2 and not str((row.get("user") or {}).get("email") or "").endswith("@demo.fsp")
+    ]
+    finished = datetime.now(UTC) - timedelta(days=12)
+    rows = []
+    for row in chosen:
+        answers = psych_demo_answers(str(row["id"]))
+        rows.append(
+            {
+                "id": uuid.uuid5(uuid.NAMESPACE_URL, f"psych:{row['id']}"),
+                "candidate_id": uuid.UUID(str(row["id"])),
+                "version": bank.VERSION,
+                "answers": answers,
+                "result": score(answers, duration_seconds=17 * 60),
+                "started_at": finished - timedelta(minutes=17),
+                "finished_at": finished,
+            }
+        )
+    await _run(session, _PSYCH, rows)
+    await session.execute(_SHARE_PSYCH, {"ids": _uuids([row["id"] for row in chosen])})
 
 
 async def _after_load(candidate_ids: list[str], need_ids: list[str]) -> None:

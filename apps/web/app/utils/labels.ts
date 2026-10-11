@@ -148,8 +148,9 @@ export function rememberedAttempt() {
 
 export const candidateLinks = [
   { label: 'Профиль', href: '/candidate/profile' },
+  { label: 'Тесты и грейд', href: '/candidate/grade' },
   { label: 'Приглашения', href: '/candidate/invites' },
-  { label: 'Грейд и тесты', href: '/candidate/grade' },
+  { label: 'Переписка', href: '/candidate/chat' },
   { label: 'Вакансии', href: '/candidate/vacancy' },
   { label: 'Тестовые задания', href: '/candidate/process' },
   { label: 'Настройки', href: '/candidate/settings' },
@@ -159,7 +160,19 @@ export const employerLinks = [
   { label: 'Подборка', href: '/employer/need' },
   { label: 'Банк кандидатов', href: '/employer/pool' },
   { label: 'Приглашения', href: '/employer/invites' },
+  { label: 'Переписка', href: '/employer/chat' },
   { label: 'Вакансии', href: '/employer/vacancies' },
   { label: 'Тестовые задания', href: '/employer/process' },
   { label: 'Компания', href: '/employer/company' },
 ]
+
+export function domainLabel(id: string, domains: { id: string; name: string }[] = []) {
+  return domains.find(d => d.id === id)?.name ?? id
+}
+
+export function longDate(iso?: string | null) {
+  if (!iso) return '—'
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return iso
+  return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })
+}

@@ -77,65 +77,71 @@ include_external_packages = false
 [[tool.importlinter.contracts]]
 name = "Profile internals stay inside profile"
 type = "forbidden"
-source_modules = ["app.taxonomy", "app.resume", "app.company", "app.need", "app.assessment", "app.matching", "app.hints", "app.invitation", "app.chat", "app.llm", "app.embeddings", "app.demo"]
+source_modules = ["app.taxonomy", "app.resume", "app.company", "app.need", "app.assessment", "app.matching", "app.hints", "app.invitation", "app.chat", "app.llm", "app.embeddings", "app.demo", "app.psych"]
 forbidden_modules = ["app.profile.models", "app.profile.router", "app.profile.schemas"]
 
 [[tool.importlinter.contracts]]
 name = "Resume internals stay inside resume"
 type = "forbidden"
-source_modules = ["app.taxonomy", "app.profile", "app.company", "app.need", "app.assessment", "app.matching", "app.hints", "app.invitation", "app.chat", "app.llm", "app.embeddings", "app.demo"]
+source_modules = ["app.taxonomy", "app.profile", "app.company", "app.need", "app.assessment", "app.matching", "app.hints", "app.invitation", "app.chat", "app.llm", "app.embeddings", "app.demo", "app.psych"]
 forbidden_modules = ["app.resume.models", "app.resume.router", "app.resume.schemas"]
 
 [[tool.importlinter.contracts]]
 name = "Company internals stay inside company"
 type = "forbidden"
-source_modules = ["app.taxonomy", "app.profile", "app.resume", "app.need", "app.assessment", "app.matching", "app.hints", "app.invitation", "app.chat", "app.llm", "app.embeddings", "app.demo"]
+source_modules = ["app.taxonomy", "app.profile", "app.resume", "app.need", "app.assessment", "app.matching", "app.hints", "app.invitation", "app.chat", "app.llm", "app.embeddings", "app.demo", "app.psych"]
 forbidden_modules = ["app.company.models", "app.company.router", "app.company.schemas"]
 
 [[tool.importlinter.contracts]]
 name = "Need internals stay inside need"
 type = "forbidden"
-source_modules = ["app.taxonomy", "app.profile", "app.resume", "app.company", "app.assessment", "app.matching", "app.hints", "app.invitation", "app.chat", "app.llm", "app.embeddings", "app.demo"]
+source_modules = ["app.taxonomy", "app.profile", "app.resume", "app.company", "app.assessment", "app.matching", "app.hints", "app.invitation", "app.chat", "app.llm", "app.embeddings", "app.demo", "app.psych"]
 forbidden_modules = ["app.need.models", "app.need.router", "app.need.schemas"]
 
 [[tool.importlinter.contracts]]
 name = "Assessment internals stay inside assessment"
 type = "forbidden"
-source_modules = ["app.taxonomy", "app.profile", "app.resume", "app.company", "app.need", "app.matching", "app.hints", "app.invitation", "app.chat", "app.llm", "app.embeddings", "app.demo"]
+source_modules = ["app.taxonomy", "app.profile", "app.resume", "app.company", "app.need", "app.matching", "app.hints", "app.invitation", "app.chat", "app.llm", "app.embeddings", "app.demo", "app.psych"]
 forbidden_modules = ["app.assessment.models", "app.assessment.router", "app.assessment.schemas"]
 
 [[tool.importlinter.contracts]]
 name = "Matching config stays inside matching"
 type = "forbidden"
-source_modules = ["app.taxonomy", "app.profile", "app.resume", "app.company", "app.need", "app.assessment", "app.hints", "app.invitation", "app.chat", "app.llm", "app.embeddings", "app.demo"]
+source_modules = ["app.taxonomy", "app.profile", "app.resume", "app.company", "app.need", "app.assessment", "app.hints", "app.invitation", "app.chat", "app.llm", "app.embeddings", "app.demo", "app.psych"]
 forbidden_modules = ["app.matching.config"]
 
 [[tool.importlinter.contracts]]
 name = "Hints internals stay inside hints"
 type = "forbidden"
-source_modules = ["app.taxonomy", "app.profile", "app.resume", "app.company", "app.need", "app.assessment", "app.matching", "app.invitation", "app.chat", "app.llm", "app.embeddings", "app.demo"]
+source_modules = ["app.taxonomy", "app.profile", "app.resume", "app.company", "app.need", "app.assessment", "app.matching", "app.invitation", "app.chat", "app.llm", "app.embeddings", "app.demo", "app.psych"]
 forbidden_modules = ["app.hints.router", "app.hints.schemas"]
 
 [[tool.importlinter.contracts]]
 name = "Invitation internals stay inside invitation"
 type = "forbidden"
-source_modules = ["app.taxonomy", "app.profile", "app.resume", "app.company", "app.need", "app.assessment", "app.matching", "app.hints", "app.chat", "app.llm", "app.embeddings", "app.demo"]
+source_modules = ["app.taxonomy", "app.profile", "app.resume", "app.company", "app.need", "app.assessment", "app.matching", "app.hints", "app.chat", "app.llm", "app.embeddings", "app.demo", "app.psych"]
 forbidden_modules = ["app.invitation.models", "app.invitation.router", "app.invitation.schemas"]
 
 [[tool.importlinter.contracts]]
 name = "Chat internals stay inside chat"
 type = "forbidden"
-source_modules = ["app.taxonomy", "app.profile", "app.resume", "app.company", "app.need", "app.assessment", "app.matching", "app.hints", "app.invitation", "app.llm", "app.embeddings", "app.demo"]
+source_modules = ["app.taxonomy", "app.profile", "app.resume", "app.company", "app.need", "app.assessment", "app.matching", "app.hints", "app.invitation", "app.llm", "app.embeddings", "app.demo", "app.psych"]
 forbidden_modules = ["app.chat.models", "app.chat.router", "app.chat.schemas"]
 
 [[tool.importlinter.contracts]]
 name = "Taxonomy internals stay inside taxonomy"
 type = "forbidden"
-source_modules = ["app.profile", "app.resume", "app.company", "app.need", "app.assessment", "app.matching", "app.hints", "app.invitation", "app.chat", "app.llm", "app.embeddings", "app.demo"]
+source_modules = ["app.profile", "app.resume", "app.company", "app.need", "app.assessment", "app.matching", "app.hints", "app.invitation", "app.chat", "app.llm", "app.embeddings", "app.demo", "app.psych"]
 forbidden_modules = ["app.taxonomy.router", "app.taxonomy.schemas"]
 
 [[tool.importlinter.contracts]]
 name = "Demo internals stay inside demo"
 type = "forbidden"
-source_modules = ["app.taxonomy", "app.profile", "app.resume", "app.company", "app.need", "app.assessment", "app.matching", "app.hints", "app.invitation", "app.chat", "app.llm", "app.embeddings"]
+source_modules = ["app.taxonomy", "app.profile", "app.resume", "app.company", "app.need", "app.assessment", "app.matching", "app.hints", "app.invitation", "app.chat", "app.llm", "app.embeddings", "app.psych"]
 forbidden_modules = ["app.demo.router", "app.demo.schemas", "app.demo.seed"]
+
+[[tool.importlinter.contracts]]
+name = "Psych internals stay inside psych"
+type = "forbidden"
+source_modules = ["app.taxonomy", "app.profile", "app.resume", "app.company", "app.need", "app.assessment", "app.matching", "app.hints", "app.invitation", "app.chat", "app.llm", "app.embeddings", "app.demo"]
+forbidden_modules = ["app.psych.models", "app.psych.router", "app.psych.schemas", "app.psych.service"]

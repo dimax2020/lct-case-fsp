@@ -2,12 +2,14 @@
 
 import logging
 from dataclasses import dataclass
+from typing import Any
 from uuid import UUID, uuid4
 
 from sqlalchemy import delete, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 import app.matching.service as matching
+import app.profile.service as profile_api
 from app.core.auth import Principal
 from app.core.db import SessionLocal
 from app.core.enums import Grade, RequirementKind, Specialization, WorkFormat, grade_distance
@@ -377,11 +379,52 @@ async def execute_match(need_id: str, job_id: str) -> None:
 
 
 async def get_shortlist(session: AsyncSession, principal: Principal, need_id: UUID, query: ShortlistQuery) -> ShortlistOut:
-    await require_need(session, principal, need_id)
+    need = await require_need(session, principal, need_id)
     payload = await matching.present_shortlist(need_id, query)
     if payload is None:
         raise AppError("not_found", "Потребность не найдена", status_code=404)
+    payload = await apply_privacy(session, need.company_id, payload)
     return ShortlistOut.model_validate(payload)
+
+
+def _privacy_rules(row: dict[str, Any], rules: dict[str, Any] | None, company_id: UUID) -> dict[str, Any] | None:
+    """Применяет настройки приватности кандидата к строке выдачи. None — строку показывать нельзя."""
+    if rules is None:
+        return row
+    hidden = rules.get("hidden_company_ids") or set()
+    if not rules.get("visible", True) or company_id in hidden:
+        return None
+    row["display_name"] = rules.get("name") or row.get("display_name")
+    if not rules.get("show_fsp", True):
+        row["fsp_badge"] = None
+    return row
+
+
+async def apply_privacy(session: AsyncSession, company_id: UUID, payload: dict[str, Any]) -> dict[str, Any]:
+    items: list[dict[str, Any]] = list(payload.get("items") or [])
+    ids: list[UUID] = []
+    for item in items:
+        try:
+            ids.append(UUID(str(item.get("candidate_id"))))
+        except (TypeError, ValueError):
+            continue
+    privacy = await profile_api.privacy_for(session, ids)
+    kept: list[dict[str, Any]] = []
+    for item in items:
+        try:
+            key = UUID(str(item.get("candidate_id")))
+        except (TypeError, ValueError):
+            continue
+        shown = _privacy_rules(item, privacy.get(key), company_id)
+        if shown is not None:
+            kept.append(shown)
+    removed = len(items) - len(kept)
+    first = int(items[0].get("position") or 1) if items else 1
+    for position, item in enumerate(kept, start=first):
+        item["position"] = position
+    payload["items"] = kept
+    payload["total"] = max(0, int(payload.get("total") or 0) - removed)
+    return payload
 
 
 async def resolve_contacts(
@@ -396,18 +439,57 @@ async def resolve_contacts(
     return bool(card.get("contacts_revealed")), card.get("email"), card.get("phone")
 
 
+async def _invitation_status(session: AsyncSession, need_id: UUID, candidate_id: UUID) -> str | None:
+    row = (
+        await session.execute(
+            text("SELECT status FROM invitations WHERE need_id = :need_id AND candidate_id = :candidate_id"),
+            {"need_id": need_id, "candidate_id": candidate_id},
+        )
+    ).first()
+    return str(row[0]) if row is not None else None
+
+
 async def get_candidate_card(
     session: AsyncSession,
     principal: Principal,
     need_id: UUID,
     candidate_id: UUID,
 ) -> CandidateCard:
-    await require_need(session, principal, need_id)
-    card = await matching.candidate_card(need_id, candidate_id)
-    if card is None:
+    need = await require_need(session, principal, need_id)
+    privacy = (await profile_api.privacy_for(session, [candidate_id])).get(candidate_id)
+    if privacy is not None and (not privacy["visible"] or need.company_id in privacy["hidden_company_ids"]):
         raise AppError("not_found", "Кандидат не найден", status_code=404)
+    card = await matching.candidate_card(need_id, candidate_id)
+    in_shortlist = card is not None
+    if card is None:
+        # Кандидат найден через банк, но в подборку этой потребности не попал.
+        card = await profile_api.basic_card(session, candidate_id)
+        if card is None:
+            raise AppError("not_found", "Кандидат не найден", status_code=404)
+        card["invitation_status"] = await _invitation_status(session, need_id, candidate_id)
     revealed, email, phone = await resolve_contacts(session, need_id, candidate_id)
     card["contacts_revealed"] = revealed
     card["email"] = email if revealed else None
     card["phone"] = phone if revealed else None
+    card["in_shortlist"] = in_shortlist
+    if privacy is not None:
+        card["display_name"] = privacy["name"] or card.get("display_name")
+        if not privacy["show_fsp"]:
+            card["fsp_badge"] = None
+        card["current_job"] = privacy["current_job"]
+        card["pdf_available"] = bool(privacy["show_pdf"])
+        card["psych_available"] = bool(privacy["show_psych"])
     return CandidateCard.model_validate(card)
+
+
+async def candidate_pdf(session: AsyncSession, principal: Principal, need_id: UUID, candidate_id: UUID) -> bytes:
+    """PDF-профиль кандидата для работодателя: контакты — только после принятия приглашения."""
+    need = await require_need(session, principal, need_id)
+    privacy = (await profile_api.privacy_for(session, [candidate_id])).get(candidate_id)
+    if privacy is None or not privacy["visible"] or need.company_id in privacy["hidden_company_ids"]:
+        raise AppError("not_found", "Кандидат не найден", status_code=404)
+    revealed, _, _ = await resolve_contacts(session, need_id, candidate_id)
+    payload = await profile_api.employer_profile_pdf(session, candidate_id, revealed)
+    if payload is None:
+        raise AppError("forbidden", "Кандидат не открыл PDF-профиль работодателям", status_code=403)
+    return payload

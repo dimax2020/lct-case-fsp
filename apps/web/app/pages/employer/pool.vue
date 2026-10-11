@@ -189,12 +189,12 @@ const discs = [
 </script>
 
 <template>
-  <div style="background: var(--bg); color: var(--text); font-family: var(--font-sans); min-height: 100vh;">
+  <div class="fsp-shell">
     <FspHeader product="Для компаний" :user="companyName" :links="employerLinks" />
-    <main style="max-width: 1240px; margin: 0 auto; padding: 40px 32px 64px;">
+    <main class="fsp-page">
       <div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 16px; align-items: flex-end; margin-bottom: 24px;">
         <div>
-          <div style="font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 8px;">Подборка</div>
+          <div class="fsp-eyebrow u-mb-8">Подборка</div>
           <h1 class="fsp-display" style="font-size: 36px; line-height: 40px;">{{ needTitle }}</h1>
         </div>
         <FspButton variant="outline" size="sm" href="/employer/need">Изменить описание</FspButton>
@@ -203,7 +203,7 @@ const discs = [
         <FspTabs v-model="tab" :items="tabs" />
         <div v-if="!needId && tab !== 'bank'" style="padding: 24px 0; color: var(--text-muted);">
           Сначала опишите потребность.
-          <div style="margin-top: 12px;"><FspButton href="/employer/need">К форме</FspButton></div>
+          <div class="u-mt-12"><FspButton href="/employer/need">К форме</FspButton></div>
         </div>
         <template v-else>
           <section v-if="tab === 'pool' || tab === 'bank'" style="display: flex; flex-wrap: wrap; gap: 12px; margin: 24px 0;">
@@ -212,14 +212,14 @@ const discs = [
               <span style="display: block; font-size: 13px; margin-top: 4px;">{{ c.count }} кандидатов</span>
             </button>
           </section>
-          <div style="display: flex; flex-wrap: wrap; gap: 32px; align-items: flex-start;">
+          <div class="fsp-columns">
             <aside style="flex: 1 1 260px; min-width: 0; padding: 0 24px 0 0; box-shadow: inset -1px 0 0 var(--line); display: flex; flex-direction: column; gap: 22px;">
               <div class="fsp-display" style="font-size: 18px;">Уточнить</div>
               <FspCheckbox v-model="onlyFsp" label="Только с достижениями" />
               <FspChip v-for="d in discs" :key="d.id" :selected="discipline === d.id" locked @click="discipline = discipline === d.id ? '' : d.id">{{ d.label }}</FspChip>
               <FspInput v-model="minScore" label="Тест не ниже" suffix="баллов" inputmode="numeric" />
               <FspInput v-model="stackQ" label="Стек" icon="search" placeholder="Kafka, Go…" />
-              <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+              <div class="u-row-wrap">
                 <FspChip v-for="f in FORMATS" :key="f" :selected="format === f" locked @click="format = format === f ? '' : f">{{ FORMAT_LABEL[f] }}</FspChip>
               </div>
               <FspCheckbox v-model="fresh" label="Активен за 30 дней" />
@@ -227,7 +227,7 @@ const discs = [
             <section style="flex: 999 1 640px; min-width: 0; display: flex; flex-direction: column; gap: 16px;">
               <section v-if="tab === 'pool'" class="fsp-cut" style="--cut: var(--cut-l); --fill: var(--surface); --edge: var(--accent-mark); --bw: var(--border-card); padding: 24px;">
                 <h2 class="fsp-display" style="font-size: 18px; margin-bottom: 16px;">Как сузить подборку · топ-3</h2>
-                <p v-if="!hints.length" style="margin: 0; color: var(--text-muted);">Подсказок пока нет.</p>
+                <p v-if="!hints.length" class="u-muted-p">Подсказок пока нет.</p>
                 <div v-else style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: 12px;">
                   <div v-for="(h, i) in hints.slice(0, 3)" :key="h.id" class="fsp-cut" style="--cut: var(--cut-m); --fill: var(--surface-hover); padding: 18px; display: flex; flex-direction: column; gap: 8px;">
                     <span class="fsp-display" style="font-size: 13px; color: #ffffff; background: var(--accent-mark); width: 34px; height: 24px; display: inline-grid; place-items: center;">0{{ i + 1 }}</span>
@@ -238,9 +238,9 @@ const discs = [
                 </div>
               </section>
               <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: 14px;">
-                <span style="color: var(--text-muted);">Уточнения:</span>
-                <span v-if="!refines.length" style="color: var(--text-muted);">нет</span>
-                <button v-for="r in refines" :key="r.label" type="button" style="all: unset; cursor: pointer;" @click="r.off()"><FspTag>{{ r.label }} ×</FspTag></button>
+                <span class="u-muted">Уточнения:</span>
+                <span v-if="!refines.length" class="u-muted">нет</span>
+                <button v-for="r in refines" :key="r.label" type="button" class="u-unbutton" @click="r.off()"><FspTag>{{ r.label }} ×</FspTag></button>
                 <span style="margin-left: auto; color: var(--text-muted);">{{ (tab === 'bank' ? bankItems.length : (shortlist?.total ?? 0)) }} в списке</span>
               </div>
               <template v-if="tab === 'bank'">
@@ -248,12 +248,23 @@ const discs = [
                 <article v-for="c in bankItems" :key="c.id" style="padding: 24px 0; box-shadow: inset 0 1px 0 var(--line); display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start;">
                   <FspCompanyLogo :name="c.display_name" :size="48" />
                   <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px;">
-                    <div style="font-size: 18px; font-weight: 600;">{{ c.display_name }}</div>
-                    <div style="font-size: 14px; color: var(--text-muted);">{{ categoryLabel(c.specialization, c.grade) }}<template v-if="c.city"> · {{ c.city }}</template><template v-if="c.test_score != null"> · тест {{ c.test_score }}</template></div>
-                    <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                    <div class="u-lead">{{ c.display_name }}</div>
+                    <div class="u-note-sm">{{ categoryLabel(c.specialization, c.grade) }}<template v-if="c.city"> · {{ c.city }}</template><template v-if="c.test_score != null"> · тест {{ c.test_score }}</template></div>
+                    <div class="u-row-wrap">
                       <FspTag v-for="skill in c.skills ?? []" :key="skill">{{ skillLabel(skill) }}</FspTag>
                       <FspTag v-if="c.has_fsp">Есть ФСП</FspTag>
                     </div>
+                  </div>
+                  <div class="pool-bank-actions">
+                    <template v-if="needId">
+                      <FspButton size="sm" :block="true" :href="`/employer/candidate?need=${needId}&candidate=${c.id}`">Пригласить</FspButton>
+                      <FspButton size="sm" variant="ghost" :block="true" :href="`/employer/candidate?need=${needId}&candidate=${c.id}`">Открыть профиль</FspButton>
+                      <span class="u-small">Приглашение — по потребности «{{ needTitle }}»</span>
+                    </template>
+                    <template v-else>
+                      <FspButton size="sm" variant="outline" :block="true" href="/employer/need">Описать потребность</FspButton>
+                      <span class="u-small">Приглашение отправляется по описанной потребности: так кандидат видит задачу и вилку.</span>
+                    </template>
                   </div>
                 </article>
               </template>
@@ -265,15 +276,15 @@ const discs = [
                   <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center;">
                     <FspCompanyLogo :name="c.display_name" :size="48" />
                     <div>
-                      <div style="font-size: 18px; font-weight: 600;">{{ c.display_name }}</div>
-                      <div style="font-size: 14px; color: var(--text-muted);">{{ c.category }}<template v-if="c.experience_years != null"> · опыт {{ c.experience_years }}</template><template v-if="c.city"> · {{ c.city }}</template></div>
+                      <div class="u-lead">{{ c.display_name }}</div>
+                      <div class="u-note-sm">{{ c.category }}<template v-if="c.experience_years != null"> · опыт {{ c.experience_years }}</template><template v-if="c.city"> · {{ c.city }}</template></div>
                     </div>
                     <FspDisciplineBadge v-if="c.fsp_badge" :discipline="c.fsp_badge.discipline">{{ c.fsp_badge.text }}</FspDisciplineBadge>
                     <FspTag v-else>Нет истории ФСП</FspTag>
                   </div>
                   <div style="display: grid; grid-template-columns: 140px 1fr 44px; gap: 12px; align-items: center; font-size: 14px;">
-                    <span style="color: var(--text-muted);">Соответствие</span>
-                    <div style="height: 8px; background: var(--surface-hover);"><div :style="{ width: c.match + '%', height: '8px', background: scoreColor(c.match) }" /></div>
+                    <span class="u-muted">Соответствие</span>
+                    <div class="fsp-meter"><div :style="{ width: c.match + '%', height: '8px', background: scoreColor(c.match) }" /></div>
                     <b>{{ c.match }}%</b>
                   </div>
                   <ul style="margin: 0; padding: 0 0 0 18px; display: flex; flex-direction: column; gap: 4px; font-size: 14px;">
@@ -283,7 +294,7 @@ const discs = [
                 <div style="flex: 1 1 200px; display: flex; flex-direction: column; gap: 8px;">
                   <div style="display: flex; justify-content: space-between; align-items: center;">
                     <FspStatusBadge v-if="c.invitation_status" :status="inviteTone(c.invitation_status)">{{ inviteLabel(c.invitation_status) }}</FspStatusBadge>
-                    <span v-else style="font-size: 13px; color: var(--text-muted);">Контакты — после принятия</span>
+                    <span v-else class="u-small">Контакты — после принятия</span>
                     <FspButton variant="ghost" size="sm" :icon="c.favorite ? 'bookmark-fill' : 'bookmark'" :aria-label="c.favorite ? 'Убрать из избранного' : 'В избранное'" @click="toggleSave(c)" />
                   </div>
                   <FspButton v-if="!c.invitation_status" :block="true" :href="`/employer/candidate?need=${needId}&candidate=${c.candidate_id}`">Пригласить</FspButton>
@@ -298,3 +309,8 @@ const discs = [
     </main>
   </div>
 </template>
+
+<style>
+.pool-bank-actions { flex: 0 0 220px; display: flex; flex-direction: column; gap: 8px; }
+@media (max-width: 640px) { .pool-bank-actions { flex-basis: 100%; } }
+</style>

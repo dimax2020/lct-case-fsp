@@ -1,59 +1,42 @@
 <script setup lang="ts">
 export interface NavLink { label: string; href?: string; active?: boolean }
 const props = withDefaults(defineProps<{
-  product?: string; links?: NavLink[]; user?: string; unread?: boolean
+  product?: string; links?: NavLink[]; user?: string
   logoDark?: string; logoLight?: string; logoAlt?: string; homeHref?: string
 }>(), { links: () => [], logoDark: '/brand/championship-logo-white.svg', logoLight: '/brand/championship-logo-navy.svg', logoAlt: 'Чемпионат России', homeHref: '/' })
 
 const route = useRoute()
 const isEmployer = computed(() => route.path.startsWith('/employer'))
+const role = computed<'candidate' | 'employer'>(() => (isEmployer.value ? 'employer' : 'candidate'))
 const menu = ref<'' | 'bell' | 'user'>('')
 const root = ref<HTMLElement>()
-const hasUnread = ref(props.unread ?? true)
-const { show } = useToast()
+const { theme, toggle: toggleTheme } = useTheme()
+const notes = useNotifications(role)
 
 const userMenu = computed(() => isEmployer.value
-  ? [{ label: 'Профиль компании', to: '/employer/company' }, { label: 'Приглашения', to: '/employer/invites' }]
-  : [{ label: 'Мой профиль', to: '/candidate/profile' }, { label: 'Настройки и приватность', to: '/candidate/settings' }])
+  ? [{ label: 'Профиль компании', to: '/employer/company' }, { label: 'Приглашения', to: '/employer/invites' }, { label: 'Переписка', to: '/employer/chat' }]
+  : [{ label: 'Мой профиль', to: '/candidate/profile' }, { label: 'Тесты и грейд', to: '/candidate/grade' }, { label: 'Настройки и приватность', to: '/candidate/settings' }])
 
-const anyMatch = computed(() => props.links.some(l => l.href === route.path))
-const testCount = ref(0)
-
-async function loadTestCount() {
-  if (!props.links.some(l => l.href === '/candidate/process')) {
-    testCount.value = 0
-    return
-  }
-  try {
-    const applications = await $fetch<unknown>('/api/v1/applications', { query: { role: 'candidate' } })
-    const rows = Array.isArray(applications)
-      ? applications as { vacancy_id?: string }[]
-      : ((applications as { items?: { vacancy_id?: string }[] } | null)?.items ?? [])
-    const vacancyIds = [...new Set(rows.map(row => row.vacancy_id).filter((id): id is string => !!id))]
-    if (!vacancyIds.length) {
-      testCount.value = 0
-      return
-    }
-    const found = await $fetch<{ vacancyIds?: string[] }>('/v1/vacancy-tasks/lookup', { method: 'POST', body: { vacancyIds } })
-    testCount.value = found.vacancyIds?.length ?? 0
-  } catch {
-    testCount.value = 0
-  }
-}
 function isActive(l: NavLink) {
-  if (anyMatch.value) return l.href === route.path
-  return !!l.active
+  if (!l.href) return !!l.active
+  if (route.path === l.href) return true
+  return props.links.every(x => x.href !== route.path) && !!l.active
 }
 function toggle(m: 'bell' | 'user') {
   menu.value = menu.value === m ? '' : m
-  if (m === 'bell') hasUnread.value = false
+  if (m === 'bell' && menu.value === 'bell') notes.markAllSeen()
 }
 function onDoc(e: MouseEvent) { if (root.value && !root.value.contains(e.target as Node)) menu.value = '' }
+function onKey(e: KeyboardEvent) { if (e.key === 'Escape') menu.value = '' }
 onMounted(() => {
   document.addEventListener('click', onDoc)
-  void loadTestCount()
+  document.addEventListener('keydown', onKey)
+  if (props.user) void notes.load()
 })
-onBeforeUnmount(() => document.removeEventListener('click', onDoc))
+onBeforeUnmount(() => {
+  document.removeEventListener('click', onDoc)
+  document.removeEventListener('keydown', onKey)
+})
 watch(() => route.fullPath, () => { menu.value = '' })
 </script>
 
@@ -65,28 +48,27 @@ watch(() => route.fullPath, () => { menu.value = '' })
       <span v-if="product" class="fsp-header-product">{{ product }}</span>
     </NuxtLink>
     <nav class="fsp-header-nav" aria-label="Основная навигация">
-      <template v-for="l in links" :key="l.label">
-        <NuxtLink v-if="l.href && l.href.startsWith('/')" :to="l.href" :aria-current="isActive(l) ? 'page' : undefined" :aria-label="l.href === '/candidate/process' && testCount ? `${l.label}, тестовых: ${testCount}` : undefined">
-          <span class="fsp-nav-label">{{ l.label }}<span v-if="l.href === '/candidate/process' && testCount" class="fsp-nav-count">{{ testCount }}</span></span>
-        </NuxtLink>
-        <a v-else href="#" @click.prevent="show('Раздел «' + l.label + '» ещё не реализован в рамках MVP')">{{ l.label }}</a>
-      </template>
+      <NuxtLink v-for="l in links" :key="l.label" :to="l.href || '/'" :aria-current="isActive(l) ? 'page' : undefined">{{ l.label }}</NuxtLink>
     </nav>
     <div class="fsp-header-actions">
       <slot name="actions">
-        <span class="fsp-header-bell fsp-menu-anchor">
-          <FspButton variant="ghost" icon="bell" aria-label="Уведомления" :aria-expanded="menu === 'bell'" @click.stop="toggle('bell')" />
-          <i v-if="hasUnread" aria-hidden="true" />
+        <FspButton variant="ghost" :icon="theme === 'light' ? 'moon' : 'sun'" :aria-label="theme === 'light' ? 'Тёмная тема' : 'Светлая тема'" @click="toggleTheme" />
+        <span v-if="user" class="fsp-header-bell fsp-menu-anchor">
+          <FspButton variant="ghost" icon="bell" :aria-label="notes.unread.value ? `Уведомления: ${notes.unread.value} новых` : 'Уведомления'" :aria-expanded="menu === 'bell'" @click.stop="toggle('bell')" />
+          <i v-if="notes.unread.value" aria-hidden="true" />
           <div v-if="menu === 'bell'" class="fsp-menu fsp-cut" role="menu">
             <div class="fsp-menu-title">Уведомления</div>
-            <div class="fsp-menu-item" role="menuitem">Ещё не реализовано в рамках MVP</div>
+            <div v-if="!notes.loaded.value" class="fsp-menu-item u-muted">Загружаем…</div>
+            <div v-else-if="!notes.items.value.length" class="fsp-menu-item u-muted">Новых событий нет</div>
+            <NuxtLink v-for="n in notes.items.value" :key="n.id" :to="n.to" class="fsp-menu-item" role="menuitem">
+              {{ n.text }}<span v-if="n.at" class="fsp-menu-when">{{ whenLabel(n.at) }}</span>
+            </NuxtLink>
           </div>
         </span>
         <span v-if="user" class="fsp-menu-anchor">
-          <FspButton variant="outline" size="sm" icon="user" :aria-expanded="menu === 'user'" @click.stop="toggle('user')">{{ user }}</FspButton>
+          <FspButton variant="outline" size="sm" icon="user" :aria-expanded="menu === 'user'" @click.stop="toggle('user')"><span class="fsp-user-name">{{ user }}</span></FspButton>
           <div v-if="menu === 'user'" class="fsp-menu fsp-cut" role="menu">
             <NuxtLink v-for="m in userMenu" :key="m.to" :to="m.to" class="fsp-menu-item" role="menuitem">{{ m.label }}</NuxtLink>
-            <button type="button" class="fsp-menu-item" role="menuitem" disabled style="opacity:.55; cursor:not-allowed; background:transparent; border:0; text-align:left; width:100%; color:inherit; font:inherit;">Смена кабинета ещё не реализована в рамках MVP</button>
             <a href="/auth/keycloak/logout" class="fsp-menu-item" role="menuitem">Выйти</a>
           </div>
         </span>
@@ -98,8 +80,11 @@ watch(() => route.fullPath, () => { menu.value = '' })
 
 <style>
 .fsp-menu-anchor { position: relative; display: inline-flex; }
-.fsp-menu { --cut: var(--cut-m); --fill: var(--gray-bright); --edge: var(--line-strong); --bw: 1px; position: absolute; top: calc(100% + 8px); right: 0; z-index: 50; min-width: 300px; padding: 8px 0; display: flex; flex-direction: column; }
+.fsp-menu { --cut: var(--cut-m); --fill: var(--gray-bright); --edge: var(--line-strong); --bw: 1px; position: absolute; top: calc(100% + 8px); right: 0; z-index: 50; min-width: 300px; max-width: 380px; padding: 8px 0; display: flex; flex-direction: column; }
+[data-theme="light"] .fsp-menu { --fill: #ffffff; }
 .fsp-menu-title { padding: 8px 16px 10px; font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); }
-.fsp-menu-item { padding: 10px 16px; font: 500 14px/20px var(--font-sans); color: var(--text); text-decoration: none; }
+.fsp-menu-item { padding: 10px 16px; font: 500 14px/20px var(--font-sans); color: var(--text); text-decoration: none; display: block; }
 .fsp-menu-item:hover { background: var(--surface-hover); color: var(--text); }
+.fsp-menu-when { display: block; font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+@media (max-width: 640px) { .fsp-user-name { display: none; } }
 </style>

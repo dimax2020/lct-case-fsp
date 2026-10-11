@@ -9,7 +9,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.company.models import Company
-from app.company.schemas import CompanyOut, CompanyWrite, RecruiterContact
+from app.company.schemas import CompanyBrief, CompanyOut, CompanyWrite, RecruiterContact
 from app.core.auth import Principal
 from app.core.enums import Benefit
 from app.core.errors import AppError
@@ -77,7 +77,23 @@ def to_out(company: Company) -> CompanyOut:
         about=company.about,
         recruiter_contact=RecruiterContact.model_validate(company.recruiter_contact or {}),
         benefits=_parse_benefits(list(company.benefits or [])),
+        website=company.website,
+        logo=company.logo,
     )
+
+
+async def search_companies(session: AsyncSession, query: str, limit: int = 10) -> list[CompanyBrief]:
+    text = query.strip()
+    if len(text) < 2:
+        return []
+    escaped = text.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+    rows = await session.scalars(
+        select(Company)
+        .where(Company.name != "", Company.name.ilike(f"%{escaped}%", escape="\\"))
+        .order_by(Company.name)
+        .limit(max(1, min(limit, 20)))
+    )
+    return [CompanyBrief(id=row.id, name=row.name, city=row.city) for row in rows]
 
 
 async def ensure_company_for_user(session: AsyncSession, user: User) -> None:
@@ -120,6 +136,8 @@ async def update_my_company(session: AsyncSession, principal: Principal, body: C
     company.size = body.size
     company.industry = body.industry
     company.about = body.about
+    company.website = body.website
+    company.logo = body.logo
     company.recruiter_contact = body.recruiter_contact.model_dump(exclude_none=True)
     benefits: list[str] = []
     for item in body.benefits:

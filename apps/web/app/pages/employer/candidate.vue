@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import type { components } from '~/api/schema'
 import { read } from '~/utils/read'
+import { apiBlob, apiFetch } from '~/utils/raw'
+import type { PsychEmployerView } from '~/utils/psych'
 
 type Channel = components['schemas']['ContactChannel']
 
@@ -20,6 +22,38 @@ const screen = useScreen(async () => {
   ])
   return { card, need, company }
 })
+
+const psych = ref<PsychEmployerView | null>(null)
+const psychOpen = ref(false)
+const pdfLoading = ref(false)
+
+watch(() => screen.data.value?.card, async (card) => {
+  psych.value = null
+  if (!card?.psych_available) return
+  try {
+    psych.value = await apiFetch<PsychEmployerView>(`/api/v1/psych/candidates/${encodeURIComponent(card.candidate_id)}`)
+  } catch {
+    psych.value = null
+  }
+})
+
+async function downloadPdf() {
+  if (!needId.value || !candidateId.value) return
+  pdfLoading.value = true
+  try {
+    const blob = await apiBlob(`/api/v1/needs/${encodeURIComponent(needId.value)}/candidates/${encodeURIComponent(candidateId.value)}/profile.pdf`)
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = 'candidate-profile.pdf'
+    link.click()
+    URL.revokeObjectURL(url)
+  } catch (e) {
+    show(e instanceof Error ? e.message : 'Не удалось скачать PDF')
+  } finally {
+    pdfLoading.value = false
+  }
+}
 
 const title = ref('')
 const message = ref('')
@@ -75,21 +109,24 @@ async function send() {
 </script>
 
 <template>
-  <div style="background: var(--bg); color: var(--text); font-family: var(--font-sans); min-height: 100vh;">
+  <div class="fsp-shell">
     <FspHeader product="Для компаний" :user="companyName" :links="employerLinks" logo-dark="/brand/championship-logo-white.svg" logo-light="/brand/championship-logo-navy.svg" />
-    <main style="max-width: 1240px; margin: 0 auto; padding: 32px 32px 64px;">
+    <main class="fsp-page">
       <NuxtLink to="/employer/pool" style="display: inline-block; font-size: 14px; color: var(--text-muted); text-decoration: none; margin-bottom: 20px;">← Подборка</NuxtLink>
       <ScreenState :phase="screen.phase.value" :error="screen.error.value" @retry="screen.load">
-        <p v-if="!needId || !candidateId" style="color: var(--text-muted);">Откройте кандидата из подборки.</p>
-        <div v-else-if="card" style="display: flex; flex-wrap: wrap; gap: 32px; align-items: flex-start;">
+        <p v-if="!needId || !candidateId" class="u-muted">Откройте кандидата из подборки.</p>
+        <div v-else-if="card" class="fsp-columns">
           <div style="flex: 999 1 600px; min-width: 0; display: flex; flex-direction: column; gap: 24px;">
             <section style="display: flex; flex-wrap: wrap; gap: 20px; align-items: center;">
               <FspCompanyLogo :name="card.display_name" :size="80" />
               <div>
                 <h1 style="margin: 0; font-size: 30px; line-height: 38px;">{{ card.display_name }}</h1>
                 <div style="font-size: 15px; color: var(--text-muted); margin-top: 4px;">{{ card.category }}<template v-if="card.experience_years != null"> · опыт {{ card.experience_years }}</template><template v-if="card.city"> · {{ card.city }}</template></div>
+                <div v-if="card.current_job" class="u-note-sm u-mt-4">{{ card.current_job }}</div>
               </div>
+              <FspButton v-if="card.pdf_available" size="sm" variant="outline" icon="download" style="margin-left: auto;" :disabled="pdfLoading" @click="downloadPdf">PDF-профиль</FspButton>
             </section>
+            <p v-if="card.in_shortlist === false" class="cand-note">Кандидат открыт из банка: в подборку по потребности «{{ screen.data.value?.need?.title }}» он не попал, поэтому совпадение не рассчитано. Пригласить его всё равно можно.</p>
             <section style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 12px;">
               <div class="fsp-cut" style="--cut: var(--cut-m); --fill: var(--plate); color: var(--on-plate); padding: 20px;"><div style="font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--on-plate-muted);">Категория</div><div class="fsp-display" style="font-size: 20px; margin-top: 8px;">{{ card.category }}</div></div>
               <div class="fsp-cut" style="--cut: var(--cut-m); --fill: var(--surface); --edge: var(--line-card); --bw: var(--border-card); padding: 20px;"><div style="font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted);">Соответствие</div><div class="fsp-display" style="font-size: 20px; margin-top: 8px;">{{ card.match }}%</div></div>
@@ -101,16 +138,36 @@ async function send() {
                 <li v-for="line in card.explanations ?? []" :key="line" style="display: flex; gap: 10px;"><FspIcon name="check" /><span>{{ line }}</span></li>
               </ul>
             </section>
-            <section v-if="card.skills?.length" style="display: flex; flex-wrap: wrap; gap: 8px;">
+            <section v-if="card.skills?.length" class="u-row-wrap">
               <FspTag v-for="s in card.skills" :key="s">{{ skillLabel(s) }}</FspTag>
             </section>
             <section v-if="card.fsp_badge" style="display: flex; gap: 8px; align-items: center;">
               <FspDisciplineBadge :discipline="card.fsp_badge.discipline">{{ card.fsp_badge.text }}</FspDisciplineBadge>
             </section>
+            <section v-if="card.psych_available" class="fsp-section fsp-stack-16">
+              <div class="u-between">
+                <div>
+                  <h2 class="fsp-display u-h3" style="margin: 0;">Тест рабочего стиля</h2>
+                  <div v-if="psych?.available" class="u-small u-mt-4">Пройден {{ longDate(psych.finished_at) }} · {{ psych.result?.disc_profile.label }}</div>
+                </div>
+                <FspButton v-if="psych?.available" size="sm" variant="outline" @click="psychOpen = !psychOpen">{{ psychOpen ? 'Свернуть' : 'Показать результат' }}</FspButton>
+              </div>
+              <p v-if="psych && !psych.available" class="u-muted-p">{{ psych.reason }}</p>
+              <template v-if="psych?.available && psych.result">
+                <div v-if="!psychOpen" class="u-row-wrap">
+                  <FspTag v-for="sc in psych.result.scales" :key="sc.scale">{{ sc.title }}: {{ sc.level_title.toLowerCase() }}</FspTag>
+                  <FspTag v-if="psych.result.flags?.length">Флагов надёжности: {{ psych.result.flags.length }}</FspTag>
+                </div>
+                <PsychResultView v-else :result="psych.result" hr />
+                <ul class="u-small" style="margin: 0; padding-left: 18px;">
+                  <li v-for="l in psych.limitations" :key="l">{{ l }}</li>
+                </ul>
+              </template>
+            </section>
             <section style="padding: 24px 0 0; box-shadow: inset 0 1px 0 var(--line); display: flex; gap: 16px; align-items: center;">
               <FspIcon name="user" :size="28" />
-              <div v-if="card.contacts_revealed"><b>{{ card.email }}</b><div style="font-size: 14px; color: var(--text-muted);">{{ card.phone }}</div></div>
-              <div v-else><b>Контакты скрыты</b><div style="font-size: 14px; color: var(--text-muted); margin-top: 4px;">Телефон и почта откроются, когда кандидат примет приглашение.</div></div>
+              <div v-if="card.contacts_revealed"><b>{{ card.email }}</b><div class="u-note-sm">{{ card.phone }}</div></div>
+              <div v-else><b>Контакты скрыты</b><div class="u-note-sm u-mt-4">Телефон и почта откроются, когда кандидат примет приглашение.</div></div>
             </section>
           </div>
           <aside class="fsp-cut fsp-active" style="flex: 1 1 380px; min-width: 0; --cut: var(--cut-l); padding: 28px; display: flex; flex-direction: column; gap: 18px;">
@@ -118,7 +175,7 @@ async function send() {
             <FspStatusBadge v-if="card.invitation_status" :status="inviteTone(card.invitation_status)">{{ inviteLabel(card.invitation_status) }}</FspStatusBadge>
             <FspInput v-model="title" label="Должность" />
             <label style="display: flex; flex-direction: column; gap: 6px;">
-              <span style="font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted);">Предложение</span>
+              <span class="fsp-eyebrow">Предложение</span>
               <textarea v-model="message" rows="5" style="font: 400 15px/22px var(--font-sans); color: var(--text); background: var(--field); border: 1px solid var(--line-strong); padding: 12px 14px; resize: vertical;" />
             </label>
             <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px;">
@@ -126,7 +183,7 @@ async function send() {
               <FspInput v-model="salaryTo" label="до" suffix="₽" />
             </div>
             <div>
-              <div style="font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 8px;">Способ связи</div>
+              <div class="fsp-eyebrow u-mb-8">Способ связи</div>
               <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px;">
                 <FspChip v-for="c in (['email', 'phone', 'telegram'] as Channel[])" :key="c" :selected="channel === c" locked @click="channel = c">{{ c === 'email' ? 'Почта' : c === 'phone' ? 'Телефон' : 'Telegram' }}</FspChip>
               </div>
@@ -141,3 +198,7 @@ async function send() {
     </main>
   </div>
 </template>
+
+<style>
+.cand-note { margin: 0; padding: 14px 18px; background: var(--surface); box-shadow: inset 3px 0 0 var(--warning); font-size: 14px; line-height: 20px; }
+</style>

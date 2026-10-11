@@ -11,6 +11,8 @@ import {
   taskOrder,
   uid,
 } from '~/api/mock/db'
+import { PSYCH_LIMITATIONS, PSYCH_PUBLIC, candidateView, cleanAnswers, progressOf, scoreMock } from '~/api/mock/psych'
+import type { PsychAnswers, PsychResult } from '~/utils/psych'
 
 type S = components['schemas']
 
@@ -339,7 +341,21 @@ type AppRec = {
 
 type MicroRec = { id: string; title: string; body: string }
 
+type PsychRec = { id: string; answers: PsychAnswers; result: PsychResult | null; started_at: string; finished_at: string | null }
+
+type Privacy = {
+  show_full_name: boolean
+  show_current_job: boolean
+  show_fsp: boolean
+  show_pdf: boolean
+  show_psych: boolean
+  consent_processing_at: string | null
+  consent_publication_at: string | null
+}
+
 type Gap = {
+  psych?: PsychRec[]
+  privacy?: Privacy
   vacancies?: VacancyRec[]
   applications?: AppRec[]
   micro_tasks?: MicroRec[]
@@ -443,6 +459,8 @@ function appView(row: AppRec, employer: boolean) {
     salary_from: row.salary_from,
     salary_to: row.salary_to,
     message: row.message,
+    created_at: (row as AppRec & { created_at?: string }).created_at ?? new Date().toISOString(),
+    decline_reason: (row as AppRec & { decline_reason?: string }).decline_reason ?? null,
   }
   if (!employer) return base
   return {
@@ -450,6 +468,58 @@ function appView(row: AppRec, employer: boolean) {
     candidate_display_name: row.candidate_display_name,
     candidate_email: row.candidate_email,
     candidate_phone: row.candidate_phone,
+  }
+}
+
+function privacy(db: Db): Privacy {
+  const state = gap(db)
+  if (!state.privacy) {
+    state.privacy = {
+      show_full_name: false, show_current_job: true, show_fsp: true, show_pdf: true, show_psych: false,
+      consent_processing_at: state.consent_processing ? new Date().toISOString() : null,
+      consent_publication_at: state.consent_publication ? new Date().toISOString() : null,
+    }
+  }
+  return state.privacy
+}
+
+const OTHER_COMPANIES = [
+  { id: '22222222-2222-4222-8222-222222222299', name: 'Ромашка Финтех', city: 'Москва' },
+  { id: '22222222-2222-4222-8222-222222222298', name: 'Тайга Софт', city: 'Томск' },
+]
+
+function companyIndex(db: Db) {
+  return [{ id: db.company.id, name: db.company.name || 'Компания', city: db.company.city ?? null }, ...OTHER_COMPANIES]
+}
+
+function settingsView(db: Db) {
+  const p = privacy(db)
+  const names = companyIndex(db)
+  return {
+    ...db.settings,
+    consent_processing: gap(db).consent_processing ?? false,
+    consent_publication: gap(db).consent_publication ?? false,
+    soft_skills: gap(db).soft_skills ?? [],
+    ...p,
+    hidden_companies: (db.settings.hidden_company_ids ?? []).map(id => ({ id, name: names.find(c => c.id === id)?.name ?? 'Компания удалена' })),
+    fsp_linked: (db.profile.fsp_achievements?.length ?? 0) > 0,
+  }
+}
+
+function psychState(db: Db) {
+  const rows = gap(db).psych ?? []
+  const open = rows.find(r => !r.finished_at) ?? null
+  const last = rows.filter(r => r.finished_at).sort((a, b) => String(b.finished_at).localeCompare(String(a.finished_at)))[0] ?? null
+  const nextAt = last?.finished_at ? new Date(new Date(last.finished_at).getTime() + 30 * 864e5) : null
+  const locked = nextAt != null && nextAt.getTime() > Date.now()
+  return {
+    attempt: open ? { id: open.id, version: PSYCH_PUBLIC.version, answers: open.answers, progress: progressOf(open.answers), started_at: open.started_at, finished_at: null } : null,
+    result: last?.result ? candidateView(last.result) : null,
+    finished_at: last?.finished_at ?? null,
+    can_start: open != null || !locked,
+    next_attempt_at: locked ? nextAt!.toISOString() : null,
+    share_with_employers: privacy(db).show_psych,
+    limitations: PSYCH_LIMITATIONS,
   }
 }
 
@@ -471,6 +541,117 @@ function skillList(raw: string[] | string | undefined) {
 }
 
 async function routeOfficial(db: Db, method: string, path: string, url: URL, req: Request): Promise<Response | null> {
+  // ---------- тест рабочего стиля
+  if (path === '/api/v1/psych/test' && method === 'GET') return json(PSYCH_PUBLIC)
+  if (path === '/api/v1/psych/me' && method === 'GET') return json(psychState(db))
+  if (path === '/api/v1/psych/attempts' && method === 'POST') {
+    const state = psychState(db)
+    if (state.attempt) return json(state.attempt, 201)
+    if (!state.can_start) return fail(409, `Пройти тест снова можно с ${new Date(state.next_attempt_at!).toLocaleDateString('ru-RU')}`, 'retake_too_early')
+    const rec: PsychRec = { id: uid(), answers: { disc: {}, statements: {}, cases: {} }, result: null, started_at: new Date().toISOString(), finished_at: null }
+    gap(db).psych = [...(gap(db).psych ?? []), rec]
+    return json(psychState(db).attempt, 201)
+  }
+  const psychSave = path.match(/^\/api\/v1\/psych\/attempts\/([^/]+)$/)
+  if (psychSave && method === 'PUT') {
+    const rec = (gap(db).psych ?? []).find(r => r.id === take(psychSave) && !r.finished_at)
+    if (!rec) return fail(404, 'Прохождение не найдено')
+    rec.answers = cleanAnswers(await readBody<PsychAnswers>(req))
+    return json(psychState(db).attempt)
+  }
+  const psychFinish = path.match(/^\/api\/v1\/psych\/attempts\/([^/]+)\/finish$/)
+  if (psychFinish && method === 'POST') {
+    const rec = (gap(db).psych ?? []).find(r => r.id === take(psychFinish) && !r.finished_at)
+    if (!rec) return fail(404, 'Прохождение не найдено')
+    const body = await readBody<{ answers?: PsychAnswers; share_with_employers?: boolean }>(req)
+    if (body.answers) rec.answers = cleanAnswers(body.answers)
+    rec.finished_at = new Date().toISOString()
+    rec.result = scoreMock(rec.answers, (Date.now() - new Date(rec.started_at).getTime()) / 1000)
+    if (typeof body.share_with_employers === 'boolean') privacy(db).show_psych = body.share_with_employers
+    return json(psychState(db))
+  }
+  if (path === '/api/v1/psych/me/share' && method === 'PUT') {
+    const body = await readBody<{ share_with_employers?: boolean }>(req)
+    privacy(db).show_psych = !!body.share_with_employers
+    return json(psychState(db))
+  }
+  const psychEmployer = path.match(/^\/api\/v1\/psych\/candidates\/([^/]+)$/)
+  if (psychEmployer && method === 'GET') {
+    const id = take(psychEmployer)
+    // В моке результат есть только у демо-кандидата, остальным показываем пояснение.
+    if (id !== IDS.candidate) return json({ available: false, reason: 'Кандидат ещё не проходил тест рабочего стиля.', finished_at: null, result: null, limitations: PSYCH_LIMITATIONS })
+    const last = (gap(db).psych ?? []).filter(r => r.finished_at && r.result).pop()
+    if (!privacy(db).show_psych) return json({ available: false, reason: 'Кандидат не открыл результаты теста рабочего стиля.', finished_at: null, result: null, limitations: PSYCH_LIMITATIONS })
+    if (!last) return json({ available: false, reason: 'Кандидат ещё не проходил тест рабочего стиля.', finished_at: null, result: null, limitations: PSYCH_LIMITATIONS })
+    return json({ available: true, reason: null, finished_at: last.finished_at, result: last.result, limitations: PSYCH_LIMITATIONS })
+  }
+
+  // ---------- приватность, ФСП ID, компании
+  if (path === '/api/v1/candidates/me/fsp-link' && method === 'DELETE') {
+    db.profile.fsp_achievements = []
+    db.profile.skills = (db.profile.skills ?? []).filter(s => s.source !== 'fsp_id')
+    return json(db.profile)
+  }
+  if (path === '/api/v1/candidates/me/settings' && method === 'GET') return json(settingsView(db))
+  if (path === '/api/v1/candidates/me/settings' && method === 'PUT') {
+    const body = await readBody<Record<string, unknown>>(req)
+    const p = privacy(db)
+    const was = { processing: gap(db).consent_processing ?? false, publication: gap(db).consent_publication ?? false }
+    db.settings = { visible: !!body.visible, hidden_company_ids: Array.isArray(body.hidden_company_ids) ? body.hidden_company_ids as string[] : [] }
+    db.profile.visible = !!body.visible
+    gap(db).consent_processing = !!body.consent_processing
+    gap(db).consent_publication = !!body.consent_publication
+    p.consent_processing_at = body.consent_processing ? (was.processing && p.consent_processing_at ? p.consent_processing_at : new Date().toISOString()) : null
+    p.consent_publication_at = body.consent_publication ? (was.publication && p.consent_publication_at ? p.consent_publication_at : new Date().toISOString()) : null
+    for (const key of ['show_full_name', 'show_current_job', 'show_fsp', 'show_pdf', 'show_psych'] as const) {
+      if (typeof body[key] === 'boolean') p[key] = body[key] as boolean
+    }
+    eligibility(db.profile)
+    return json(settingsView(db))
+  }
+  if (path === '/api/v1/companies' && method === 'GET') {
+    const q = (qstr(url, 'q') ?? '').toLowerCase()
+    if (q.length < 2) return json([])
+    return json(companyIndex(db).filter(c => c.name.toLowerCase().includes(q)).slice(0, 10))
+  }
+
+  // ---------- вакансии и отклики: редактирование и решения работодателя
+  const vacancyEdit = path.match(/^\/api\/v1\/vacancies\/([^/]+)$/)
+  if (vacancyEdit && method === 'PUT') {
+    const state = ensureVacancies(db)
+    const vacancy = (state.vacancies ?? []).find(v => v.id === take(vacancyEdit))
+    if (!vacancy) return fail(404, 'Вакансия не найдена')
+    const body = await readBody<Partial<VacancyRec>>(req)
+    if ((body.description ?? '').trim().length < 50) return fail(422, 'Описание — не меньше 50 символов')
+    Object.assign(vacancy, body, { id: vacancy.id, company_id: vacancy.company_id, company_name: vacancy.company_name, status: vacancy.status })
+    return json(vacancy)
+  }
+  const appAction = path.match(/^\/api\/v1\/applications\/([^/]+)\/(view|accept|decline)$/)
+  if (appAction && method === 'POST') {
+    const state = ensureVacancies(db)
+    const row = (state.applications ?? []).find(a => a.id === take(appAction))
+    if (!row) return fail(404, 'Отклик не найден')
+    const action = take(appAction, 2)
+    if (action === 'view' && row.status === 'sent') row.status = 'viewed'
+    if (action === 'accept') {
+      if (row.status === 'declined') return fail(409, 'Отклик уже отклонён')
+      row.status = 'accepted'
+    }
+    if (action === 'decline') {
+      if (row.status === 'accepted') return fail(409, 'Отклик уже принят')
+      const body = await readBody<{ reason?: string }>(req)
+      row.status = 'declined'
+      ;(row as AppRec & { decline_reason?: string }).decline_reason = body.reason ?? 'other'
+    }
+    return json(appView(row, true))
+  }
+  const cardPdf = path.match(/^\/api\/v1\/needs\/([^/]+)\/candidates\/([^/]+)\/profile\.pdf$/)
+  if (cardPdf && method === 'GET') {
+    if (take(cardPdf, 2) === IDS.candidate && !privacy(db).show_pdf) return fail(403, 'Кандидат не открыл PDF-профиль работодателям')
+    const pdf = '%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n2 0 obj<</Type/Pages/Count 0>>endobj\ntrailer<</Root 1 0 R>>\n%%EOF'
+    return new Response(pdf, { status: 200, headers: { 'content-type': 'application/pdf' } })
+  }
+
   if (path === '/api/v1/candidates/me/profile.pdf' && method === 'GET') {
     const pdf = '%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n2 0 obj<</Type/Pages/Count 0>>endobj\ntrailer<</Root 1 0 R>>\n%%EOF'
     return new Response(pdf, { status: 200, headers: { 'content-type': 'application/pdf' } })
@@ -716,27 +897,6 @@ async function route(db: Db, method: string, path: string, url: URL, req: Reques
   }
 
   if (path === '/api/v1/candidates/me/grade' && method === 'GET') return json(db.grade)
-  if (path === '/api/v1/candidates/me/settings' && method === 'GET') {
-    return json({
-      ...db.settings,
-      consent_processing: gap(db).consent_processing ?? false,
-      consent_publication: gap(db).consent_publication ?? false,
-    })
-  }
-  if (path === '/api/v1/candidates/me/settings' && method === 'PUT') {
-    const body = await readBody<S['CandidateSettings'] & { consent_processing?: boolean; consent_publication?: boolean }>(req)
-    db.settings = { visible: body.visible, hidden_company_ids: body.hidden_company_ids ?? [] }
-    db.profile.visible = body.visible
-    if (typeof body.consent_processing === 'boolean') gap(db).consent_processing = body.consent_processing
-    if (typeof body.consent_publication === 'boolean') gap(db).consent_publication = body.consent_publication
-    eligibility(db.profile)
-    return json({
-      ...db.settings,
-      consent_processing: gap(db).consent_processing ?? false,
-      consent_publication: gap(db).consent_publication ?? false,
-    })
-  }
-
   if (path === '/api/v1/candidates/me/resume' && method === 'POST') {
     const fd = await req.formData()
     const file = fd.get('file')
@@ -1024,6 +1184,19 @@ async function route(db: Db, method: string, path: string, url: URL, req: Reques
       contacts_revealed: open,
       email: open ? person.email : null,
       phone: open ? person.phone : null,
+      in_shortlist: true,
+      current_job: null,
+      pdf_available: true,
+      psych_available: false,
+    }
+    if (person.candidate_id === IDS.candidate) {
+      const p = privacy(db)
+      if ((db.settings.hidden_company_ids ?? []).includes(db.company.id)) return fail(404, 'Кандидат не найден')
+      if (p.show_full_name) card.display_name = db.profile.full_name
+      if (!p.show_fsp) card.fsp_badge = null
+      card.current_job = p.show_current_job ? (db.profile.experiences?.[0] ? `${db.profile.experiences[0].role} · ${db.profile.experiences[0].company}` : null) : null
+      card.pdf_available = p.show_pdf
+      card.psych_available = p.show_psych
     }
     return json(card)
   }

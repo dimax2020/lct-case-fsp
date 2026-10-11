@@ -2,6 +2,7 @@
 import type { components } from '~/api/schema'
 import { read } from '~/utils/read'
 import { apiBlob, apiFetch, asList } from '~/utils/raw'
+import { levelColor, type PsychState } from '~/utils/psych'
 
 type Profile = components['schemas']['CandidateProfile']
 type Parsed = components['schemas']['ParsedResume']
@@ -25,6 +26,14 @@ const screen = useScreen(async () => {
   return { profile, hints, invites, specs, domains }
 })
 
+const psych = ref<PsychState | null>(null)
+onMounted(async () => {
+  try {
+    psych.value = await apiFetch<PsychState>('/api/v1/psych/me')
+  } catch {
+    psych.value = null
+  }
+})
 const city = ref('')
 const salary = ref<string | number>('')
 const softSkills = ref('')
@@ -310,9 +319,9 @@ onBeforeUnmount(() => { clearTimeout(pollTimer); clearTimeout(skillTimer) })
 </script>
 
 <template>
-  <div style="background: var(--bg); color: var(--text); font-family: var(--font-sans); min-height: 100vh;">
+  <div class="fsp-shell">
     <FspHeader product="Карьера" :user="userName" :links="candidateLinks" logo-dark="/brand/championship-logo-white.svg" logo-light="/brand/championship-logo-navy.svg" />
-    <main style="max-width: 1240px; margin: 0 auto; padding: 40px 32px 64px; display: flex; flex-direction: column; gap: 32px;">
+    <main class="fsp-page fsp-stack-32">
       <ScreenState :phase="screen.phase.value" :error="screen.error.value" @retry="screen.load">
         <template v-if="profile">
           <section style="display: flex; flex-wrap: wrap; gap: 24px; align-items: center;">
@@ -324,11 +333,11 @@ onBeforeUnmount(() => { clearTimeout(pollTimer); clearTimeout(skillTimer) })
                 <span>{{ profile.city || 'Город не указан' }}<template v-if="profile.formats?.length"> · {{ profile.formats.map(f => FORMAT_LABEL[f]).join(', ') }}</template></span>
                 <span v-if="profile.min_salary">от {{ rub(profile.min_salary) }}</span>
               </div>
-              <div style="margin-top: 12px;">
+              <div class="u-mt-12">
                 <FspStatusBadge :status="profile.visible ? 'new' : 'archived'">{{ profile.visible ? 'Профиль виден работодателям' : 'Профиль скрыт' }}</FspStatusBadge>
               </div>
             </div>
-            <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+            <div class="u-row-wrap">
               <FspButton variant="outline" size="sm" :disabled="pdfLoading" @click="downloadPdf">Скачать PDF</FspButton>
               <FspButton variant="plate" size="sm" href="/candidate/settings">Редактировать</FspButton>
             </div>
@@ -337,10 +346,14 @@ onBeforeUnmount(() => { clearTimeout(pollTimer); clearTimeout(skillTimer) })
           <p v-if="!profile.in_pool_eligible" style="margin: 0; padding: 16px 20px; background: var(--surface); box-shadow: inset 3px 0 0 var(--warning); font-size: 15px;">
             Без минимальной зарплаты и формата профиль не участвует в подборках.
           </p>
+          <div v-if="!profile.grade" class="prof-banner">
+            <div><b>Пройдите опрос и тест на грейд.</b> Категория определяется только тестом — без неё работодатели не найдут вас в подборках.</div>
+            <FspButton size="sm" href="/candidate/onboarding" icon-right="arrow-right">Начать</FspButton>
+          </div>
 
           <section style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: 16px;">
             <FspPlate :dots="6">
-              <div style="font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--on-plate-muted);">Ваша категория</div>
+              <div class="fsp-eyebrow fsp-eyebrow--plate">Ваша категория</div>
               <div class="fsp-display" style="font-size: 28px; line-height: 32px; margin: 10px 0 16px;">{{ categoryLabel(profile.specialization, profile.grade) }}</div>
               <div style="display: flex; gap: 32px;">
                 <div><div class="fsp-display" style="font-size: 28px; line-height: 32px;">{{ profile.category_rank ?? '—' }}</div><div style="font-size: 13px; color: var(--on-plate-muted);">место из {{ profile.category_size ?? '—' }}</div></div>
@@ -350,24 +363,24 @@ onBeforeUnmount(() => { clearTimeout(pollTimer); clearTimeout(skillTimer) })
               <div style="margin-top: 16px;"><NuxtLink to="/candidate/grade" style="color: var(--on-plate); font-weight: 600; font-size: 14px;">Категория и грейд →</NuxtLink></div>
             </FspPlate>
             <NuxtLink to="/candidate/invites" class="fsp-cut" style="--cut: var(--cut-l); --fill: var(--surface); --edge: var(--line-card); --bw: var(--border-card); padding: 32px; text-decoration: none; color: var(--text); display: flex; flex-direction: column; gap: 8px;">
-              <span style="font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted);">Приглашения</span>
+              <span class="fsp-eyebrow">Приглашения</span>
               <span class="fsp-display" style="font-size: 44px; line-height: 48px;">{{ incoming.length }} <span style="font-size: 16px; color: var(--text-muted);">новых</span></span>
-              <span style="font-size: 14px; line-height: 20px; color: var(--text-muted);">{{ incoming[0] ? incoming[0].company_name + ' — ' + salaryRange(incoming[0].salary_from, incoming[0].salary_to) : 'Пока нет входящих' }}</span>
+              <span class="u-note">{{ incoming[0] ? incoming[0].company_name + ' — ' + salaryRange(incoming[0].salary_from, incoming[0].salary_to) : 'Пока нет входящих' }}</span>
               <span style="margin-top: auto; font-weight: 600; font-size: 14px;">Посмотреть →</span>
             </NuxtLink>
             <div class="fsp-cut" style="--cut: var(--cut-l); --fill: var(--surface); --edge: var(--line-card); --bw: var(--border-card); padding: 32px; display: flex; flex-direction: column; gap: 12px;">
-              <span style="font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted);">Участие в подборках</span>
-              <span class="fsp-display" style="font-size: 32px; line-height: 36px;">{{ profile.in_pool_eligible ? 'Да' : 'Нет' }}</span>
-              <span style="font-size: 14px; line-height: 20px; color: var(--text-muted);">{{ STATUS_LABEL[profile.status] }}. Активность: {{ shortDate(profile.last_active_at) }}</span>
+              <span class="fsp-eyebrow">Участие в подборках</span>
+              <span class="fsp-display u-h2">{{ profile.in_pool_eligible ? 'Да' : 'Нет' }}</span>
+              <span class="u-note">{{ STATUS_LABEL[profile.status] }}. Активность: {{ shortDate(profile.last_active_at) }}</span>
             </div>
           </section>
 
           <section id="search" style="padding: 24px 0 0; box-shadow: inset 0 1px 0 var(--line); display: flex; flex-direction: column; gap: 16px;">
-            <h2 class="fsp-display" style="font-size: 20px; line-height: 24px;">Условия поиска</h2>
-            <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+            <h2 class="fsp-display u-h3">Условия поиска</h2>
+            <div class="u-row-wrap">
               <FspChip v-for="s in screen.data.value?.specs ?? []" :key="s.id" :selected="spec === s.id" locked @click="spec = s.id as Spec">{{ s.name }}</FspChip>
             </div>
-            <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+            <div class="u-row-wrap">
               <FspChip v-for="f in FORMATS" :key="f" :selected="formats.includes(f)" locked @click="toggleFormat(f)">{{ FORMAT_LABEL[f] }}</FspChip>
               <FspChip v-for="st in (['seeking', 'open', 'paused'] as Status[])" :key="st" :selected="status === st" locked @click="status = st">{{ STATUS_LABEL[st] }}</FspChip>
             </div>
@@ -380,9 +393,9 @@ onBeforeUnmount(() => { clearTimeout(pollTimer); clearTimeout(skillTimer) })
           </section>
 
           <section style="padding: 24px 0 0; box-shadow: inset 0 1px 0 var(--line); display: flex; flex-direction: column; gap: 12px;">
-            <h2 class="fsp-display" style="font-size: 20px; line-height: 24px;">Задание от работодателя</h2>
+            <h2 class="fsp-display u-h3">Задание от работодателя</h2>
             <ScreenState :phase="taskPhase" :error="taskError" @retry="loadTasks">
-              <p v-if="!tasks.length" style="margin: 0; color: var(--text-muted);">Заданий пока нет.</p>
+              <p v-if="!tasks.length" class="u-muted-p">Заданий пока нет.</p>
               <div v-for="task in tasks" :key="task.id" style="display: flex; flex-direction: column; gap: 8px; padding-top: 12px;">
                 <b>{{ task.title }}</b>
                 <p v-if="task.body" style="margin: 0; font-size: 14px; line-height: 20px; color: var(--text-muted);">{{ task.body }}</p>
@@ -394,7 +407,7 @@ onBeforeUnmount(() => { clearTimeout(pollTimer); clearTimeout(skillTimer) })
 
           <section aria-label="Как подняться в выдаче" class="fsp-cut" style="--cut: var(--cut-l); --fill: var(--surface); --edge: var(--accent-mark); --bw: var(--border-card); padding: 28px;">
             <h2 class="fsp-display" style="font-size: 20px; line-height: 24px; margin-bottom: 18px;">Как подняться в выдаче · топ-3</h2>
-            <p v-if="!hints.length" style="margin: 0; color: var(--text-muted);">Подсказок пока нет.</p>
+            <p v-if="!hints.length" class="u-muted-p">Подсказок пока нет.</p>
             <div v-else style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: 12px;">
               <div v-for="(h, i) in hints" :key="h.id" class="fsp-cut" style="--cut: var(--cut-m); --fill: var(--surface-hover); padding: 20px; display: flex; flex-direction: column; gap: 8px;">
                 <span class="fsp-display" style="font-size: 13px; color: #ffffff; background: var(--accent-mark); width: 34px; height: 24px; display: inline-grid; place-items: center;">0{{ i + 1 }}</span>
@@ -407,32 +420,32 @@ onBeforeUnmount(() => { clearTimeout(pollTimer); clearTimeout(skillTimer) })
 
           <div style="display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start;">
             <div style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column; gap: 24px;">
-              <section style="padding: 24px 0 0; box-shadow: inset 0 1px 0 var(--line);">
-                <h2 class="fsp-display" style="font-size: 20px; line-height: 24px; margin-bottom: 20px;">Подтверждённые навыки</h2>
-                <p v-if="!tested.length" style="margin: 0; color: var(--text-muted);">Навыков с баллом теста пока нет.</p>
+              <section class="fsp-section">
+                <h2 class="fsp-display u-h3 u-mb-20">Подтверждённые навыки</h2>
+                <p v-if="!tested.length" class="u-muted-p">Навыков с баллом теста пока нет.</p>
                 <div v-else style="display: flex; flex-direction: column; gap: 14px;">
                   <div v-for="s in tested" :key="s.skill_id + s.source" style="display: grid; grid-template-columns: 160px 1fr 48px; gap: 16px; align-items: center; font-size: 15px;">
                     <span>{{ skillLabel(s.skill_id) }}</span>
-                    <div style="height: 8px; background: var(--surface-hover);"><div :style="{ width: Math.min(100, s.score || 0) + '%', height: '8px', background: scoreColor(s.score || 0) }" /></div>
-                    <b style="text-align: right;">{{ s.score }}</b>
+                    <div class="fsp-meter"><div :style="{ width: Math.min(100, s.score || 0) + '%', height: '8px', background: scoreColor(s.score || 0) }" /></div>
+                    <b class="u-right">{{ s.score }}</b>
                   </div>
                 </div>
                 <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 24px; padding-top: 20px; box-shadow: inset 0 1px 0 var(--line);">
                   <span style="font-size: 13px; color: var(--text-muted); margin-right: 4px; align-self: center;">Без балла теста:</span>
                   <FspTag v-for="s in unverified" :key="s.skill_id + s.source">{{ skillLabel(s.skill_id) }}</FspTag>
-                  <span v-if="!unverified.length" style="font-size: 13px; color: var(--text-muted);">нет</span>
+                  <span v-if="!unverified.length" class="u-small">нет</span>
                 </div>
               </section>
 
-              <section style="padding: 24px 0 0; box-shadow: inset 0 1px 0 var(--line);">
-                <h2 class="fsp-display" style="font-size: 20px; line-height: 24px; margin-bottom: 20px;">Опыт работы</h2>
-                <p v-if="!profile.experiences?.length" style="margin: 0; color: var(--text-muted);">Опыт появится после подтверждения резюме.</p>
+              <section class="fsp-section">
+                <h2 class="fsp-display u-h3 u-mb-20">Опыт работы</h2>
+                <p v-if="!profile.experiences?.length" class="u-muted-p">Опыт появится после подтверждения резюме.</p>
                 <div v-else style="display: flex; flex-direction: column; gap: 20px;">
-                  <div v-for="exp in profile.experiences" :key="exp.id" style="display: flex; gap: 16px;" @mouseenter="hover = exp.id" @mouseleave="hover = ''">
+                  <div v-for="exp in profile.experiences" :key="exp.id" class="u-row-16" @mouseenter="hover = exp.id" @mouseleave="hover = ''">
                     <FspCompanyLogo :name="exp.company" :size="44" />
                     <div>
-                      <div style="font-weight: 600;">{{ exp.role }}</div>
-                      <div style="font-size: 14px; color: var(--text-muted);">{{ exp.company }} · {{ shortDate(exp.start) }} — {{ exp.end ? shortDate(exp.end) : 'сейчас' }}<template v-if="years(exp)"> · {{ years(exp) }}</template></div>
+                      <div class="u-strong">{{ exp.role }}</div>
+                      <div class="u-note-sm">{{ exp.company }} · {{ shortDate(exp.start) }} — {{ exp.end ? shortDate(exp.end) : 'сейчас' }}<template v-if="years(exp)"> · {{ years(exp) }}</template></div>
                       <div style="font-size: 14px; line-height: 20px; margin-top: 6px;">{{ exp.description }}</div>
                       <div v-if="hover === exp.id && exp.evidence_span" style="margin-top: 8px; font-size: 13px; line-height: 18px; background: var(--plate); color: var(--on-plate); padding: 8px 12px;">{{ exp.evidence_span }}</div>
                     </div>
@@ -441,28 +454,28 @@ onBeforeUnmount(() => { clearTimeout(pollTimer); clearTimeout(skillTimer) })
               </section>
 
               <section id="projects" style="padding: 24px 0 0; box-shadow: inset 0 1px 0 var(--line); display: flex; flex-direction: column; gap: 16px;">
-                <h2 class="fsp-display" style="font-size: 20px; line-height: 24px;">Проекты</h2>
-                <p v-if="!profile.projects?.length" style="margin: 0; color: var(--text-muted);">Проектов пока нет — добавьте первый через мастер.</p>
+                <h2 class="fsp-display u-h3">Проекты</h2>
+                <p v-if="!profile.projects?.length" class="u-muted-p">Проектов пока нет — добавьте первый через мастер.</p>
                 <div v-for="p in profile.projects" :key="p.id" style="padding-bottom: 12px; box-shadow: inset 0 -1px 0 var(--line);">
                   <b>{{ p.task }}</b>
-                  <div style="font-size: 14px; color: var(--text-muted); margin-top: 4px;">{{ ROLE_LABEL[p.role] || p.role }} · {{ p.skills.map(skillLabel).join(', ') }}<template v-if="p.outcome"> · {{ p.outcome }}</template></div>
+                  <div class="u-note-sm u-mt-4">{{ ROLE_LABEL[p.role] || p.role }} · {{ p.skills.map(skillLabel).join(', ') }}<template v-if="p.outcome"> · {{ p.outcome }}</template></div>
                 </div>
                 <div class="fsp-cut" style="--cut: var(--cut-m); --fill: var(--surface); --edge: var(--line-card); --bw: var(--border-card); padding: 20px; display: flex; flex-direction: column; gap: 12px;">
-                  <div style="font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted);">Мастер проекта · шаг {{ step }} из 3</div>
+                  <div class="fsp-eyebrow">Мастер проекта · шаг {{ step }} из 3</div>
                   <template v-if="step === 1">
                     <FspInput v-model="task" label="Задача" />
-                    <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                    <div class="u-row-wrap">
                       <FspChip v-for="r in (['owner', 'contributor', 'participant'] as ProjectRole[])" :key="r" :selected="role === r" locked @click="role = r">{{ ROLE_LABEL[r] }}</FspChip>
                     </div>
                     <FspButton size="sm" @click="task.trim() ? step = 2 : show('Опишите задачу')">Дальше</FspButton>
                   </template>
                   <template v-else-if="step === 2">
                     <FspInput v-model="skillQ" label="Технологии из онтологии" icon="search" placeholder="Go, Kafka…" @input="onSkillInput" />
-                    <div style="display: flex; flex-wrap: wrap; gap: 8px;">
-                      <button v-for="h in skillHits" :key="h.id" type="button" style="all: unset; cursor: pointer;" @click="addSkill(h.id)"><FspTag>{{ h.name }}</FspTag></button>
+                    <div class="u-row-wrap">
+                      <button v-for="h in skillHits" :key="h.id" type="button" class="u-unbutton" @click="addSkill(h.id)"><FspTag>{{ h.name }}</FspTag></button>
                       <FspTag v-for="id in pickedSkills" :key="id">{{ skillLabel(id) }}</FspTag>
                     </div>
-                    <div style="display: flex; gap: 8px;">
+                    <div class="u-row">
                       <FspButton size="sm" variant="ghost" @click="step = 1">Назад</FspButton>
                       <FspButton size="sm" @click="pickedSkills.length ? step = 3 : show('Выберите технологию из подсказок')">Дальше</FspButton>
                     </div>
@@ -472,7 +485,7 @@ onBeforeUnmount(() => { clearTimeout(pollTimer); clearTimeout(skillTimer) })
                     <FspInput v-model="outcome" label="Результат" />
                     <FspInput v-model="projectDate" label="Дата" type="date" />
                     <FspInput v-model="projectUrl" label="Ссылка" />
-                    <div style="display: flex; gap: 8px;">
+                    <div class="u-row">
                       <FspButton size="sm" variant="ghost" @click="step = 2">Назад</FspButton>
                       <FspButton size="sm" :disabled="savingProject" @click="saveProject">Сохранить проект</FspButton>
                     </div>
@@ -481,7 +494,7 @@ onBeforeUnmount(() => { clearTimeout(pollTimer); clearTimeout(skillTimer) })
               </section>
 
               <section v-if="draft" style="padding: 24px 0 0; box-shadow: inset 0 1px 0 var(--line); display: flex; flex-direction: column; gap: 16px;">
-                <h2 class="fsp-display" style="font-size: 20px; line-height: 24px;">Подтвердите резюме</h2>
+                <h2 class="fsp-display u-h3">Подтвердите резюме</h2>
                 <p style="margin: 0; font-size: 14px; color: var(--text-muted);">Наведите на поле — покажем цитату из резюме. Поле без цитаты не сохранится.</p>
                 <div v-for="(exp, i) in draft.experiences ?? []" :key="'e' + i" style="display: flex; flex-direction: column; gap: 8px;" @mouseenter="hover = 'e' + i" @mouseleave="hover = ''">
                   <FspInput v-model="exp.company" label="Компания" />
@@ -502,10 +515,29 @@ onBeforeUnmount(() => { clearTimeout(pollTimer); clearTimeout(skillTimer) })
             </div>
 
             <aside style="flex: 1 1 380px; min-width: 0; display: flex; flex-direction: column; gap: 24px;">
-              <section id="fsp" style="padding: 24px 0 0; box-shadow: inset 0 1px 0 var(--line);">
+              <section class="fsp-section fsp-stack-12">
+                <div class="u-between">
+                  <h2 class="fsp-display u-h3" style="margin: 0;">Рабочий стиль</h2>
+                  <FspStatusBadge v-if="psych?.result" :status="psych.share_with_employers ? 'offer' : 'archived'">{{ psych.share_with_employers ? 'Виден работодателям' : 'Скрыт' }}</FspStatusBadge>
+                </div>
+                <template v-if="psych?.result">
+                  <div class="u-strong-16">{{ psych.result.disc_profile.label }}</div>
+                  <div v-for="sc in psych.result.scales" :key="sc.scale" class="prof-scale">
+                    <span>{{ sc.title }}</span>
+                    <div class="fsp-meter"><span :style="{ width: sc.pct + '%', background: levelColor(sc.level) }" /></div>
+                    <b>{{ sc.pct }}</b>
+                  </div>
+                  <div><FspButton size="sm" variant="ghost" href="/candidate/psych">Подробнее</FspButton></div>
+                </template>
+                <template v-else>
+                  <p class="u-note" style="margin: 0;">Тест рабочего стиля: DISC, лидерство, командность, стрессоустойчивость и трудоспособность. 20 минут, на грейд не влияет.</p>
+                  <div><FspButton size="sm" variant="outline" href="/candidate/psych">{{ psych?.attempt ? 'Продолжить тест' : 'Пройти тест' }}</FspButton></div>
+                </template>
+              </section>
+              <section id="fsp" class="fsp-section">
                 <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 4px;">
-                  <h2 class="fsp-display" style="font-size: 20px; line-height: 24px;">Достижения ФСП</h2>
-                  <img src="/brand/fsp-star-dark.svg" alt="" aria-hidden="true" style="width: 28px; height: 28px;">
+                  <h2 class="fsp-display u-h3">Достижения ФСП</h2>
+                  <img src="/brand/fsp-star-dark.svg" alt="" aria-hidden="true" class="fsp-only-dark" style="width: 28px; height: 28px;"><img src="/brand/fsp-star-light.svg" alt="" aria-hidden="true" class="fsp-only-light" style="width: 28px; height: 28px;">
                 </div>
                 <p v-if="!profile.fsp_achievements?.length" style="margin: 12px 0; color: var(--text-muted); font-size: 14px;">Пока не связаны.</p>
                 <div v-else style="display: flex; flex-direction: column; gap: 16px; margin-top: 16px;">
@@ -514,20 +546,20 @@ onBeforeUnmount(() => { clearTimeout(pollTimer); clearTimeout(skillTimer) })
                       <FspDisciplineBadge :discipline="a.discipline" />
                       <span class="fsp-display" style="font-size: 16px;">{{ a.place ? a.place + ' место' : 'Участие' }}</span>
                     </div>
-                    <div style="font-weight: 600;">{{ a.event }}</div>
-                    <div style="font-size: 13px; color: var(--text-muted);">{{ a.year || '' }}</div>
+                    <div class="u-strong">{{ a.event }}</div>
+                    <div class="u-small">{{ a.year || '' }}</div>
                   </div>
                 </div>
                 <FspButton size="sm" variant="outline" style="margin-top: 16px;" @click="linkFsp">Связать ФСП ID</FspButton>
               </section>
 
-              <section style="padding: 24px 0 0; box-shadow: inset 0 1px 0 var(--line);">
+              <section class="fsp-section">
                 <h2 class="fsp-display" style="font-size: 16px; line-height: 20px; margin-bottom: 16px;">Резюме</h2>
                 <div style="display: flex; gap: 12px; align-items: center;">
                   <FspIcon name="briefcase" :size="28" />
                   <div style="flex: 1; min-width: 0;">
                     <div style="font-weight: 600; font-size: 14px;">{{ resume ? 'PDF загружен' : 'Файл не загружен' }}</div>
-                    <div style="font-size: 13px; color: var(--text-muted);">{{ uploading ? 'Отправляем…' : resume ? (resume.status === 'parsing' ? 'Распознаём…' : resume.status === 'parsed' ? 'Проверьте поля' : resume.status === 'confirmed' ? 'Подтверждено' : resume.status) : 'PDF до 5 МБ и 5 страниц' }}</div>
+                    <div class="u-small">{{ uploading ? 'Отправляем…' : resume ? (resume.status === 'parsing' ? 'Распознаём…' : resume.status === 'parsed' ? 'Проверьте поля' : resume.status === 'confirmed' ? 'Подтверждено' : resume.status) : 'PDF до 5 МБ и 5 страниц' }}</div>
                   </div>
                   <FspButton size="sm" variant="ghost" @click="cvInput?.click()">{{ resume ? 'Заменить' : 'Загрузить' }}</FspButton>
                   <input ref="cvInput" type="file" accept=".pdf,application/pdf" hidden @change="onCv">
@@ -537,8 +569,13 @@ onBeforeUnmount(() => { clearTimeout(pollTimer); clearTimeout(skillTimer) })
             </aside>
           </div>
         </template>
-        <p v-else style="margin: 0; color: var(--text-muted);">Профиль пуст.</p>
+        <p v-else class="u-muted-p">Профиль пуст.</p>
       </ScreenState>
     </main>
   </div>
 </template>
+
+<style>
+.prof-banner { display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: center; justify-content: space-between; padding: 16px 20px; background: var(--surface); box-shadow: inset 3px 0 0 var(--accent-mark); font-size: 15px; line-height: 22px; }
+.prof-scale { display: grid; grid-template-columns: 150px 1fr 32px; gap: 12px; align-items: center; font-size: 14px; }
+</style>

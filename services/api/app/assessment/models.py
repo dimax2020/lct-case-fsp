@@ -69,6 +69,41 @@ class MicroTask(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
+class RoadmapRun(Base):
+    __tablename__ = "roadmap_runs"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    candidate_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("candidates.id", ondelete="CASCADE"), index=True)
+    specialization: Mapped[str] = mapped_column(String(32), nullable=False)
+    declared_grade: Mapped[str] = mapped_column(String(32), nullable=False)
+    level: Mapped[str] = mapped_column(String(32), nullable=False)
+    latent: Mapped[float] = mapped_column(Float, nullable=False)
+    probe_ids: Mapped[list] = mapped_column(JSONB, nullable=False)
+    step_index: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
+    phase: Mapped[str] = mapped_column(String(16), nullable=False, default="checks", server_default="checks")
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    score: Mapped[float | None] = mapped_column(Float)
+    measured_grade: Mapped[str | None] = mapped_column(String(32))
+    outcome: Mapped[str | None] = mapped_column(String(16))
+    cooldown_days: Mapped[int | None] = mapped_column(Integer)
+    locked_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    message: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class RoadmapStep(Base):
+    __tablename__ = "roadmap_steps"
+    __table_args__ = (UniqueConstraint("run_id", "probe_id", name="uq_roadmap_step"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    run_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("roadmap_runs.id", ondelete="CASCADE"), index=True)
+    probe_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    level: Mapped[str] = mapped_column(String(32), nullable=False)
+    checks: Mapped[dict | None] = mapped_column(JSONB)
+    concrete: Mapped[str | None] = mapped_column(Text)
+    block_score: Mapped[float | None] = mapped_column(Float)
+
+
 class MicroAnswer(Base):
     __tablename__ = "micro_answers"
     __table_args__ = (UniqueConstraint("task_id", "candidate_id", name="uq_micro_answer"),)

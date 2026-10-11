@@ -58,7 +58,7 @@ async function revoke(inv: Inv) {
 </script>
 
 <template>
-  <div style="background: var(--bg); color: var(--text); font-family: var(--font-sans); min-height: 100vh;">
+  <div class="fsp-shell">
     <FspHeader product="Для компаний" :user="screen.data.value?.company.name || 'Компания'" :links="employerLinks" />
     <main style="max-width: 1240px; margin: 0 auto; padding: 40px 32px 64px; display: flex; flex-direction: column; gap: 24px;">
       <div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 16px; align-items: flex-end;">
@@ -105,13 +105,13 @@ async function revoke(inv: Inv) {
                     <NuxtLink :to="`/employer/chat?invitation=${r.id}`" class="fsp-link" style="display: inline-block; margin-top: 6px; font-weight: 600;">Открыть переписку</NuxtLink>
                   </template>
                   <template v-else-if="r.status === 'sent' || r.status === 'viewed'">
-                    <div style="color: var(--text-muted);">Скрыты до принятия</div>
+                    <div class="u-muted">Скрыты до принятия</div>
                     <div style="display: flex; gap: 12px; margin-top: 6px;">
                       <a href="#" class="fsp-link" @click.prevent="remind(r)">Напомнить</a>
                       <a href="#" class="fsp-link" @click.prevent="revoke(r)">Отозвать</a>
                     </div>
                   </template>
-                  <span v-else style="color: var(--text-muted);">Скрыты</span>
+                  <span v-else class="u-muted">Скрыты</span>
                 </td>
               </tr>
             </tbody>

@@ -120,3 +120,77 @@ class MicroAnswerOut(BaseModel):
     id: UUID
     task_id: UUID
     answer: str
+
+
+class RoadmapCreate(BaseModel):
+    specialization: Literal["backend", "frontend"]
+    declared_grade: Grade
+
+
+class RoadmapCheckIn(BaseModel):
+    id: str
+    value: Literal["yes", "no", "unknown"]
+
+
+class RoadmapChecksIn(BaseModel):
+    answers: list[RoadmapCheckIn] = Field(min_length=1)
+
+
+class RoadmapConcreteIn(BaseModel):
+    answer: str = Field(min_length=10, max_length=2000)
+
+
+class RoadmapCheckOut(BaseModel):
+    id: str
+    text: str
+
+
+class RoadmapNode(BaseModel):
+    id: str
+    label: str
+    title: str
+    status: Literal["held", "review", "current", "ahead", "aside"]
+    order: int | None = None
+
+
+class RoadmapGap(BaseModel):
+    label: str
+    title: str
+    items: list[str]
+
+
+class RoadmapResultOut(BaseModel):
+    measured_grade: Grade
+    outcome: Literal["up", "down", "same"]
+    cooldown_days: int
+    locked_until: datetime
+    message: str
+    score: float
+
+
+class RoadmapView(BaseModel):
+    id: UUID
+    specialization: Literal["backend", "frontend"]
+    declared_grade: Grade
+    step: int
+    total: int
+    phase: Literal["checks", "concrete", "done"]
+    title: str | None = None
+    prompt: str | None = None
+    checks: list[RoadmapCheckOut] = Field(default_factory=list)
+    saved_checks: dict[str, Literal["yes", "no", "unknown"]] = Field(default_factory=dict)
+    concrete_question: str | None = None
+    result: RoadmapResultOut | None = None
+    nodes: list[RoadmapNode] = Field(default_factory=list)
+    review: list[RoadmapGap] = Field(default_factory=list)
+
+
+class RoadmapLatest(BaseModel):
+    finished: bool
+    open: bool
+    measured_grade: Grade | None = None
+    outcome: Literal["up", "down", "same"] | None = None
+    locked_until: datetime | None = None
+    message: str | None = None
+    nodes: list[RoadmapNode] = Field(default_factory=list)
+    review: list[RoadmapGap] = Field(default_factory=list)

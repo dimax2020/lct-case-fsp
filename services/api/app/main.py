@@ -13,6 +13,7 @@ from app.hints.router import router as hints_router
 from app.invitation.router import router as invitation_router
 from app.need.router import router as need_router
 from app.profile.router import router as profile_router
+from app.psych.router import router as psych_router
 from app.resume.router import router as resume_router
 from app.taxonomy.router import router as taxonomy_router
 from app.vacancy.router import router as vacancy_router
@@ -46,6 +47,7 @@ def create_app() -> FastAPI:
         resume_router,
         hints_router,
         assessment_router,
+        psych_router,
         company_router,
         need_router,
         invitation_router,

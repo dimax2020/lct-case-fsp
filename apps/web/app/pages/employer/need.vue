@@ -206,43 +206,43 @@ onBeforeUnmount(() => clearTimeout(skillTimer))
 </script>
 
 <template>
-  <div style="background: var(--bg); color: var(--text); font-family: var(--font-sans); min-height: 100vh;">
+  <div class="fsp-shell">
     <FspHeader product="Для компаний" :user="companyName" :links="employerLinks" logo-dark="/brand/championship-logo-white.svg" logo-light="/brand/championship-logo-navy.svg" />
-    <main style="max-width: 1240px; margin: 0 auto; padding: 40px 32px 64px;">
-      <h1 class="fsp-display" style="font-size: 40px; line-height: 44px; margin-bottom: 8px;">Кого ищем</h1>
+    <main class="fsp-page">
+      <h1 class="fsp-display fsp-title">Кого ищем</h1>
       <p style="margin: 0 0 32px; font-size: 16px; color: var(--text-muted);">Опишите потребность — соберём подборку из уже проверенных кандидатов. Вакансию публиковать не обязательно.</p>
       <ScreenState :phase="screen.phase.value" :error="screen.error.value" @retry="screen.load">
-        <div style="display: flex; flex-wrap: wrap; gap: 32px; align-items: flex-start;">
+        <div class="fsp-columns">
           <form style="flex: 999 1 620px; min-width: 0; display: flex; flex-direction: column; gap: 28px;" @submit.prevent="build">
             <FspInput v-model="title" label="Название роли" />
             <div>
-              <div style="font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 10px;">Специализация</div>
-              <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+              <div class="fsp-eyebrow u-mb-10">Специализация</div>
+              <div class="u-row-wrap">
                 <FspChip v-for="s in screen.data.value?.specs ?? []" :key="s.id" :selected="spec === s.id" locked @click="spec = s.id as Spec">{{ s.name }}</FspChip>
               </div>
             </div>
             <div>
-              <div style="font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 10px;">Грейд</div>
-              <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+              <div class="fsp-eyebrow u-mb-10">Грейд</div>
+              <div class="u-row-wrap">
                 <FspChip v-for="g in GRADES" :key="g" :selected="grades.includes(g)" locked @click="toggleGrade(g)">{{ GRADE_LABEL[g] }}</FspChip>
               </div>
             </div>
             <div>
-              <div style="font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 10px;">Обязательные навыки · {{ must.length }}/5</div>
+              <div class="fsp-eyebrow u-mb-10">Обязательные навыки · {{ must.length }}/5</div>
               <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px;">
-                <button v-for="id in must" :key="id" type="button" style="all: unset; cursor: pointer;" @click="move(id, 'nice')"><FspTag>{{ skillLabel(id) }} · в желательные</FspTag></button>
+                <button v-for="id in must" :key="id" type="button" class="u-unbutton" @click="move(id, 'nice')"><FspTag>{{ skillLabel(id) }} · в желательные</FspTag></button>
               </div>
               <div style="font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); margin: 12px 0 10px;">Желательные · {{ nice.length }}/5</div>
               <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px;">
-                <button v-for="id in nice" :key="id" type="button" style="all: unset; cursor: pointer;" @click="must.length < 5 ? move(id, 'must') : nice = nice.filter(x => x !== id)"><FspTag>{{ skillLabel(id) }} ×</FspTag></button>
+                <button v-for="id in nice" :key="id" type="button" class="u-unbutton" @click="must.length < 5 ? move(id, 'must') : nice = nice.filter(x => x !== id)"><FspTag>{{ skillLabel(id) }} ×</FspTag></button>
               </div>
               <FspInput v-model="tech" icon="search" placeholder="Добавить из онтологии" aria-label="Добавить технологию" @input="onTech" />
               <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px;">
-                <button v-for="h in hits" :key="h.id" type="button" style="all: unset; cursor: pointer;" @click="addSkill(h.id)"><FspTag>{{ h.name }}</FspTag></button>
+                <button v-for="h in hits" :key="h.id" type="button" class="u-unbutton" @click="addSkill(h.id)"><FspTag>{{ h.name }}</FspTag></button>
               </div>
             </div>
             <label style="display: flex; flex-direction: column; gap: 6px;">
-              <span style="font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted);">Чем занимается команда · {{ description.trim().length }}/300</span>
+              <span class="fsp-eyebrow">Чем занимается команда · {{ description.trim().length }}/300</span>
               <textarea v-model="description" rows="6" placeholder="Что человек будет делать первые 3 месяца" style="font: 400 16px/24px var(--font-sans); color: var(--text); background: var(--field); border: 1px solid var(--line-strong); padding: 12px 16px; resize: vertical;" />
             </label>
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: 16px;">
@@ -252,14 +252,14 @@ onBeforeUnmount(() => clearTimeout(skillTimer))
               <FspInput v-model="stages" label="Этапов найма" inputmode="numeric" />
             </div>
             <div>
-              <div style="font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 8px;">Формат</div>
-              <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+              <div class="fsp-eyebrow u-mb-8">Формат</div>
+              <div class="u-row-wrap">
                 <FspChip v-for="f in FORMATS" :key="f" :selected="formats.includes(f)" locked @click="toggleFormat(f)">{{ FORMAT_LABEL[f] }}</FspChip>
               </div>
             </div>
             <div>
-              <div style="font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 8px;">Домен</div>
-              <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+              <div class="fsp-eyebrow u-mb-8">Домен</div>
+              <div class="u-row-wrap">
                 <FspChip v-for="d in screen.data.value?.domains ?? []" :key="d.id" :selected="domain === d.id" locked @click="domain = d.id">{{ d.name }}</FspChip>
               </div>
             </div>
@@ -269,7 +269,7 @@ onBeforeUnmount(() => clearTimeout(skillTimer))
               <div v-for="(req, i) in requirements" :key="req.id || i" style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding-top: 10px; box-shadow: inset 0 1px 0 var(--line);">
                 <div style="flex: 1 1 240px;">
                   <b>{{ req.task }}</b>
-                  <div style="font-size: 13px; color: var(--text-muted);">{{ (req.skills ?? []).map(skillLabel).join(', ') }}</div>
+                  <div class="u-small">{{ (req.skills ?? []).map(skillLabel).join(', ') }}</div>
                 </div>
                 <FspChip :selected="req.kind === 'must'" locked @click="setKind(req, 'must')">Обязательно</FspChip>
                 <FspChip :selected="req.kind === 'nice'" locked @click="setKind(req, 'nice')">Желательно</FspChip>

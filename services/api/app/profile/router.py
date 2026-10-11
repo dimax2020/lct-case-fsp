@@ -107,6 +107,16 @@ async def link_my_fsp(
     return await storage.link_fsp(session, candidate)
 
 
+@router.delete("/candidates/me/fsp-link", response_model=CandidateProfile)
+async def unlink_my_fsp(
+    principal: Principal = Depends(require_role("candidate")),
+    session: AsyncSession = Depends(_db),
+) -> CandidateProfile:
+    """Отвязать ФСП ID: достижения и навыки из реестра ФСП удаляются из профиля."""
+    candidate = await storage.current_candidate(session, principal)
+    return await storage.unlink_fsp(session, candidate)
+
+
 @router.get("/candidates/me/grade", response_model=GradeView)
 async def get_my_grade(
     principal: Principal = Depends(require_role("candidate")),
@@ -122,7 +132,7 @@ async def get_my_settings(
     session: AsyncSession = Depends(_db),
 ) -> CandidateSettings:
     candidate = await storage.current_candidate(session, principal)
-    return await storage.settings_view(candidate)
+    return await storage.settings_full(session, candidate)
 
 
 @router.put("/candidates/me/settings", response_model=CandidateSettings)
@@ -132,7 +142,8 @@ async def update_my_settings(
     session: AsyncSession = Depends(_db),
 ) -> CandidateSettings:
     candidate = await storage.current_candidate(session, principal)
-    return await storage.update_settings(session, candidate, body)
+    await storage.update_settings(session, candidate, body)
+    return await storage.settings_full(session, candidate)
 
 
 @router.get("/candidates/me/profile.pdf")
@@ -157,11 +168,13 @@ async def search_candidate_bank(
     stack: str | None = None,
     fsp: bool | None = None,
     q: str | None = None,
-    _: Principal = Depends(require_role("employer")),
+    principal: Principal = Depends(require_role("employer")),
     session: AsyncSession = Depends(_db),
 ) -> list[CandidateBankItem]:
+    company_id = await storage.employer_company_id(session, principal)
     return await search_candidates(
         session,
+        company_id=company_id,
         specialization=specialization,
         grade=grade,
         stack=stack,

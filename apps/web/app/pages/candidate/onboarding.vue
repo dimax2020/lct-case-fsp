@@ -1,110 +1,154 @@
 <script setup lang="ts">
 import type { components } from '~/api/schema'
 import { read } from '~/utils/read'
+import { apiFetch } from '~/utils/raw'
 
 type Spec = components['schemas']['Specialization']
 type Grade = components['schemas']['Grade']
-type Attempt = components['schemas']['AttemptView']
-type Task = components['schemas']['TaskPublic']
-type Run = components['schemas']['RunOut']
+type Mark = 'yes' | 'no' | 'unknown'
+
+type RoadmapRun = {
+  id: string
+  specialization: 'backend' | 'frontend'
+  declared_grade: Grade
+  step: number
+  total: number
+  phase: 'checks' | 'concrete' | 'done'
+  title: string | null
+  prompt: string | null
+  checks: { id: string; text: string }[]
+  saved_checks: Partial<Record<string, Mark>>
+  concrete_question: string | null
+  nodes: { id: string; label: string; title: string; status: 'held' | 'review' | 'current' | 'ahead' | 'aside'; order: number | null }[]
+  review: { label: string; title: string; items: string[] }[]
+  result: {
+    measured_grade: Grade
+    outcome: 'up' | 'down' | 'same'
+    cooldown_days: number
+    locked_until: string
+    message: string
+    score: number
+  } | null
+}
+
+const OPEN_SPECS = new Set(['backend', 'frontend'])
+const RUN_KEY = 'fsp-roadmap-run'
 
 useHead({ title: 'Опрос и тест на грейд — Карьера ФСП' })
 const cabinetUser = useCabinetUser('Кандидат')
-
 const { show } = useToast()
 const api = useApi()
+const route = useRoute()
 const screen = useScreen(async () => {
-  const specs = await read(api.GET('/api/v1/taxonomy/specializations'))
-  const id = rememberedAttempt()
-  let attempt: Attempt | null = null
-  if (id) {
-    try {
-      attempt = await read(api.GET('/api/v1/assessment/attempts/{id}', { params: { path: { id } } }))
-    } catch {
-      attempt = null
+  const [specs, domains, profile] = await Promise.all([
+    read(api.GET('/api/v1/taxonomy/specializations')),
+    read(api.GET('/api/v1/taxonomy/domains')),
+    read(api.GET('/api/v1/candidates/me')),
+  ])
+  return { specs, domains, profile }
+})
+
+onMounted(async () => {
+  if (route.query.consent !== '1') return
+  try {
+    const current = await read(api.GET('/api/v1/candidates/me/settings'))
+    if (!current.consent_processing) {
+      await read(api.PUT('/api/v1/candidates/me/settings', { body: { ...current, consent_processing: true } }))
     }
+  } catch {
+    // Согласие можно дать и позже в настройках.
   }
-  return { specs, attempt }
 })
 
 const spec = ref<Spec | ''>('')
+const industries = ref<string[]>([])
 const grade = ref<Grade | ''>('')
-const attempt = ref<Attempt | null>(null)
-const seen = ref<Task[]>([])
-const reviewId = ref('')
-const code = ref('')
-const language = ref('python')
-const picked = ref('')
-const run = ref<Run | null>(null)
+const run = ref<RoadmapRun | null>(null)
+const marks = reactive<Record<string, Mark | ''>>({})
+const concrete = ref('')
 const busy = ref(false)
-const seconds = ref(0)
-let timer: ReturnType<typeof setInterval> | undefined
 
 watch(screen.data, (bundle) => {
   if (!bundle) return
-  if (bundle.attempt) applyAttempt(bundle.attempt)
+  industries.value = [...(bundle.profile.liked_domains ?? [])]
+  if (bundle.profile.specialization && !spec.value && OPEN_SPECS.has(bundle.profile.specialization)) {
+    spec.value = bundle.profile.specialization
+  }
 }, { immediate: true })
 
 const step = computed(() => {
-  if (attempt.value?.result || attempt.value?.finished_at) return 4
-  if (attempt.value) return 3
-  if (grade.value) return 2
-  return 1
-})
-const current = computed(() => {
-  if (reviewId.value) return seen.value.find(t => t.id === reviewId.value) ?? attempt.value?.task ?? null
-  return attempt.value?.task ?? null
-})
-const clock = computed(() => `${String(Math.floor(seconds.value / 60)).padStart(2, '0')}:${String(seconds.value % 60).padStart(2, '0')}`)
-const cells = computed(() => {
-  const total = attempt.value?.progress.total ?? 12
-  const currentIndex = attempt.value?.progress.current ?? 1
-  return Array.from({ length: total }, (_, i) => (i + 1 < currentIndex ? 'var(--success)' : i + 1 === currentIndex && !attempt.value?.result ? 'var(--warning)' : 'var(--line-strong)'))
+  if (run.value?.phase === 'done') return 4
+  if (run.value) return 3
+  if (!industries.value.length) return 1
+  if (!spec.value || !grade.value) return 2
+  return 2
 })
 
-function cacheKey(id: string) {
-  return `fsp-attempt-seen:${id}`
+function toggleIndustry(id: string) {
+  if (industries.value.includes(id)) {
+    industries.value = industries.value.filter(item => item !== id)
+    return
+  }
+  if (industries.value.length >= 3) {
+    show('Можно выбрать до трёх отраслей')
+    return
+  }
+  industries.value = [...industries.value, id]
 }
-function rememberSeen(id: string) {
+function rememberRun(id: string) {
+  if (import.meta.client) sessionStorage.setItem(RUN_KEY, id)
+}
+function applyRun(next: RoadmapRun) {
+  run.value = next
+  rememberRun(next.id)
+  for (const key of Object.keys(marks)) delete marks[key]
+  for (const item of next.checks) marks[item.id] = next.saved_checks[item.id] ?? ''
+  if (next.phase === 'checks') concrete.value = ''
+}
+async function resume() {
   if (!import.meta.client) return
-  sessionStorage.setItem(cacheKey(id), JSON.stringify(seen.value))
-}
-function restoreSeen(id: string) {
-  if (!import.meta.client) return
-  const raw = sessionStorage.getItem(cacheKey(id))
-  if (!raw) return
-  try { seen.value = JSON.parse(raw) as Task[] } catch { seen.value = [] }
-}
-function applyAttempt(next: Attempt) {
-  attempt.value = next
-  rememberAttempt(next.id)
-  restoreSeen(next.id)
-  seconds.value = next.remaining_seconds
-  if (next.task && !seen.value.some(t => t.id === next.task?.id)) seen.value.push(next.task)
-  rememberSeen(next.id)
-  if (!reviewId.value && next.task) {
-    language.value = next.task.languages?.[0] || 'python'
-    code.value = ''
-    picked.value = ''
-    run.value = null
+  const id = sessionStorage.getItem(RUN_KEY)
+  if (!id) return
+  try {
+    const next = await apiFetch<RoadmapRun>(`/api/v1/assessment/roadmap/runs/${id}`)
+    if (next.phase === 'done') run.value = next
+    else applyRun(next)
+  } catch {
+    sessionStorage.removeItem(RUN_KEY)
   }
 }
+const lockPassed = computed(() => {
+  const until = run.value?.result?.locked_until
+  return until ? new Date(until).getTime() <= Date.now() : false
+})
+onMounted(resume)
 
-function startClock() {
-  clearInterval(timer)
-  timer = setInterval(() => { if (seconds.value > 0) seconds.value -= 1 }, 1000)
+function pickSpec(id: string) {
+  if (!OPEN_SPECS.has(id)) return
+  spec.value = id as Spec
 }
-onMounted(startClock)
-onBeforeUnmount(() => clearInterval(timer))
 
 async function start() {
-  if (!spec.value || !grade.value) { show('Выберите специализацию и грейд'); return }
+  if (!industries.value.length) {
+    show('Выберите хотя бы одну отрасль')
+    return
+  }
+  if (spec.value !== 'backend' && spec.value !== 'frontend') {
+    show('Сейчас тест есть только для backend и frontend')
+    return
+  }
+  if (!grade.value) {
+    show('Выберите грейд')
+    return
+  }
   busy.value = true
   try {
-    const next = await read(api.POST('/api/v1/assessment/attempts', { body: { specialization: spec.value, declared_grade: grade.value } }))
-    seen.value = []
-    applyAttempt(next)
-    show('Тест начат — ответы сохраняются после каждого задания')
+    await read(api.PUT('/api/v1/candidates/me', { body: { liked_domains: industries.value, specialization: spec.value } }))
+    applyRun(await apiFetch<RoadmapRun>('/api/v1/assessment/roadmap/runs', {
+      method: 'POST',
+      body: { specialization: spec.value, declared_grade: grade.value },
+    }))
+    show('Тест начат. Всю карту проходить не нужно — три темы.')
   } catch (e) {
     show(e instanceof Error ? e.message : 'Не удалось начать тест')
   } finally {
@@ -112,28 +156,40 @@ async function start() {
   }
 }
 
-async function sendAnswer(skip: boolean) {
-  const task = current.value
-  if (!attempt.value || !task) return
-  if (!skip && task.kind === 'mcq' && !picked.value) { show('Выберите вариант ответа'); return }
-  if (!skip && task.kind === 'code' && code.value.trim().length < 1) { show('Напишите решение'); return }
+async function sendChecks() {
+  if (!run.value) return
+  const answers = run.value.checks.map(item => ({ id: item.id, value: marks[item.id] }))
+  if (answers.some(item => item.value !== 'yes' && item.value !== 'no' && item.value !== 'unknown')) {
+    show('Отметьте каждое утверждение: да, нет или не знаю')
+    return
+  }
   busy.value = true
   try {
-    const next = await read(api.POST('/api/v1/assessment/attempts/{id}/answers', {
-      params: { path: { id: attempt.value.id } },
-      body: {
-        task_id: task.id,
-        skip,
-        answer: task.kind === 'mcq' ? picked.value || null : null,
-        code: task.kind === 'code' ? code.value : null,
-        language: task.kind === 'code' ? language.value : null,
-      },
+    applyRun(await apiFetch<RoadmapRun>(`/api/v1/assessment/roadmap/runs/${run.value.id}/checks`, {
+      method: 'POST',
+      body: { answers },
     }))
-    reviewId.value = ''
-    applyAttempt(next)
-    if (task.kind === 'code' && !skip) {
-      run.value = await read(api.POST('/api/v1/assessment/run', { body: { task_id: task.id, code: code.value, language: language.value } }))
-    }
+  } catch (e) {
+    show(e instanceof Error ? e.message : 'Не удалось сохранить отметки')
+  } finally {
+    busy.value = false
+  }
+}
+
+async function sendConcrete() {
+  if (!run.value) return
+  if (concrete.value.trim().length < 10) {
+    show('Ответ — хотя бы одно предложение')
+    return
+  }
+  busy.value = true
+  try {
+    const next = await apiFetch<RoadmapRun>(`/api/v1/assessment/roadmap/runs/${run.value.id}/concrete`, {
+      method: 'POST',
+      body: { answer: concrete.value.trim() },
+    })
+    applyRun(next)
+    if (next.phase === 'done') show('Тест завершён')
   } catch (e) {
     show(e instanceof Error ? e.message : 'Не удалось сохранить ответ')
   } finally {
@@ -141,48 +197,9 @@ async function sendAnswer(skip: boolean) {
   }
 }
 
-async function runCode() {
-  const task = current.value
-  if (!task || task.kind !== 'code') return
-  if (!code.value.trim()) { show('Напишите решение'); return }
-  busy.value = true
-  try {
-    run.value = await read(api.POST('/api/v1/assessment/run', { body: { task_id: task.id, code: code.value, language: language.value } }))
-  } catch (e) {
-    show(e instanceof Error ? e.message : 'Не удалось запустить код')
-  } finally {
-    busy.value = false
-  }
-}
-
-async function finish() {
-  if (!attempt.value) return
-  busy.value = true
-  try {
-    const result = await read(api.POST('/api/v1/assessment/attempts/{id}/finish', { params: { path: { id: attempt.value.id } } }))
-    const next = await read(api.GET('/api/v1/assessment/attempts/{id}', { params: { path: { id: attempt.value.id } } }))
-    next.result = result
-    applyAttempt(next)
-    show('Тест завершён')
-  } catch (e) {
-    show(e instanceof Error ? e.message : 'Не удалось завершить тест')
-  } finally {
-    busy.value = false
-  }
-}
-
-function openSeen(task: Task) {
-  reviewId.value = task.id
-  language.value = task.languages?.[0] || 'python'
-  code.value = ''
-  picked.value = ''
-  run.value = null
-}
-
-const sample = computed(() => current.value?.tests_public?.[0] ?? null)
 const optStyle = (on: boolean) => on
-  ? '--cut: var(--cut-s); padding: 14px 16px; display: flex; gap: 12px; align-items: center; cursor: pointer;'
-  : '--cut: var(--cut-s); --fill: var(--bg); --edge: var(--line-strong); --bw: 1px; padding: 14px 16px; display: flex; gap: 12px; align-items: center; cursor: pointer;'
+  ? '--cut: var(--cut-s); padding: 8px 12px; cursor: pointer;'
+  : '--cut: var(--cut-s); --fill: var(--bg); --edge: var(--line-strong); --bw: 1px; padding: 8px 12px; cursor: pointer;'
 </script>
 
 <template>
@@ -193,18 +210,25 @@ const optStyle = (on: boolean) => on
         <nav aria-label="Шаги онбординга" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: 8px; margin-bottom: 40px;">
           <div :style="{ padding: '14px 0', boxShadow: 'inset 0 3px 0 ' + (step > 1 ? 'var(--success)' : 'var(--warning)') }"><div style="font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted);">Шаг 1</div><div style="font-weight: 600; margin-top: 4px;">Специализация</div></div>
           <div :style="{ padding: '14px 0', boxShadow: 'inset 0 3px 0 ' + (step > 2 ? 'var(--success)' : step === 2 ? 'var(--warning)' : 'var(--line-strong)') }"><div style="font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted);">Шаг 2</div><div style="font-weight: 600; margin-top: 4px;">Предполагаемый грейд</div></div>
-          <div :style="{ padding: '14px 0', boxShadow: 'inset 0 3px 0 ' + (step > 3 ? 'var(--success)' : step === 3 ? 'var(--warning)' : 'var(--line-strong)') }"><div style="font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted);">Шаг 3</div><div style="font-weight: 600; margin-top: 4px;">Тест на грейд</div></div>
-          <div :style="{ padding: '14px 0', boxShadow: 'inset 0 3px 0 ' + (step === 4 ? 'var(--success)' : 'var(--line-strong)') }"><div style="font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted);">Шаг 4</div><div style="font-weight: 600; margin-top: 4px;">Категория</div></div>
+          <div :style="{ padding: '14px 0', boxShadow: 'inset 0 3px 0 ' + (step > 3 ? 'var(--success)' : step === 3 ? 'var(--warning)' : 'var(--line-strong)') }"><div style="font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted);">Шаг 3</div><div style="font-weight: 600; margin-top: 4px;">Тест по карте</div></div>
+          <div :style="{ padding: '14px 0', boxShadow: 'inset 0 3px 0 ' + (step === 4 ? 'var(--success)' : 'var(--line-strong)') }"><div style="font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted);">Шаг 4</div><div style="font-weight: 600; margin-top: 4px;">Результат</div></div>
         </nav>
 
         <section v-if="step < 3" style="display: flex; flex-direction: column; gap: 20px; max-width: 760px;">
           <h1 class="fsp-display" style="font-size: 36px; line-height: 40px;">Опрос</h1>
-          <p style="margin: 0; color: var(--text-muted);">Специализация и предполагаемый грейд задают набор из 12 заданий на 40 минут.</p>
+          <p style="margin: 0; color: var(--text-muted); line-height: 24px;">Сначала отрасль, затем специализация и грейд. Вопросы — сжатая выборка из <a class="fsp-link" href="https://roadmap.sh/backend" target="_blank" rel="noopener">карты backend</a> и <a class="fsp-link" href="https://roadmap.sh/frontend" target="_blank" rel="noopener">карты frontend</a>. Всю карту проходить не нужно.</p>
+          <div>
+            <div style="font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 10px;">Отрасль · до трёх</div>
+            <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+              <FspChip v-for="d in screen.data.value?.domains ?? []" :key="d.id" :selected="industries.includes(d.id)" locked @click="toggleIndustry(d.id)">{{ d.name }}</FspChip>
+            </div>
+          </div>
           <div>
             <div style="font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 10px;">Специализация</div>
             <div style="display: flex; flex-wrap: wrap; gap: 8px;">
-              <FspChip v-for="s in screen.data.value?.specs ?? []" :key="s.id" :selected="spec === s.id" locked @click="spec = s.id as Spec">{{ s.name }}</FspChip>
+              <FspChip v-for="s in screen.data.value?.specs ?? []" :key="s.id" :selected="spec === s.id" :disabled="!OPEN_SPECS.has(s.id)" locked @click="pickSpec(s.id)">{{ s.name }}</FspChip>
             </div>
+            <p style="margin: 8px 0 0; font-size: 13px; color: var(--text-muted);">Data/ML и DevOps ещё не входят в этот тест.</p>
           </div>
           <div>
             <div style="font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 10px;">Грейд</div>
@@ -215,82 +239,62 @@ const optStyle = (on: boolean) => on
           <FspButton icon-right="arrow-right" :disabled="busy" @click="start">Начать тест</FspButton>
         </section>
 
-        <section v-else-if="step === 4 && attempt?.result" style="display: flex; flex-direction: column; gap: 20px; max-width: 760px;">
-          <h1 class="fsp-display" style="font-size: 36px; line-height: 40px;">{{ categoryLabel(attempt.specialization, attempt.result.grade) }}</h1>
-          <FspPlate :dots="6">
-            <div class="fsp-display" style="font-size: 48px; line-height: 52px;">{{ attempt.result.score }}</div>
-            <div style="color: var(--on-plate-muted);">баллов из 100<template v-if="attempt.result.ready_for_next"> · готов к следующему</template></div>
-            <div style="margin-top: 12px;">Место {{ attempt.result.rank ?? '—' }} из {{ attempt.result.category_size ?? '—' }}</div>
-          </FspPlate>
-          <div v-for="s in attempt.result.skill_scores" :key="s.skill_id" style="display: grid; grid-template-columns: 160px 1fr 48px; gap: 16px; align-items: center;">
-            <span>{{ skillLabel(s.skill_id) }}</span>
-            <div style="height: 8px; background: var(--surface-hover);"><div :style="{ width: Math.min(100, s.score) + '%', height: '8px', background: scoreColor(s.score) }" /></div>
-            <b>{{ s.score }}</b>
+        <section v-else-if="step === 4 && run?.result" style="display: flex; flex-direction: column; gap: 28px;">
+          <div style="max-width: 760px;">
+            <h1 class="fsp-display" style="font-size: 36px; line-height: 40px; margin: 0 0 16px;">{{ categoryLabel(run.specialization, run.result.measured_grade) }}</h1>
+            <FspPlate :dots="6">
+              <p style="margin: 0; font-size: 18px; line-height: 28px;">{{ run.result.message }}</p>
+              <div style="margin-top: 16px; color: var(--on-plate-muted);">Следующая попытка: {{ new Date(run.result.locked_until).toLocaleDateString('ru-RU') }}</div>
+            </FspPlate>
           </div>
-          <FspButton href="/candidate/profile">К профилю</FspButton>
+          <FspRoadmapMap :nodes="run.nodes || []" :review="run.review || []" :specialization="run.specialization" show-review />
+          <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+            <FspButton href="/candidate/psych" icon-right="arrow-right">Пройти тест рабочего стиля</FspButton>
+            <FspButton variant="outline" href="/candidate/grade">К категории и грейду</FspButton>
+            <FspButton v-if="lockPassed" variant="ghost" @click="run = null">Пройти снова</FspButton>
+          </div>
         </section>
 
-        <div v-else style="display: flex; flex-wrap: wrap; gap: 32px; align-items: flex-start;">
-          <section style="flex: 999 1 600px; min-width: 0; display: flex; flex-direction: column; gap: 24px;">
-            <template v-if="current">
-              <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px;">
-                <span style="font-size: 14px; color: var(--text-muted);">Задание</span>
-                <span class="fsp-display" style="font-size: 20px; line-height: 24px;">{{ attempt?.progress.current }} / {{ attempt?.progress.total }}</span>
-                <FspTag>{{ current.kind === 'code' ? 'Код' : 'Выбор ответа' }}</FspTag>
-                <FspTag>Сложность {{ current.difficulty }} из 5</FspTag>
-                <span style="margin-left: auto; display: inline-flex; align-items: center; gap: 8px; font-weight: 600;"><FspIcon name="clock" />{{ clock }}</span>
-              </div>
-              <p style="margin: 0; font-size: 16px; line-height: 24px;">{{ current.body }}</p>
-              <div v-if="current.kind === 'code'" style="display: flex; flex-direction: column; gap: 12px;">
-                <div style="display: flex; gap: 8px;">
-                  <FspChip v-for="lang in (current.languages?.length ? current.languages : ['python', 'go'])" :key="lang" :selected="language === lang" locked @click="language = lang">{{ lang === 'go' ? 'Go' : 'Python' }}</FspChip>
-                </div>
-                <CodeEditor :key="current.id + language" v-model="code" :language="language" />
-                <div v-if="sample" style="font-size: 13px; color: var(--text-muted);">
-                  Открытый пример: stdin «{{ sample.stdin.trim() }}» → {{ sample.expected.trim() }}
-                </div>
-                <div v-if="run" class="fsp-cut" style="--cut: var(--cut-s); --fill: var(--surface); --edge: var(--line-card); --bw: 1px; padding: 16px;">
-                  <b>{{ VERDICT_LABEL[run.verdict] || run.verdict }}</b>
-                  <div style="font-size: 14px; color: var(--text-muted); margin-top: 4px;">Тестов пройдено: {{ run.passed }} из {{ run.total }}</div>
-                  <pre v-if="run.stdout || run.stderr" style="margin: 8px 0 0; white-space: pre-wrap; font: 13px/18px ui-monospace, monospace;">{{ run.stdout }}{{ run.stderr }}</pre>
-                </div>
-              </div>
-              <fieldset v-else style="border: 0; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px;">
-                <legend style="font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 8px;">Выберите ответ</legend>
-                <label v-for="o in current.options ?? []" :key="o.id" :class="['fsp-cut', picked === o.id && 'fsp-active']" :style="optStyle(picked === o.id)">
-                  <input v-model="picked" type="radio" :value="o.id" style="accent-color: var(--primary); width: 18px; height: 18px; margin: 0;">{{ o.text }}
-                </label>
-              </fieldset>
-              <div style="display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; padding-top: 16px; box-shadow: inset 0 1px 0 var(--line);">
-                <FspButton variant="ghost" :disabled="busy" @click="sendAnswer(true)">Пропустить</FspButton>
-                <div style="display: flex; gap: 8px;">
-                  <FspButton v-if="current.kind === 'code'" variant="outline" :disabled="busy" @click="runCode">Запустить</FspButton>
-                  <FspButton :disabled="busy" @click="sendAnswer(false)">{{ current.kind === 'code' ? 'Отправить' : 'Ответить' }}</FspButton>
-                </div>
-              </div>
-            </template>
-            <div v-else style="display: flex; flex-direction: column; gap: 12px;">
-              <p style="margin: 0;">Все показанные задания сохранены. Можно вернуться к пропущенным или завершить тест.</p>
-              <FspButton :disabled="busy" @click="finish">Завершить тест</FspButton>
+        <div v-else-if="run" style="display: flex; flex-wrap: wrap; gap: 32px; align-items: flex-start;">
+          <section style="flex: 999 1 640px; min-width: 0; display: flex; flex-direction: column; gap: 24px;">
+            <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px;">
+              <span style="font-size: 14px; color: var(--text-muted);">Тема</span>
+              <span class="fsp-display" style="font-size: 20px; line-height: 24px;">{{ run.step }} / {{ run.total }}</span>
+              <FspTag>{{ run.phase === 'concrete' ? 'Конкретный вопрос' : 'Да, нет, не знаю' }}</FspTag>
             </div>
-            <div v-if="seen.length" style="display: flex; flex-wrap: wrap; gap: 8px;">
-              <FspButton v-for="(t, i) in seen" :key="t.id" size="sm" variant="ghost" @click="openSeen(t)">{{ i + 1 }}</FspButton>
+            <h1 class="fsp-display" style="font-size: 32px; line-height: 36px; margin: 0;">{{ run.title }}</h1>
+            <p style="margin: 0; color: var(--text-muted); line-height: 24px;">{{ run.prompt }}</p>
+
+            <div v-if="run.phase === 'checks'" style="display: flex; flex-direction: column; gap: 16px;">
+              <div v-for="item in run.checks" :key="item.id" style="padding-top: 16px; box-shadow: inset 0 1px 0 var(--line);">
+                <p style="margin: 0 0 10px; font-size: 16px; line-height: 24px;">{{ item.text }}</p>
+                <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                  <button type="button" :class="['fsp-cut', marks[item.id] === 'yes' && 'fsp-active']" :style="optStyle(marks[item.id] === 'yes')" @click="marks[item.id] = 'yes'">Да</button>
+                  <button type="button" :class="['fsp-cut', marks[item.id] === 'no' && 'fsp-active']" :style="optStyle(marks[item.id] === 'no')" @click="marks[item.id] = 'no'">Нет</button>
+                  <button type="button" :class="['fsp-cut', marks[item.id] === 'unknown' && 'fsp-active']" :style="optStyle(marks[item.id] === 'unknown')" @click="marks[item.id] = 'unknown'">Не знаю</button>
+                </div>
+              </div>
+              <div style="display: flex; justify-content: flex-end; padding-top: 8px;">
+                <FspButton :disabled="busy" @click="sendChecks">Дальше к вопросу</FspButton>
+              </div>
+            </div>
+
+            <div v-else style="display: flex; flex-direction: column; gap: 16px;">
+              <p style="margin: 0; font-size: 18px; line-height: 28px;">{{ run.concrete_question }}</p>
+              <textarea v-model="concrete" aria-label="Ответ на конкретный вопрос" style="box-sizing: border-box; width: 100%; min-height: 160px; padding: 16px; resize: vertical; border: 1px solid var(--line-strong); background: var(--surface); color: var(--text); font: 16px/24px var(--font-sans);" />
+              <div style="display: flex; justify-content: flex-end;">
+                <FspButton :disabled="busy" @click="sendConcrete">{{ run.step === run.total ? 'Завершить тест' : 'Следующая тема' }}</FspButton>
+              </div>
             </div>
           </section>
           <aside style="flex: 1 1 320px; min-width: 0; display: flex; flex-direction: column; gap: 16px;">
             <FspPlate :dots="6">
-              <div style="font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--on-plate-muted);">Вы проходите тест на</div>
-              <div class="fsp-display" style="font-size: 26px; line-height: 30px; margin: 10px 0 6px;">{{ categoryLabel(attempt?.specialization, attempt?.declared_grade) }}</div>
-              <div style="font-size: 14px; color: var(--on-plate-muted);">Отвечено {{ attempt?.progress.answered ?? 0 }}, пропущено {{ attempt?.progress.skipped ?? 0 }}</div>
+              <div style="font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--on-plate-muted);">Вы заявили</div>
+              <div class="fsp-display" style="font-size: 26px; line-height: 30px; margin: 10px 0 6px;">{{ categoryLabel(run.specialization, run.declared_grade) }}</div>
+              <div style="font-size: 14px; line-height: 20px; color: var(--on-plate-muted);">Тема на карте подсвечена. Оценка по ходу не показывается.</div>
             </FspPlate>
-            <div style="padding: 20px 0 0; box-shadow: inset 0 1px 0 var(--line);">
-              <div style="display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 12px;"><span style="color: var(--text-muted);">Прогресс</span><b>{{ (attempt?.progress.answered ?? 0) + (attempt?.progress.skipped ?? 0) }} из {{ attempt?.progress.total ?? 12 }}</b></div>
-              <div style="display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 4px;">
-                <span v-for="(c, i) in cells" :key="i" :style="{ height: '8px', background: c }" />
-              </div>
-              <p style="margin: 16px 0 0; font-size: 13px; line-height: 18px; color: var(--text-muted);">Перезагрузка не сбрасывает прогресс: ответы уже на сервере.</p>
-              <FspButton variant="ghost" size="sm" href="/candidate/profile" style="margin-top: 12px;">Прервать тест</FspButton>
-            </div>
+            <FspRoadmapMap :nodes="run.nodes || []" :specialization="run.specialization" />
+            <FspButton variant="ghost" size="sm" href="/candidate/profile">Прервать тест</FspButton>
           </aside>
         </div>
       </ScreenState>

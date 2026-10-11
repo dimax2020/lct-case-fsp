@@ -820,6 +820,14 @@ export interface components {
             email?: string | null;
             /** Phone */
             phone?: string | null;
+            /** In Shortlist */
+            in_shortlist?: boolean;
+            /** Current Job */
+            current_job?: string | null;
+            /** Pdf Available */
+            pdf_available?: boolean;
+            /** Psych Available */
+            psych_available?: boolean;
         };
         /** CandidateHint */
         CandidateHint: {
@@ -902,6 +910,36 @@ export interface components {
             visible: boolean;
             /** Hidden Company Ids */
             hidden_company_ids?: string[];
+            /** Consent Processing */
+            consent_processing?: boolean;
+            /** Consent Publication */
+            consent_publication?: boolean;
+            /** Soft Skills */
+            soft_skills?: string[];
+            /** Show Full Name */
+            show_full_name?: boolean;
+            /** Show Current Job */
+            show_current_job?: boolean;
+            /** Show Fsp */
+            show_fsp?: boolean;
+            /** Show Pdf */
+            show_pdf?: boolean;
+            /** Show Psych */
+            show_psych?: boolean;
+            /** Consent Processing At */
+            consent_processing_at?: string | null;
+            /** Consent Publication At */
+            consent_publication_at?: string | null;
+            /** Hidden Companies */
+            hidden_companies?: components["schemas"]["HiddenCompany"][];
+            /** Fsp Linked */
+            fsp_linked?: boolean;
+        };
+        /** HiddenCompany */
+        HiddenCompany: {
+            /** Format: uuid */
+            id: string;
+            name: string;
         };
         /**
          * CandidateStatus
@@ -974,6 +1012,10 @@ export interface components {
              * Format: uuid
              */
             id: string;
+            /** Website */
+            website?: string | null;
+            /** Logo (data URL) */
+            logo?: string | null;
         };
         /** CompanyWrite */
         CompanyWrite: {
@@ -990,6 +1032,10 @@ export interface components {
             recruiter_contact?: components["schemas"]["RecruiterContact"];
             /** Benefits */
             benefits?: components["schemas"]["Benefit"][];
+            /** Website */
+            website?: string | null;
+            /** Logo (data URL) */
+            logo?: string | null;
         };
         /**
          * ContactChannel

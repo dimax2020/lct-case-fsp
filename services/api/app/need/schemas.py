@@ -118,3 +118,8 @@ class CandidateCard(BaseModel):
     contacts_revealed: bool = False
     email: str | None = None
     phone: str | None = None
+    # Настройки приватности кандидата и происхождение карточки.
+    in_shortlist: bool = True
+    current_job: str | None = None
+    pdf_available: bool = False
+    psych_available: bool = False

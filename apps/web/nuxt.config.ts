@@ -7,10 +7,10 @@ export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
   devtools: { enabled: false },
   modules: ['nuxt-oidc-auth'],
-  css: ['~/assets/css/tokens.css', '~/assets/css/fsp.css', '~/assets/css/app.css'],
+  css: ['~/assets/css/tokens.css', '~/assets/css/fsp.css', '~/assets/css/ui.css', '~/assets/css/app.css'],
   app: {
     head: {
-      htmlAttrs: { lang: 'ru', 'data-theme': 'dark' },
+      htmlAttrs: { lang: 'ru' },
       title: 'Карьера ФСП — покажи, что ты лучший',
       meta: [
         { name: 'viewport', content: 'width=device-width, initial-scale=1' },

@@ -178,6 +178,9 @@ services:
       KC_HEALTH_ENABLED: "true"
     volumes:
       - ../keycloak/realm-export.json:/opt/keycloak/data/import/realm-export.json:ro
+    depends_on:
+      mailpit:
+        condition: service_started
     labels:
       - traefik.enable=true
       - traefik.http.routers.auth.rule=PathPrefix(`/auth/realms`) || PathPrefix(`/auth/resources`) || PathPrefix(`/auth/admin`) || PathPrefix(`/auth/js`) || PathPrefix(`/auth/health`)
@@ -190,6 +193,19 @@ services:
       timeout: 5s
       retries: 20
       start_period: 40s
+    networks: [web]
+    restart: unless-stopped
+
+  mailpit:
+    image: axllent/mailpit:v1.21
+    environment:
+      MP_WEBROOT: /mail
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.mail.rule=PathPrefix(`/mail`)
+      - traefik.http.routers.mail.priority=150
+      - traefik.http.routers.mail.entrypoints=web
+      - traefik.http.services.mail.loadbalancer.server.port=8025
     networks: [web]
     restart: unless-stopped
 

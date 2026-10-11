@@ -2,22 +2,12 @@
 import { read } from '~/utils/read'
 useHead({ title: 'Профиль компании — Карьера ФСП' })
 
-const v = reactive((() => {
-  return {
-      yes: true, dots: 6, logo: 80, small: 52,
-      links: [
-        { label: 'Подборка', href: '/employer/need' },
-        { label: 'Банк кандидатов', href: '/employer/pool' },
-        { label: 'Приглашения', href: '/employer/invites' },
-        { label: 'Вакансии', href: '#' },
-        { label: 'Компания', href: '/employer/company', active: true }
-      ]
-    };
-})())
+const v = { dots: 6, logo: 80, small: 52 }
 
 const { show } = useToast()
 const api = useApi()
 const screen = useScreen(async () => read(api.GET('/api/v1/companies/me')))
+const logoSrc = ref<string>()
 const name = ref('')
 const city = ref('')
 const size = ref<string | number>('')
@@ -25,6 +15,7 @@ const about = ref('')
 const contactName = ref('')
 const contactEmail = ref('')
 const contactPhone = ref('')
+const website = ref('')
 const industries = reactive<Record<string, boolean>>({ 'Финтех': false, 'E-commerce': false, 'Госсектор': false, 'Промышленность': false, 'Игры': false, 'Кибербезопасность': false })
 watch(screen.data, (company) => {
   if (!company) return
@@ -35,16 +26,34 @@ watch(screen.data, (company) => {
   contactName.value = company.recruiter_contact?.name ?? ''
   contactEmail.value = company.recruiter_contact?.email ?? ''
   contactPhone.value = company.recruiter_contact?.phone ?? ''
+  website.value = company.website ?? ''
+  logoSrc.value = company.logo ?? undefined
   for (const key of Object.keys(industries)) industries[key] = key === (company.industry ?? '')
 }, { immediate: true })
 const industryText = computed(() => Object.entries(industries).filter(([, on]) => on).map(([k]) => k).join(', ') || 'Направление не указано')
-const logoSrc = ref<string>()
 const logoInput = ref<HTMLInputElement>()
-function onLogo(e: Event) {
-  const f = (e.target as HTMLInputElement).files?.[0]
+
+// Логотип уменьшается в браузере до 256 px и хранится в профиле компании как data URL.
+async function onLogo(e: Event) {
+  const input = e.target as HTMLInputElement
+  const f = input.files?.[0]
+  input.value = ''
   if (!f) return
-  logoSrc.value = URL.createObjectURL(f)
-  show('Логотип загружен')
+  if (!['image/png', 'image/jpeg', 'image/webp'].includes(f.type)) { show('Логотип — картинка PNG, JPEG или WebP'); return }
+  try {
+    const bitmap = await createImageBitmap(f)
+    const scale = Math.min(1, 256 / Math.max(bitmap.width, bitmap.height))
+    const canvas = document.createElement('canvas')
+    canvas.width = Math.max(1, Math.round(bitmap.width * scale))
+    canvas.height = Math.max(1, Math.round(bitmap.height * scale))
+    canvas.getContext('2d')?.drawImage(bitmap, 0, 0, canvas.width, canvas.height)
+    const data = canvas.toDataURL('image/png')
+    if (data.length > 400_000) { show('Логотип слишком большой даже после сжатия'); return }
+    logoSrc.value = data
+    show('Логотип добавлен — не забудьте сохранить профиль')
+  } catch {
+    show('Не удалось прочитать картинку')
+  }
 }
 async function save() {
   if (!name.value.trim()) { show('Укажите название компании'); return }
@@ -59,6 +68,8 @@ async function save() {
         about: about.value || null,
         recruiter_contact: { name: contactName.value || null, email: contactEmail.value || null, phone: contactPhone.value || null },
         benefits: screen.data.value?.benefits ?? [],
+        website: website.value.trim() || null,
+        logo: logoSrc.value ?? null,
       },
     }))
     if (screen.data.value) screen.data.value = next
@@ -70,37 +81,37 @@ async function save() {
 </script>
 
 <template>
-  <div style="background: var(--bg); color: var(--text); font-family: var(--font-sans); min-height: 100vh;">
+  <div class="fsp-shell">
     <FspHeader product="Для компаний" :user="name || 'Компания'" :links="employerLinks" logo-dark="/brand/championship-logo-white.svg" logo-light="/brand/championship-logo-navy.svg" />
 
-    <main style="max-width: 1240px; margin: 0 auto; padding: 40px 32px 64px;">
-      <h1 class="fsp-display" style="font-size: 40px; line-height: 44px; margin-bottom: 8px;">Профиль компании</h1>
+    <main class="fsp-page">
+      <h1 class="fsp-display fsp-title">Профиль компании</h1>
       <p style="margin: 0 0 32px; font-size: 16px; color: var(--text-muted);">Эти данные кандидат видит в каждом приглашении и вакансии.</p>
       <ScreenState :phase="screen.phase.value" :error="screen.error.value" @retry="screen.load">
-      <div style="display: flex; flex-wrap: wrap; gap: 32px; align-items: flex-start;">
+      <div class="fsp-columns">
         <form @submit.prevent="save" style="flex: 999 1 620px; min-width: 0; display: flex; flex-direction: column; gap: 24px;">
           <div style="display: flex; flex-wrap: wrap; gap: 20px; align-items: center;">
             <FspCompanyLogo :name="name || '?'" :src="logoSrc" :size="v.logo" />
             <div style="display: flex; flex-direction: column; gap: 6px;">
               <FspButton size="sm" variant="outline" @click="logoInput?.click()">Загрузить логотип</FspButton>
-              <input ref="logoInput" type="file" accept="image/svg+xml,image/png" hidden @change="onLogo">
-              <span style="font-size: 13px; color: var(--text-muted);">SVG или PNG, от 256×256</span>
+              <input ref="logoInput" type="file" accept="image/png,image/jpeg,image/webp" hidden @change="onLogo">
+              <span class="u-small">SVG или PNG, от 256×256</span>
             </div>
           </div>
           <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 16px;">
             <FspInput v-model="name" label="Название" />
-            <FspInput label="Сайт" default-value="kodsib.ru" />
+            <FspInput v-model="website" label="Сайт" placeholder="company.ru" inputmode="url" />
             <FspInput v-model="city" label="Город" icon="pin" />
             <FspInput v-model="size" label="Сотрудников" inputmode="numeric" />
           </div>
           <div>
-            <div style="font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 10px;">Направление деятельности</div>
-            <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+            <div class="fsp-eyebrow u-mb-10">Направление деятельности</div>
+            <div class="u-row-wrap">
               <FspChip v-for="(_, k) in industries" :key="k" v-model:selected="industries[k]">{{ k }}</FspChip>
             </div>
           </div>
           <label style="display: flex; flex-direction: column; gap: 6px;">
-            <span style="font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted);">О компании</span>
+            <span class="fsp-eyebrow">О компании</span>
             <textarea rows="4" style="font: 400 16px/24px var(--font-sans); color: var(--text); background: var(--field); border: 1px solid var(--line-strong); padding: 12px 16px; resize: vertical;" v-model="about" />
           </label>
           <div style="padding-top: 20px; box-shadow: inset 0 1px 0 var(--line);">
@@ -118,11 +129,11 @@ async function save() {
         </form>
 
         <aside style="flex: 1 1 340px; min-width: 0; display: flex; flex-direction: column; gap: 16px;">
-          <div style="font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted);">Так вас видит кандидат</div>
+          <div class="fsp-eyebrow">Так вас видит кандидат</div>
           <FspPlate :dots="v.dots">
             <div style="display: flex; gap: 14px; align-items: center;">
               <FspCompanyLogo :name="name || '?'" :src="logoSrc" :size="v.small" />
-              <div><div style="font-size: 18px; font-weight: 600;">{{ name }}</div><div style="font-size: 14px; color: var(--on-plate-muted);">{{ industryText }} · {{ city }} · {{ size }} человек</div></div>
+              <div><div class="u-lead">{{ name }}</div><div style="font-size: 14px; color: var(--on-plate-muted);">{{ industryText }} · {{ city }} · {{ size }} человек</div></div>
             </div>
             <p style="margin: 16px 0 0; font-size: 14px; line-height: 20px;">{{ about }}</p>
           </FspPlate>

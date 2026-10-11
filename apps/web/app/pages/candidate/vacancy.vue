@@ -42,6 +42,7 @@ const detail = ref<Vacancy | null>(null)
 const detailPhase = ref<'loading' | 'ready' | 'error'>('ready')
 const detailError = ref('')
 const applying = ref(false)
+const coverLetter = ref('')
 
 const vacancies = computed(() => screen.data.value?.vacancies ?? [])
 const applications = computed(() => screen.data.value?.applications ?? [])
@@ -66,11 +67,6 @@ async function openVacancy(id: string) {
   }
 }
 
-function openTask(vacancyId?: string) {
-  if (!vacancyId) return
-  return navigateTo({ path: '/candidate/process', hash: `#vacancy=${vacancyId}` })
-}
-
 async function apply() {
   const id = detail.value?.id
   if (!id || applying.value) return
@@ -78,11 +74,12 @@ async function apply() {
   try {
     await apiFetch(`/api/v1/vacancies/${encodeURIComponent(id)}/applications`, {
       method: 'POST',
-      body: { message: 'Хочу рассмотреть эту вакансию' },
+      body: { message: coverLetter.value.trim() || 'Хочу рассмотреть эту вакансию' },
     })
     const fresh = asList<AppRow>(await apiFetch<unknown>('/api/v1/applications', { query: { role: 'candidate' } }))
     if (screen.data.value) screen.data.value.applications = fresh
-    await navigateTo({ path: '/candidate/process', hash: `#vacancy=${id}` })
+    coverLetter.value = ''
+    show('Отклик отправлен — компания увидит ваши контакты')
   } catch (e) {
     show(e instanceof Error ? e.message : 'Не удалось откликнуться')
   } finally {
@@ -96,17 +93,17 @@ const cardStyle = (on: boolean) => on
 </script>
 
 <template>
-  <div style="background: var(--bg); color: var(--text); font-family: var(--font-sans); min-height: 100vh;">
+  <div class="fsp-shell">
     <FspHeader product="Карьера" :user="cabinetUser" :links="candidateLinks" logo-dark="/brand/championship-logo-white.svg" logo-light="/brand/championship-logo-navy.svg" />
-    <main style="max-width: 1240px; margin: 0 auto; padding: 40px 32px 64px; display: flex; flex-direction: column; gap: 32px;">
+    <main class="fsp-page fsp-stack-32">
       <div>
-        <h1 class="fsp-display" style="font-size: 40px; line-height: 44px; margin-bottom: 8px;">Вакансии</h1>
+        <h1 class="fsp-display fsp-title">Вакансии</h1>
         <p style="margin: 0; font-size: 16px; color: var(--text-muted);">Открытые вакансии и ваши отклики.</p>
       </div>
       <ScreenState :phase="screen.phase.value" :error="screen.error.value" @retry="screen.load">
-        <div style="display: flex; flex-wrap: wrap; gap: 32px; align-items: flex-start;">
+        <div class="fsp-columns">
           <section style="flex: 1 1 320px; min-width: 0; display: flex; flex-direction: column; gap: 12px;">
-            <p v-if="!vacancies.length" style="margin: 0; color: var(--text-muted);">Открытых вакансий пока нет.</p>
+            <p v-if="!vacancies.length" class="u-muted-p">Открытых вакансий пока нет.</p>
             <button v-for="v in vacancies" :key="v.id" type="button" :class="['fsp-cut', selectedId === v.id && 'fsp-active']" :style="cardStyle(selectedId === v.id)" @click="openVacancy(v.id)">
               <span style="display: block; font-weight: 600; font-size: 16px;">{{ v.title }}</span>
               <span style="display: block; margin-top: 4px; font-size: 14px; color: var(--text-muted);">{{ v.company_name || 'Компания' }}</span>
@@ -115,9 +112,9 @@ const cardStyle = (on: boolean) => on
           </section>
           <article style="flex: 999 1 520px; min-width: 0;">
             <ScreenState :phase="detailPhase" :error="detailError" @retry="selectedId && openVacancy(selectedId)">
-              <p v-if="!detail" style="margin: 0; color: var(--text-muted);">Выберите вакансию, чтобы увидеть вилку и откликнуться.</p>
+              <p v-if="!detail" class="u-muted-p">Выберите вакансию, чтобы увидеть вилку и откликнуться.</p>
               <template v-else>
-                <div style="font-size: 14px; color: var(--text-muted);">{{ detail.company_name || 'Компания' }}<template v-if="detail.city"> · {{ detail.city }}</template></div>
+                <div class="u-note-sm">{{ detail.company_name || 'Компания' }}<template v-if="detail.city"> · {{ detail.city }}</template></div>
                 <h2 style="margin: 8px 0 0; font-size: 32px; line-height: 40px; font-weight: 700;">{{ detail.title }}</h2>
                 <div style="margin-top: 12px; display: flex; flex-wrap: wrap; gap: 8px;">
                   <FspTag v-if="detail.specialization">{{ categoryLabel(detail.specialization, detail.grades?.[0]) }}</FspTag>
@@ -125,11 +122,18 @@ const cardStyle = (on: boolean) => on
                   <FspTag v-for="skill in detail.must_skills ?? []" :key="skill">{{ skillLabel(skill) }}</FspTag>
                 </div>
                 <p style="margin: 20px 0 0; font-size: 16px; line-height: 26px;">{{ detail.description }}</p>
+                <div v-if="!appliedIds.has(detail.id)" class="fsp-stack-12" style="margin-top: 24px;">
+                  <label class="fsp-eyebrow" for="cover-letter">Сопроводительное сообщение · необязательно</label>
+                  <textarea id="cover-letter" v-model="coverLetter" class="fsp-textarea" rows="4" maxlength="4000" placeholder="Коротко: почему вам интересна эта вакансия и что вы уже делали похожего" />
+                </div>
                 <FspPlate :dots="6" style="margin-top: 24px;">
-                  <div style="font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--on-plate-muted);">Зарплата</div>
+                  <div class="fsp-eyebrow fsp-eyebrow--plate">Зарплата</div>
                   <div style="font-size: 30px; line-height: 36px; font-weight: 700; margin: 8px 0 16px;">{{ fork(detail) }}</div>
-                  <FspButton v-if="!appliedIds.has(detail.id)" size="lg" :block="true" :disabled="applying" @click="apply">Откликнуться</FspButton>
-                  <FspButton v-else size="lg" :block="true" @click="openTask(detail.id)">Открыть задание</FspButton>
+                  <template v-if="!appliedIds.has(detail.id)">
+                    <FspButton size="lg" :block="true" :disabled="applying" @click="apply">Откликнуться</FspButton>
+                    <p style="margin: 10px 0 0; font-size: 13px; color: var(--on-plate-muted);">Откликнувшись, вы открываете компании свои контакты.</p>
+                  </template>
+                  <div v-else class="u-strong">Отклик отправлен</div>
                 </FspPlate>
               </template>
             </ScreenState>
@@ -137,15 +141,14 @@ const cardStyle = (on: boolean) => on
         </div>
         <section style="padding: 24px 0 0; box-shadow: inset 0 1px 0 var(--line); margin-top: 32px;">
           <h2 class="fsp-display" style="font-size: 20px; line-height: 24px; margin-bottom: 16px;">Мои отклики</h2>
-          <p v-if="!applications.length" style="margin: 0; color: var(--text-muted);">Откликов пока нет.</p>
+          <p v-if="!applications.length" class="u-muted-p">Откликов пока нет.</p>
           <div v-for="row in applications" :key="row.id" style="padding: 16px 0; box-shadow: inset 0 1px 0 var(--line); display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: baseline;">
             <div style="flex: 999 1 280px; min-width: 0;">
-              <div style="font-weight: 600;">{{ row.title || 'Вакансия' }}</div>
-              <div style="font-size: 14px; color: var(--text-muted); margin-top: 4px;">{{ row.company_name || 'Компания' }}</div>
+              <div class="u-strong">{{ row.title || 'Вакансия' }}</div>
+              <div class="u-note-sm u-mt-4">{{ row.company_name || 'Компания' }}</div>
             </div>
             <div style="font-weight: 700;">{{ fork(row) }}</div>
             <FspStatusBadge v-if="row.status" :status="inviteTone(row.status)">{{ inviteLabel(row.status) }}</FspStatusBadge>
-            <button v-if="row.vacancy_id" type="button" style="background: none; border: 0; padding: 0; font: inherit; font-weight: 600; color: inherit; cursor: pointer;" @click="openTask(row.vacancy_id)">Открыть задание</button>
           </div>
         </section>
       </ScreenState>

@@ -115,16 +115,16 @@ const dot = (i: number) => (i < stageIndex.value || stage.value === 'offer'
 </script>
 
 <template>
-  <div style="background: var(--bg); color: var(--text); font-family: var(--font-sans); min-height: 100vh;">
+  <div class="fsp-shell">
     <FspHeader product="Для компаний" :user="cabinetUser" :links="employerLinks" />
-    <main style="max-width: 1240px; margin: 0 auto; padding: 32px 32px 64px;">
+    <main class="fsp-page">
       <div style="display: flex; flex-wrap: wrap; align-items: baseline; gap: 12px; margin-bottom: 24px;">
         <NuxtLink to="/employer/invites" style="font-size: 14px; color: var(--text-muted); text-decoration: none;">Приглашения</NuxtLink>
-        <span style="color: var(--text-muted);">/</span>
-        <h1 class="fsp-display" style="font-size: 32px; line-height: 36px;">Переписка</h1>
+        <span class="u-muted">/</span>
+        <h1 class="fsp-display u-h2">Переписка</h1>
       </div>
       <ScreenState :phase="screen.phase.value" :error="screen.error.value" @retry="screen.load">
-        <p v-if="!dialogs.length" style="color: var(--text-muted);">Чат открывается после принятия приглашения. Таких диалогов пока нет.</p>
+        <p v-if="!dialogs.length" class="u-muted">Чат открывается после принятия приглашения. Таких диалогов пока нет.</p>
         <div v-else style="display: flex; flex-wrap: wrap; gap: 16px; align-items: stretch;">
           <aside style="flex: 1 1 280px; min-width: 0; padding: 0 16px 0 0; box-shadow: inset -1px 0 0 var(--line); display: flex; flex-direction: column; gap: 8px;">
             <FspInput v-model="q" icon="search" placeholder="Поиск по диалогам" aria-label="Поиск по диалогам" />
@@ -136,7 +136,7 @@ const dot = (i: number) => (i < stageIndex.value || stage.value === 'offer'
           <section v-if="dlg" class="fsp-cut" style="flex: 999 1 520px; min-width: 0; --cut: var(--cut-l); --fill: var(--surface); --edge: var(--line-card); --bw: var(--border-card); display: flex; flex-direction: column;">
             <div style="padding: 20px 24px; box-shadow: inset 0 -1px 0 var(--line);">
               <b style="font-size: 17px;">{{ dlg.candidate_display_name }}</b>
-              <div style="font-size: 13px; color: var(--text-muted);">{{ dlg.title }} · {{ salaryRange(dlg.salary_from, dlg.salary_to) }}</div>
+              <div class="u-small">{{ dlg.title }} · {{ salaryRange(dlg.salary_from, dlg.salary_to) }}</div>
             </div>
             <div ref="feed" style="flex: 1; padding: 24px; display: flex; flex-direction: column; gap: 16px; max-height: 640px; overflow-y: auto;">
               <template v-for="m in messages" :key="m.id">
@@ -144,7 +144,7 @@ const dot = (i: number) => (i < stageIndex.value || stage.value === 'offer'
                 <div v-else-if="m.kind === 'slots'" style="align-self: flex-end; max-width: 78%;">
                   <div class="fsp-cut" style="--cut: var(--cut-m); --fill: var(--bg); --edge: var(--line-strong); --bw: 1px; padding: 16px;">
                     <div style="font-weight: 600; margin-bottom: 8px;">Слоты</div>
-                    <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                    <div class="u-row-wrap">
                       <FspTag v-for="(s, i) in m.slots ?? []" :key="i">{{ time(s.start) }}</FspTag>
                     </div>
                   </div>
@@ -158,12 +158,12 @@ const dot = (i: number) => (i < stageIndex.value || stage.value === 'offer'
                   <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">{{ time(m.created_at) }}</div>
                 </div>
               </template>
-              <p v-if="!messages.length" style="margin: 0; color: var(--text-muted);">Сообщений пока нет. Новые подтягиваются каждые 5 секунд.</p>
+              <p v-if="!messages.length" class="u-muted-p">Сообщений пока нет. Новые подтягиваются каждые 5 секунд.</p>
             </div>
             <form style="padding: 16px 24px 24px; box-shadow: inset 0 1px 0 var(--line); display: flex; flex-direction: column; gap: 12px;" @submit.prevent="send()">
               <textarea v-model="draft" rows="3" :placeholder="'Напишите ' + firstName" style="font: 400 15px/22px var(--font-sans); color: var(--text); background: var(--field); border: 1px solid var(--line-strong); padding: 12px 14px; resize: vertical;" />
               <div style="display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between;">
-                <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                <div class="u-row-wrap">
                   <FspButton variant="outline" size="sm" icon="clock" type="button" @click="proposeTime">Предложить время</FspButton>
                   <FspButton variant="ghost" size="sm" type="button" @click="templatesOpen = !templatesOpen">Шаблоны</FspButton>
                 </div>
@@ -179,7 +179,7 @@ const dot = (i: number) => (i < stageIndex.value || stage.value === 'offer'
               <b>{{ dlg.candidate_display_name }}</b>
               <div style="font-size: 14px; margin-top: 8px;">{{ dlg.candidate_email || 'Почта скрыта' }}</div>
               <div style="font-size: 14px;">{{ dlg.candidate_phone || 'Телефон скрыт' }}</div>
-              <FspButton variant="outline" size="sm" :block="true" :href="`/employer/candidate?need=${dlg.need_id}&candidate=${dlg.candidate_id}`" style="margin-top: 12px;">Открыть профиль</FspButton>
+              <FspButton variant="outline" size="sm" :block="true" :href="`/employer/candidate?need=${dlg.need_id}&candidate=${dlg.candidate_id}`" class="u-mt-12">Открыть профиль</FspButton>
             </div>
             <div style="padding-top: 20px; box-shadow: inset 0 1px 0 var(--line);">
               <div class="fsp-display" style="font-size: 16px; margin-bottom: 16px;">Этап найма</div>

@@ -5,6 +5,8 @@ import { apiFetch, asList } from '~/utils/raw'
 
 type Spec = components['schemas']['Specialization']
 type Grade = components['schemas']['Grade']
+type WorkFormat = components['schemas']['WorkFormat']
+type SkillHit = components['schemas']['SkillHit']
 type Vacancy = {
   id: string
   title: string
@@ -15,15 +17,20 @@ type Vacancy = {
   description?: string
   domain?: string
   must_skills?: string[]
+  formats?: string[]
+  city?: string | null
   status?: string
 }
 type AppRow = {
   id: string
   vacancy_id?: string
   status?: string
+  created_at?: string
   candidate_display_name?: string
   candidate_email?: string | null
+  candidate_phone?: string | null
   message?: string
+  decline_reason?: string | null
 }
 
 useHead({ title: 'Вакансии — Карьера ФСП' })
@@ -31,29 +38,41 @@ useHead({ title: 'Вакансии — Карьера ФСП' })
 const { show } = useToast()
 const api = useApi()
 const screen = useScreen(async () => {
-  const [vacancies, applications, company] = await Promise.all([
+  const [vacancies, applications, company, domains] = await Promise.all([
     apiFetch<unknown>('/api/v1/vacancies'),
     apiFetch<unknown>('/api/v1/applications', { query: { role: 'employer' } }),
     read(api.GET('/api/v1/companies/me')).catch(() => null),
+    read(api.GET('/api/v1/taxonomy/domains')).catch(() => []),
   ])
   return {
-    vacancies: asList<Vacancy>(vacancies),
+    vacancies: asList<Vacancy>(vacancies).filter(v => !company || !('company_id' in v) || (v as Vacancy & { company_id?: string }).company_id === company.id),
     applications: asList<AppRow>(applications),
     companyName: company?.name || 'Компания',
+    domains,
   }
 })
 
 const specIds = Object.keys(SPEC_LABEL) as Spec[]
+const editingId = ref('')
 const title = ref('')
 const spec = ref<Spec>('backend')
-const grade = ref<Grade>('middle')
+const grades = ref<Grade[]>(['middle'])
 const salaryFrom = ref<string | number>('')
 const salaryTo = ref<string | number>('')
+const formats = ref<WorkFormat[]>(['remote'])
+const city = ref('')
 const description = ref('')
 const domain = ref('fintech')
-const skillsText = ref('')
+const skills = ref<string[]>([])
+const skillQ = ref('')
+const skillHits = ref<SkillHit[]>([])
 const formError = ref('')
 const saving = ref(false)
+const declining = ref('')
+const declineReason = ref('')
+let skillTimer: ReturnType<typeof setTimeout> | undefined
+
+const DECLINE_REASONS = ['Не подходит стек', 'Не подходит грейд', 'Вакансия закрыта', 'Выбрали другого кандидата']
 
 function fork(row: { salary_from?: number; salary_to?: number }) {
   if (typeof row.salary_from === 'number' && typeof row.salary_to === 'number') return salaryRange(row.salary_from, row.salary_to)
@@ -64,101 +83,241 @@ function appsFor(id: string) {
   return (screen.data.value?.applications ?? []).filter(row => row.vacancy_id === id)
 }
 
-async function publish() {
+function toggleGrade(g: Grade) {
+  if (grades.value.includes(g)) {
+    if (grades.value.length > 1) grades.value = grades.value.filter(x => x !== g)
+    return
+  }
+  if (grades.value.length === 1) {
+    const [current] = grades.value
+    if (current && Math.abs(GRADES.indexOf(current) - GRADES.indexOf(g)) === 1) {
+      grades.value = [...grades.value, g]
+      return
+    }
+  }
+  grades.value = [g]
+}
+
+function toggleFormat(f: WorkFormat) {
+  formats.value = formats.value.includes(f) ? formats.value.filter(x => x !== f) : [...formats.value, f]
+}
+
+function onSkill() {
+  clearTimeout(skillTimer)
+  skillTimer = setTimeout(async () => {
+    const q = skillQ.value.trim()
+    skillHits.value = q ? await read(api.GET('/api/v1/taxonomy/skills', { params: { query: { q, limit: 8 } } })).catch(() => []) : []
+  }, 200)
+}
+onBeforeUnmount(() => clearTimeout(skillTimer))
+
+function addSkill(id: string) {
+  if (skills.value.includes(id)) return
+  if (skills.value.length >= 12) { show('Обязательных навыков не больше 12'); return }
+  skills.value = [...skills.value, id]
+  skillQ.value = ''
+  skillHits.value = []
+}
+
+function resetForm() {
+  editingId.value = ''
+  title.value = ''
+  spec.value = 'backend'
+  grades.value = ['middle']
+  salaryFrom.value = ''
+  salaryTo.value = ''
+  formats.value = ['remote']
+  city.value = ''
+  description.value = ''
+  domain.value = 'fintech'
+  skills.value = []
+  formError.value = ''
+}
+
+function edit(v: Vacancy) {
+  editingId.value = v.id
+  title.value = v.title
+  spec.value = (v.specialization as Spec) || 'backend'
+  grades.value = (v.grades ?? ['middle']).filter((g): g is Grade => GRADES.includes(g as Grade))
+  salaryFrom.value = v.salary_from ?? ''
+  salaryTo.value = v.salary_to ?? ''
+  formats.value = (v.formats ?? ['remote']).filter((f): f is WorkFormat => FORMATS.includes(f as WorkFormat))
+  city.value = v.city ?? ''
+  description.value = v.description ?? ''
+  domain.value = v.domain ?? 'fintech'
+  skills.value = [...(v.must_skills ?? [])]
+  formError.value = ''
+  if (import.meta.client) document.getElementById('vacancy-form')?.scrollIntoView({ behavior: 'smooth' })
+}
+
+async function submit() {
   formError.value = ''
   const from = parseMoney(salaryFrom.value)
   const to = parseMoney(salaryTo.value)
-  const must = skillsText.value.split(',').map(item => item.trim()).filter(Boolean)
   if (!title.value.trim()) formError.value = 'Укажите название'
-  else if (!Number.isFinite(from) || !Number.isFinite(to)) formError.value = 'Вилка обязательна'
+  else if (!Number.isFinite(from) || !Number.isFinite(to) || !from || !to) formError.value = 'Вилка обязательна: кандидат видит её до начала общения'
   else if (from > to) formError.value = 'Зарплата «от» не может быть больше «до»'
+  else if (!formats.value.length) formError.value = 'Выберите хотя бы один формат работы'
   else if (description.value.trim().length < 50) formError.value = 'Описание — не меньше 50 символов'
-  else if (!domain.value.trim()) formError.value = 'Укажите домен'
-  else if (!must.length) formError.value = 'Укажите обязательные навыки через запятую'
+  else if (!domain.value) formError.value = 'Выберите домен'
+  else if (!skills.value.length) formError.value = 'Добавьте хотя бы один обязательный навык из онтологии'
   if (formError.value) return
   saving.value = true
+  const body = {
+    title: title.value.trim(),
+    specialization: spec.value,
+    grades: grades.value,
+    salary_from: from,
+    salary_to: to,
+    description: description.value.trim(),
+    domain: domain.value,
+    must_skills: skills.value,
+    formats: formats.value,
+    city: city.value.trim() || null,
+  }
   try {
-    await apiFetch('/api/v1/vacancies', {
-      method: 'POST',
-      body: {
-        title: title.value.trim(),
-        specialization: spec.value,
-        grades: [grade.value],
-        salary_from: from,
-        salary_to: to,
-        description: description.value.trim(),
-        domain: domain.value.trim(),
-        must_skills: must,
-        formats: ['remote'],
-        city: null,
-      },
-    })
-    show('Вакансия опубликована')
+    if (editingId.value) {
+      await apiFetch(`/api/v1/vacancies/${encodeURIComponent(editingId.value)}`, { method: 'PUT', body })
+      show('Вакансия обновлена')
+    } else {
+      await apiFetch('/api/v1/vacancies', { method: 'POST', body })
+      show('Вакансия опубликована')
+    }
+    resetForm()
     await screen.load()
   } catch (e) {
-    formError.value = e instanceof Error ? e.message : 'Не удалось опубликовать вакансию'
+    formError.value = e instanceof Error ? e.message : 'Не удалось сохранить вакансию'
   } finally {
     saving.value = false
+  }
+}
+
+function replaceApp(next: AppRow) {
+  const rows = screen.data.value?.applications
+  if (!rows) return
+  const idx = rows.findIndex(r => r.id === next.id)
+  if (idx >= 0) rows[idx] = { ...rows[idx], ...next }
+}
+
+async function act(row: AppRow, action: 'view' | 'accept' | 'decline') {
+  try {
+    const body = action === 'decline' ? { reason: declineReason.value || DECLINE_REASONS[0] } : undefined
+    replaceApp(await apiFetch<AppRow>(`/api/v1/applications/${encodeURIComponent(row.id)}/${action}`, { method: 'POST', body }))
+    if (action === 'accept') show('Отклик принят — свяжитесь с кандидатом по контактам')
+    if (action === 'decline') show('Отклик отклонён, кандидат увидит статус')
+    declining.value = ''
+    declineReason.value = ''
+  } catch (e) {
+    show(e instanceof Error ? e.message : 'Не удалось обновить отклик')
   }
 }
 </script>
 
 <template>
-  <div style="background: var(--bg); color: var(--text); font-family: var(--font-sans); min-height: 100vh;">
+  <div class="fsp-shell">
     <FspHeader product="Для компаний" :user="screen.data.value?.companyName || 'Компания'" :links="employerLinks" />
-    <main style="max-width: 1240px; margin: 0 auto; padding: 40px 32px 64px; display: flex; flex-direction: column; gap: 32px;">
+    <main class="fsp-page fsp-stack-32">
       <div>
-        <h1 class="fsp-display" style="font-size: 40px; line-height: 44px; margin-bottom: 8px;">Вакансии</h1>
-        <p style="margin: 0; font-size: 16px; color: var(--text-muted);">Публикация и отклики кандидатов. Почта видна после их отклика.</p>
+        <h1 class="fsp-display fsp-title">Вакансии</h1>
+        <p class="u-muted-p" style="font-size: 16px;">Публикация вакансий и отклики кандидатов. Контакты откликнувшегося кандидата видны сразу: он сам проявил инициативу.</p>
       </div>
       <ScreenState :phase="screen.phase.value" :error="screen.error.value" @retry="screen.load">
-        <form style="display: flex; flex-direction: column; gap: 16px; padding-bottom: 8px;" @submit.prevent="publish">
-          <FspInput v-model="title" label="Название" />
+        <form id="vacancy-form" class="fsp-cut fsp-card fsp-stack-16" @submit.prevent="submit">
+          <div class="u-between">
+            <h2 class="fsp-display u-h3" style="margin: 0;">{{ editingId ? 'Редактирование вакансии' : 'Новая вакансия' }}</h2>
+            <FspButton v-if="editingId" variant="ghost" size="sm" @click="resetForm">Отменить редактирование</FspButton>
+          </div>
+          <FspInput v-model="title" label="Название" placeholder="Backend-разработчик (Go) в антифрод" />
           <div>
-            <div style="font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 10px;">Специализация</div>
-            <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+            <div class="fsp-eyebrow u-mb-10">Специализация</div>
+            <div class="u-row-wrap">
               <FspChip v-for="id in specIds" :key="id" :selected="spec === id" locked @click="spec = id">{{ SPEC_LABEL[id] }}</FspChip>
             </div>
           </div>
           <div>
-            <div style="font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 10px;">Грейд</div>
-            <div style="display: flex; flex-wrap: wrap; gap: 8px;">
-              <FspChip v-for="g in GRADES" :key="g" :selected="grade === g" locked @click="grade = g">{{ GRADE_LABEL[g] }}</FspChip>
+            <div class="fsp-eyebrow u-mb-10">Грейд · один или два соседних</div>
+            <div class="u-row-wrap">
+              <FspChip v-for="g in GRADES" :key="g" :selected="grades.includes(g)" locked @click="toggleGrade(g)">{{ GRADE_LABEL[g] }}</FspChip>
             </div>
           </div>
-          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 12px;">
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: 12px;">
             <FspInput v-model="salaryFrom" label="Зарплата от" suffix="₽" inputmode="numeric" />
             <FspInput v-model="salaryTo" label="Зарплата до" suffix="₽" inputmode="numeric" />
-            <FspInput v-model="domain" label="Домен" placeholder="fintech" />
+            <FspInput v-model="city" label="Город" icon="pin" placeholder="Необязательно для удалёнки" />
           </div>
-          <FspInput v-model="skillsText" label="Обязательные навыки" hint="Идентификаторы через запятую: go, postgresql" />
-          <FspInput v-model="description" label="Описание" :hint="`${description.trim().length} / 50`" />
-          <p v-if="formError" style="margin: 0; color: var(--danger); font-size: 14px;">{{ formError }}</p>
-          <div><FspButton type="submit" :disabled="saving">Опубликовать</FspButton></div>
+          <div>
+            <div class="fsp-eyebrow u-mb-10">Формат работы</div>
+            <div class="u-row-wrap">
+              <FspChip v-for="f in FORMATS" :key="f" :selected="formats.includes(f)" locked @click="toggleFormat(f)">{{ FORMAT_LABEL[f] }}</FspChip>
+            </div>
+          </div>
+          <div>
+            <div class="fsp-eyebrow u-mb-10">Домен</div>
+            <div class="u-row-wrap">
+              <FspChip v-for="d in screen.data.value?.domains ?? []" :key="d.id" :selected="domain === d.id" locked @click="domain = d.id">{{ d.name }}</FspChip>
+            </div>
+          </div>
+          <div style="position: relative;">
+            <FspInput v-model="skillQ" label="Обязательные навыки" icon="search" placeholder="Go, PostgreSQL, Kafka…" autocomplete="off" hint="Навыки выбираются из онтологии платформы — так по ним работает подбор" @input="onSkill" />
+            <div v-if="skillHits.length" class="u-row-wrap u-mt-6">
+              <button v-for="h in skillHits" :key="h.id" type="button" class="u-unbutton" @click="addSkill(h.id)"><FspTag>+ {{ h.name }}</FspTag></button>
+            </div>
+            <div v-if="skills.length" class="u-row-wrap u-mt-12">
+              <FspChip v-for="id in skills" :key="id" :selected="true" locked icon="x" :aria-label="'Убрать ' + skillLabel(id)" @click="skills = skills.filter(x => x !== id)">{{ skillLabel(id) }}</FspChip>
+            </div>
+          </div>
+          <div class="fsp-stack-12" style="gap: 6px;">
+            <label class="fsp-eyebrow" for="vacancy-description">Описание</label>
+            <textarea id="vacancy-description" v-model="description" class="fsp-textarea" rows="5" placeholder="Чем занимается команда и что человек будет делать первые 3 месяца" />
+            <span class="u-small">{{ description.trim().length }} / 50 символов минимум</span>
+          </div>
+          <p v-if="formError" role="alert" class="u-danger" style="margin: 0; font-size: 14px;">{{ formError }}</p>
+          <div class="u-row-wrap"><FspButton type="submit" :disabled="saving">{{ editingId ? 'Сохранить изменения' : 'Опубликовать' }}</FspButton></div>
         </form>
 
-        <section style="padding: 24px 0 0; box-shadow: inset 0 1px 0 var(--line); display: flex; flex-direction: column; gap: 20px;">
-          <h2 class="fsp-display" style="font-size: 20px; line-height: 24px;">Мои вакансии</h2>
-          <p v-if="!(screen.data.value?.vacancies.length)" style="margin: 0; color: var(--text-muted);">Опубликованных вакансий пока нет.</p>
-          <article v-for="v in screen.data.value?.vacancies ?? []" :key="v.id" style="padding: 20px 0; box-shadow: inset 0 1px 0 var(--line); display: flex; flex-direction: column; gap: 12px;">
-            <div style="display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: baseline; justify-content: space-between;">
+        <section class="fsp-section fsp-stack-24">
+          <h2 class="fsp-display u-h3">Мои вакансии</h2>
+          <p v-if="!(screen.data.value?.vacancies.length)" class="u-muted-p">Опубликованных вакансий пока нет.</p>
+          <article v-for="v in screen.data.value?.vacancies ?? []" :key="v.id" class="fsp-divider fsp-stack-12">
+            <div class="u-between" style="align-items: baseline;">
               <div>
-                <div style="font-size: 18px; font-weight: 600;">{{ v.title }}</div>
-                <div style="font-size: 14px; color: var(--text-muted); margin-top: 4px;">{{ categoryLabel(v.specialization, v.grades?.[0]) }}<template v-if="v.domain"> · {{ v.domain }}</template></div>
+                <div class="u-lead">{{ v.title }}</div>
+                <div class="u-note-sm u-mt-4">{{ SPEC_LABEL[v.specialization as Spec] ?? v.specialization }} · {{ (v.grades ?? []).map(g => GRADE_LABEL[g as Grade] ?? g).join(' / ') }}<template v-if="v.domain"> · {{ domainLabel(v.domain, screen.data.value?.domains) }}</template><template v-if="v.city"> · {{ v.city }}</template></div>
               </div>
-              <div style="font-weight: 700;">{{ fork(v) }}</div>
+              <div class="u-row-center">
+                <b>{{ fork(v) }}</b>
+                <FspButton size="sm" variant="outline" icon="edit" @click="edit(v)">Редактировать</FspButton>
+              </div>
             </div>
-            <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+            <div class="u-row-wrap">
               <FspTag v-for="skill in v.must_skills ?? []" :key="skill">{{ skillLabel(skill) }}</FspTag>
             </div>
             <div>
-              <div style="font-size: 13px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 8px;">Отклики</div>
-              <p v-if="!appsFor(v.id).length" style="margin: 0; color: var(--text-muted);">Откликов пока нет.</p>
-              <div v-for="a in appsFor(v.id)" :key="a.id" style="padding: 10px 0; box-shadow: inset 0 1px 0 var(--line); display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: baseline;">
-                <b>{{ a.candidate_display_name || 'Кандидат' }}</b>
-                <FspStatusBadge v-if="a.status" :status="inviteTone(a.status)">{{ inviteLabel(a.status) }}</FspStatusBadge>
-                <span v-if="a.candidate_email">{{ a.candidate_email }}</span>
-                <span v-if="a.message" style="color: var(--text-muted);">{{ a.message }}</span>
+              <div class="fsp-eyebrow u-mb-8">Отклики · {{ appsFor(v.id).length }}</div>
+              <p v-if="!appsFor(v.id).length" class="u-muted-p">Откликов пока нет.</p>
+              <div v-for="a in appsFor(v.id)" :key="a.id" class="vac-app">
+                <div class="u-row-center">
+                  <b>{{ a.candidate_display_name || a.candidate_email || 'Кандидат' }}</b>
+                  <FspStatusBadge v-if="a.status" :status="inviteTone(a.status)">{{ inviteLabel(a.status) }}</FspStatusBadge>
+                  <span v-if="a.created_at" class="u-small">{{ whenLabel(a.created_at) }}</span>
+                </div>
+                <div class="u-note-sm">
+                  <template v-if="a.candidate_email">{{ a.candidate_email }}</template><template v-if="a.candidate_phone"> · {{ a.candidate_phone }}</template>
+                </div>
+                <p v-if="a.message" style="margin: 0;">{{ a.message }}</p>
+                <p v-if="a.status === 'declined' && a.decline_reason" class="u-small" style="margin: 0;">Причина отказа: {{ a.decline_reason }}</p>
+                <div v-if="a.status === 'sent' || a.status === 'viewed'" class="u-row-wrap">
+                  <template v-if="declining !== a.id">
+                    <FspButton v-if="a.status === 'sent'" size="sm" variant="ghost" @click="act(a, 'view')">Отметить просмотренным</FspButton>
+                    <FspButton size="sm" variant="accept" icon="check" @click="act(a, 'accept')">Пригласить на интервью</FspButton>
+                    <FspButton size="sm" variant="decline" icon="x" @click="declining = a.id; declineReason = DECLINE_REASONS[0] ?? ''">Отклонить</FspButton>
+                  </template>
+                  <template v-else>
+                    <FspChip v-for="r in DECLINE_REASONS" :key="r" :selected="declineReason === r" locked @click="declineReason = r">{{ r }}</FspChip>
+                    <FspButton size="sm" variant="decline" @click="act(a, 'decline')">Отправить отказ</FspButton>
+                    <FspButton size="sm" variant="ghost" @click="declining = ''">Отмена</FspButton>
+                  </template>
+                </div>
               </div>
             </div>
           </article>
@@ -167,3 +326,7 @@ async function publish() {
     </main>
   </div>
 </template>
+
+<style>
+.vac-app { padding: 12px 0; box-shadow: inset 0 1px 0 var(--line); display: flex; flex-direction: column; gap: 8px; }
+</style>

@@ -7,15 +7,24 @@
   "registrationEmailAsUsername": true,
   "loginWithEmailAllowed": true,
   "duplicateEmailsAllowed": false,
-  "resetPasswordAllowed": false,
+  "resetPasswordAllowed": true,
   "rememberMe": true,
-  "verifyEmail": false,
+  "verifyEmail": true,
+  "smtpServer": {
+    "host": "mailpit",
+    "port": "1025",
+    "from": "noreply@fsp-career.local",
+    "fromDisplayName": "Карьера ФСП",
+    "auth": "false",
+    "ssl": "false",
+    "starttls": "false"
+  },
   "loginTheme": "keycloak",
   "internationalizationEnabled": true,
   "supportedLocales": ["ru", "en"],
   "defaultLocale": "ru",
   "attributes": {
-    "fsp.roleSelection": "New users receive no business role. The Nuxt BFF shows a role picker, assigns realm role candidate or employer through the career-web service account, then refreshes the token. Demo users below already have roles."
+    "fsp.roleSelection": "New users receive no business role. The /auth page passes the chosen role to /auth/role?pick=…; otherwise the Nuxt BFF shows a role picker, assigns realm role candidate or employer through the career-web service account, then refreshes the token. Demo users below already have roles."
   },
   "roles": {
     "realm": [

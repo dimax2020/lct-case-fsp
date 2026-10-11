@@ -115,7 +115,7 @@ export default defineEventHandler(async (event) => {
       if (role === 'candidate' || role === 'employer') {
         return sendRedirect(event, afterRole(role, queryNext), 302)
       }
-      if (role === 'admin') return sendRedirect(event, queryNext === '/' ? '/candidate/profile' : queryNext, 302)
+      if (role === 'admin') return sendRedirect(event, queryNext === '/' || queryNext === '/cabinet' ? '/candidate/profile' : queryNext, 302)
       setResponseHeader(event, 'content-type', 'text/html; charset=utf-8')
       return rolePickerHtml(queryNext)
     }
