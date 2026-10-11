@@ -7,10 +7,15 @@ COPY app ./app
 COPY alembic ./alembic
 COPY alembic.ini ./
 
+# Slow links to files.pythonhosted.org otherwise die on the default 15s read timeout.
+ENV PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PIP_DEFAULT_TIMEOUT=300
+
 # INSTALL_ML=1 pulls sentence-transformers and torch for the worker.
 ARG INSTALL_ML=0
-RUN if [ "$INSTALL_ML" = "1" ]; then pip install --no-cache-dir -e ".[ml]"; \
-    else pip install --no-cache-dir -e .; fi
+RUN --mount=type=cache,target=/root/.cache/pip \
+    if [ "$INSTALL_ML" = "1" ]; then pip install --timeout 300 --retries 10 -e ".[ml]"; \
+    else pip install --timeout 300 --retries 10 -e .; fi
 
 EXPOSE 8000
 

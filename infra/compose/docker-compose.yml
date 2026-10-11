@@ -61,6 +61,7 @@ services:
     restart: unless-stopped
 
   api:
+    image: fsp-api
     build:
       context: ../../services/api
       dockerfile: Dockerfile
@@ -88,6 +89,12 @@ services:
       - ../../taxonomy:/srv/taxonomy:ro
       - ../../seed:/srv/seed:ro
       - uploads:/data/uploads
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.api.rule=PathPrefix(`/api`)
+      - traefik.http.routers.api.priority=100
+      - traefik.http.routers.api.entrypoints=web
+      - traefik.http.services.api.loadbalancer.server.port=8000
     networks: [web, sandbox]
     depends_on:
       postgres:
@@ -103,11 +110,7 @@ services:
     restart: unless-stopped
 
   worker:
-    build:
-      context: ../../services/api
-      dockerfile: Dockerfile
-      args:
-        INSTALL_ML: "0"
+    image: fsp-api
     command: ["taskiq", "worker", "app.tasks:broker"]
     environment:
       POSTGRES_DSN: postgresql+asyncpg://fsp:fsp@postgres:5432/fsp
