@@ -228,6 +228,8 @@ async def _after_load(candidate_ids: list[str], need_ids: list[str]) -> None:
             if hasattr(result, "__await__"):
                 await result
     for need_id in need_ids:
+        # Кэш подборки живёт в Redis дольше базы: после пересева он устарел.
+        await matching.invalidate(uuid.UUID(need_id))
         await matching.build_shortlist(uuid.UUID(need_id))
 
 

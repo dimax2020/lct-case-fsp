@@ -87,9 +87,18 @@
 
 ```bash
 make up        # docker compose: web, api, worker, postgres, redis, keycloak, mailpit, piston
-make migrate   # alembic upgrade heads (в том числе 005_psych_privacy)
-make seed      # демо-данные
 ```
+
+API при старте сам применяет миграции и загружает демо-данные в пустую базу (`SEED_ON_START=if-empty`; `always` — сбрасывать демо при каждом старте, `off` — не трогать). Вручную: `make migrate`, `make seed`.
+
+### Деплой в Coolify
+
+Файл `docker-compose.coolify.yml` в корне: production-сборка веба, свой шлюз на nginx (`infra/coolify/gateway`), реалм Keycloak и демо-данные запечены в образы.
+
+1. New Resource → репозиторий → Build Pack **Docker Compose**, Docker Compose Location: `/docker-compose.coolify.yml`.
+2. Домен назначить только сервису `gateway` (например, `https://fsp-demo.example.ru`).
+3. Переменная `PUBLIC_URL` — тот же адрес без слэша в конце. После смены — Redeploy.
+4. Deploy. Миграции и демо-данные применяются автоматически; по умолчанию `SEED_ON_START=always`, то есть каждый рестарт возвращает демо в исходное состояние.
 
 - Приложение — http://localhost, Keycloak — http://localhost/auth, письма подтверждения почты — http://localhost/mail.
 - Демо-аккаунты: `candidate@demo.fsp` / `candidate-demo`, `employer@demo.fsp` / `employer-demo`.

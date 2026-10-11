@@ -68,7 +68,7 @@ const cabinetHref = computed(() => {
               <div class="fsp-eyebrow fsp-eyebrow--plate">Твой рейтинг в категории</div>
               <div class="fsp-display land-rank-place">Backend, Middle</div>
               <div class="land-rank-score">
-                <span class="fsp-display land-rank-num">№3</span>
+                <span class="fsp-display land-rank-num">№1</span>
                 <span class="land-rank-of">из 340 кандидатов</span>
               </div>
               <div class="land-bars">

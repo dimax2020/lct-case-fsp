@@ -1,0 +1,244 @@
+# Карьера ФСП — стенд для Coolify (Build Pack: Docker Compose, файл: /docker-compose.coolify.yml).
+#
+# 1. В Coolify: New Resource → Public/Private Repository → Build Pack «Docker Compose»,
+#    Docker Compose Location: /docker-compose.coolify.yml.
+# 2. Domains: домен назначается только сервису `gateway`, например https://fsp-demo.example.ru
+#    (шлюз слушает порт 80; остальные сервисы наружу не публикуются).
+# 3. Environment Variables: PUBLIC_URL = тот же адрес, без слэша в конце (https://fsp-demo.example.ru).
+#    От него зависят ФСП ID (Keycloak), cookie сессии и ссылки в письмах. После смены PUBLIC_URL — Redeploy.
+# 4. Deploy. При первом старте API сам применяет миграции и загружает демо-данные
+#    (400 кандидатов, 15 компаний, 28 потребностей). Вход: candidate@demo.fsp / candidate-demo,
+#    employer@demo.fsp / employer-demo — подсказка есть на странице /auth.
+#
+# SEED_ON_START: always (по умолчанию) — каждый рестарт API возвращает демо в исходное состояние;
+#                if-empty — только в пустую базу; off — без сидов.
+
+services:
+  gateway:
+    build:
+      context: ./infra/coolify/gateway
+    expose:
+      - "80"
+    depends_on:
+      web:
+        condition: service_started
+      keycloak:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1/gateway-health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  web:
+    build:
+      context: .
+      dockerfile: infra/coolify/web.Dockerfile
+      args:
+        PUBLIC_URL: ${PUBLIC_URL:-http://localhost}
+    environment:
+      NUXT_PUBLIC_API_MOCKS: "0"
+      NUXT_PUBLIC_SITE_ORIGIN: ${PUBLIC_URL:-http://localhost}
+      NUXT_OIDC_SESSION_SECRET: ${NUXT_OIDC_SESSION_SECRET:-demo-only-oidc-session-secret-not-a-production-key}
+      NUXT_OIDC_AUTH_SESSION_SECRET: ${NUXT_OIDC_AUTH_SESSION_SECRET:-demo-only-oidc-auth-session-secret-not-a-production-key}
+      NUXT_OIDC_TOKEN_KEY: ${NUXT_OIDC_TOKEN_KEY:-ZnNwLWRlbW8tb2lkYy10b2tlbi1rZXktMzJieXRlcyE=}
+      KEYCLOAK_PUBLIC_BASE: ${PUBLIC_URL:-http://localhost}/auth
+      KEYCLOAK_INTERNAL_BASE: http://keycloak:8080/auth
+      KEYCLOAK_CLIENT_ID: career-web
+      KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET:-change-me}
+      NUXT_KEYCLOAK_INTERNAL_BASE: http://keycloak:8080/auth
+      NUXT_KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET:-change-me}
+      NUXT_API_PROXY_TARGET: http://api:8000
+      NUXT_EPA_PROXY_TARGET: http://epa:8080
+      NUXT_OIDC_PROVIDERS_KEYCLOAK_CLIENT_ID: career-web
+      NUXT_OIDC_PROVIDERS_KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET:-change-me}
+      NUXT_OIDC_PROVIDERS_KEYCLOAK_BASE_URL: ${PUBLIC_URL:-http://localhost}/auth/realms/fsp
+      NUXT_OIDC_PROVIDERS_KEYCLOAK_REDIRECT_URI: ${PUBLIC_URL:-http://localhost}/auth/keycloak/callback
+      NUXT_OIDC_PROVIDERS_KEYCLOAK_LOGOUT_REDIRECT_URI: ${PUBLIC_URL:-http://localhost}/
+      NUXT_OIDC_PROVIDERS_KEYCLOAK_AUTHORIZATION_URL: ${PUBLIC_URL:-http://localhost}/auth/realms/fsp/protocol/openid-connect/auth
+      NUXT_OIDC_PROVIDERS_KEYCLOAK_TOKEN_URL: http://keycloak:8080/auth/realms/fsp/protocol/openid-connect/token
+      NUXT_OIDC_PROVIDERS_KEYCLOAK_USER_INFO_URL: http://keycloak:8080/auth/realms/fsp/protocol/openid-connect/userinfo
+      NUXT_OIDC_PROVIDERS_KEYCLOAK_LOGOUT_URL: ${PUBLIC_URL:-http://localhost}/auth/realms/fsp/protocol/openid-connect/logout
+      NUXT_OIDC_PROVIDERS_KEYCLOAK_OPEN_ID_CONFIGURATION: http://keycloak:8080/auth/realms/fsp/.well-known/openid-configuration
+      NUXT_OIDC_PROVIDERS_KEYCLOAK_AUDIENCE: career-web
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      api:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+      epa:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:3000/"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
+
+  api:
+    build:
+      context: .
+      dockerfile: infra/coolify/api.Dockerfile
+    environment:
+      POSTGRES_DSN: postgresql+asyncpg://fsp:${POSTGRES_PASSWORD:-fsp}@postgres:5432/fsp
+      REDIS_URL: redis://redis:6379/0
+      KEYCLOAK_ISSUER: ${PUBLIC_URL:-http://localhost}/auth/realms/fsp
+      KEYCLOAK_JWKS_URL: http://keycloak:8080/auth/realms/fsp/protocol/openid-connect/certs
+      KEYCLOAK_CLIENT_ID: career-web
+      KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET:-change-me}
+      LLM_BASE_URL: ${LLM_BASE_URL:-https://llm-provider.example/v1}
+      LLM_API_KEY: ${LLM_API_KEY:-change-me}
+      LLM_MODEL: ${LLM_MODEL:-qwen3-14b}
+      LLM_ENABLED: ${LLM_ENABLED:-false}
+      EMBEDDING_MODEL: intfloat/multilingual-e5-base
+      PISTON_URL: http://piston:2000
+      PISTON_ENABLED: "false"
+      MATCH_ALPHA: ${MATCH_ALPHA:-1.0}
+      MATCH_BETA: ${MATCH_BETA:-0.15}
+      UPLOAD_DIR: /data/uploads
+      TAXONOMY_DIR: /srv/taxonomy/data
+      SEED_DIR: /srv/seed
+      ASSESSMENT_BANK: /srv/assessment/bank.json
+      ASSESSMENT_COOLDOWN: ${ASSESSMENT_COOLDOWN:-off}
+      AUTO_MIGRATE: "1"
+      SEED_ON_START: ${SEED_ON_START:-always}
+    volumes:
+      - uploads:/data/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 180s
+    restart: unless-stopped
+
+  worker:
+    build:
+      context: .
+      dockerfile: infra/coolify/api.Dockerfile
+    command: ["taskiq", "worker", "app.tasks:broker"]
+    environment:
+      POSTGRES_DSN: postgresql+asyncpg://fsp:${POSTGRES_PASSWORD:-fsp}@postgres:5432/fsp
+      REDIS_URL: redis://redis:6379/0
+      KEYCLOAK_ISSUER: ${PUBLIC_URL:-http://localhost}/auth/realms/fsp
+      KEYCLOAK_JWKS_URL: http://keycloak:8080/auth/realms/fsp/protocol/openid-connect/certs
+      KEYCLOAK_CLIENT_ID: career-web
+      KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET:-change-me}
+      LLM_BASE_URL: ${LLM_BASE_URL:-https://llm-provider.example/v1}
+      LLM_API_KEY: ${LLM_API_KEY:-change-me}
+      LLM_MODEL: ${LLM_MODEL:-qwen3-14b}
+      LLM_ENABLED: ${LLM_ENABLED:-false}
+      EMBEDDING_MODEL: intfloat/multilingual-e5-base
+      PISTON_URL: http://piston:2000
+      PISTON_ENABLED: "false"
+      MATCH_ALPHA: ${MATCH_ALPHA:-1.0}
+      MATCH_BETA: ${MATCH_BETA:-0.15}
+      UPLOAD_DIR: /data/uploads
+      TAXONOMY_DIR: /srv/taxonomy/data
+      SEED_DIR: /srv/seed
+      ASSESSMENT_BANK: /srv/assessment/bank.json
+      ASSESSMENT_COOLDOWN: ${ASSESSMENT_COOLDOWN:-off}
+    volumes:
+      - uploads:/data/uploads
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: fsp
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-fsp}
+      POSTGRES_DB: fsp
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fsp -d fsp"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  keycloak:
+    build:
+      context: .
+      dockerfile: infra/coolify/keycloak.Dockerfile
+    command: ["start-dev", "--import-realm"]
+    environment:
+      PUBLIC_URL: ${PUBLIC_URL:-http://localhost}
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN:-admin}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
+      KC_HTTP_ENABLED: "true"
+      KC_HTTP_RELATIVE_PATH: /auth
+      KC_HOSTNAME: ${PUBLIC_URL:-http://localhost}/auth
+      KC_HOSTNAME_BACKCHANNEL_DYNAMIC: "true"
+      KC_PROXY_HEADERS: xforwarded
+      KC_HOSTNAME_STRICT: "false"
+      KC_HEALTH_ENABLED: "true"
+    depends_on:
+      mailpit:
+        condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/9000; echo -e 'GET /auth/health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3; head -n 1 <&3 | grep -q 200"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
+    restart: unless-stopped
+
+  mailpit:
+    image: axllent/mailpit:v1.21
+    environment:
+      MP_WEBROOT: /mail
+    restart: unless-stopped
+
+  epa:
+    build:
+      context: ./services/epa
+    environment:
+      HOST: 0.0.0.0
+      PORT: "8080"
+      EPA_PUBLIC_URL: ${PUBLIC_URL:-http://localhost}
+      EPA_RDE_DRIVER: local
+      EPA_SANDBOX_DRIVER: local
+      EPA_DATA_DIR: /data
+      OLLAMA_URL: ${OLLAMA_URL:-http://host.docker.internal:11434}
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
+      DEEPSEEK_MODEL: ${DEEPSEEK_MODEL:-deepseek-chat}
+      DEEPSEEK_BASE_URL: ${DEEPSEEK_BASE_URL:-https://api.deepseek.com}
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    volumes:
+      - epa:/data
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:8080/healthz').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 60s
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  uploads:
+  epa:

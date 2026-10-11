@@ -90,6 +90,9 @@ services:
       PISTON_ENABLED: ${PISTON_ENABLED:-false}
       MATCH_ALPHA: ${MATCH_ALPHA:-1.0}
       MATCH_BETA: ${MATCH_BETA:-0.15}
+      # Миграции и демо-данные при старте: if-empty — только в пустую базу, always — сброс демо при каждом старте.
+      AUTO_MIGRATE: "1"
+      SEED_ON_START: ${SEED_ON_START:-if-empty}
       UPLOAD_DIR: /data/uploads
       TAXONOMY_DIR: /srv/taxonomy/data
       ASSESSMENT_BANK: /srv/assessment/bank.json
@@ -110,7 +113,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
-      start_period: 20s
+      start_period: 120s
     restart: unless-stopped
 
   worker:

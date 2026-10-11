@@ -1,0 +1,12 @@
+**
+!services/api/pyproject.toml
+!services/api/app
+!services/api/alembic
+!services/api/alembic.ini
+!services/api/docker-entrypoint.sh
+!taxonomy
+!seed
+!tmp_bank
+**/__pycache__
+**/*.pyc
+**/.venv
