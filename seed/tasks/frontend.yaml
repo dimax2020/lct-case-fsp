@@ -1,0 +1,296 @@
+# Skill ids are the 10-skill sample in taxonomy/data/skills.yaml:
+# python, go, javascript, postgresql, kafka, kubernetes, react, docker, pytorch, vue.
+# `solutions` is a reference only. The loader does not copy it into tasks_bank.
+- id: frontend-mcq-01
+  specialization: frontend
+  kind: mcq
+  skills:
+  - javascript
+  difficulty: 1
+  body: Чему равен typeof null в JavaScript?
+  options:
+  - id: a
+    text: '"null"'
+  - id: b
+    text: '"object"'
+  - id: c
+    text: '"undefined"'
+  - id: d
+    text: '"number"'
+  answer: b
+  languages: []
+- id: frontend-mcq-02
+  specialization: frontend
+  kind: mcq
+  skills:
+  - javascript
+  difficulty: 2
+  body: Чему равно выражение 1 === '1' в JavaScript?
+  options:
+  - id: a
+    text: 'true'
+  - id: b
+    text: 'false'
+  - id: c
+    text: '1'
+  - id: d
+    text: undefined
+  answer: b
+  languages: []
+- id: frontend-mcq-03
+  specialization: frontend
+  kind: mcq
+  skills:
+  - javascript
+  difficulty: 3
+  body: Можно ли вызвать push у массива, объявленного через const?
+  options:
+  - id: a
+    text: Нет, const запрещает любое изменение массива
+  - id: b
+    text: Да, const фиксирует ссылку, а push меняет содержимое
+  - id: c
+    text: Да, но только если массив пустой
+  - id: d
+    text: Нет, push доступен только у let
+  answer: b
+  languages: []
+- id: frontend-mcq-04
+  specialization: frontend
+  kind: mcq
+  skills:
+  - react
+  difficulty: 2
+  body: Что в React заставляет компонент перерисоваться после клика?
+  options:
+  - id: a
+    text: Прямое изменение локальной переменной let
+  - id: b
+    text: Вызов сеттера useState
+  - id: c
+    text: Чтение props без их изменения
+  - id: d
+    text: Объявление ещё одного useRef
+  answer: b
+  languages: []
+- id: frontend-mcq-05
+  specialization: frontend
+  kind: mcq
+  skills:
+  - react
+  difficulty: 4
+  body: Зачем элементам списка в React передают стабильный key?
+  options:
+  - id: a
+    text: Чтобы React мог сопоставить элементы между рендерами и не путать их при перестановке
+  - id: b
+    text: Key обязателен только для CSS
+  - id: c
+    text: Key заменяет props.id и уходит в DOM как атрибут по умолчанию
+  - id: d
+    text: Без индекса массива в качестве key список не рендерится
+  answer: a
+  languages: []
+- id: frontend-mcq-06
+  specialization: frontend
+  kind: mcq
+  skills:
+  - react
+  difficulty: 3
+  body: Когда выполнится useEffect с пустым массивом зависимостей?
+  options:
+  - id: a
+    text: Перед первым рендером и при каждом изменении props
+  - id: b
+    text: После монтирования компонента
+  - id: c
+    text: Только при размонтировании
+  - id: d
+    text: На каждый ререндер
+  answer: b
+  languages: []
+- id: frontend-mcq-07
+  specialization: frontend
+  kind: mcq
+  skills:
+  - vue
+  difficulty: 2
+  body: Что связывает v-model на нативном input во Vue?
+  options:
+  - id: a
+    text: Только атрибут class
+  - id: b
+    text: Значение поля и событие input
+  - id: c
+    text: Только событие click
+  - id: d
+    text: Слот по умолчанию
+  answer: b
+  languages: []
+- id: frontend-mcq-08
+  specialization: frontend
+  kind: mcq
+  skills:
+  - vue
+  difficulty: 3
+  body: Чем computed во Vue отличается от обычного метода в шаблоне?
+  options:
+  - id: a
+    text: Computed нельзя использовать в шаблоне
+  - id: b
+    text: Computed кэшируется и пересчитывается при изменении реактивных зависимостей
+  - id: c
+    text: Метод кэшируется, а computed нет
+  - id: d
+    text: Computed всегда ходит в сеть
+  answer: b
+  languages: []
+- id: frontend-mcq-09
+  specialization: frontend
+  kind: mcq
+  skills:
+  - vue
+  difficulty: 5
+  body: Что верно про объект, созданный через reactive() во Vue 3?
+  options:
+  - id: a
+    text: Новое свойство, добавленное позже, не становится реактивным
+  - id: b
+    text: Новое свойство отслеживается, потому что объект обёрнут в Proxy
+  - id: c
+    text: reactive() работает только для массивов
+  - id: d
+    text: reactive() копирует объект и отключает исходный
+  answer: b
+  languages: []
+- id: frontend-code-01
+  specialization: frontend
+  kind: code
+  skills:
+  - javascript
+  difficulty: 1
+  body: 'На стандартный ввод подаются две ширины макета в пикселях. Напечатайте их сумму. Язык: Python или Go.'
+  tests_public:
+  - stdin: '320 480
+
+      '
+    expected: '800
+
+      '
+  tests_hidden:
+  - stdin: '1440 80
+
+      '
+    expected: '1520
+
+      '
+  - stdin: '0 0
+
+      '
+    expected: '0
+
+      '
+  languages:
+  - python
+  - go
+  solutions:
+    python: 'import sys
+
+      a, b = map(int, sys.stdin.read().split())
+
+      print(a + b)
+
+      '
+    go: "package main\n\nimport \"fmt\"\n\nfunc main() {\n    var a, b int\n    fmt.Scan(&a, &b)\n    fmt.Println(a + b)\n\
+      }\n"
+- id: frontend-code-02
+  specialization: frontend
+  kind: code
+  skills:
+  - react
+  difficulty: 3
+  body: 'Первая строка — целое n. Вторая — n целых, размеры бандлов компонентов. Напечатайте максимальный. Язык: Python или
+    Go.'
+  tests_public:
+  - stdin: '4
+
+      3 9 2 8
+
+      '
+    expected: '9
+
+      '
+  tests_hidden:
+  - stdin: '3
+
+      -4 -8 -1
+
+      '
+    expected: '-1
+
+      '
+  - stdin: '2
+
+      5 5
+
+      '
+    expected: '5
+
+      '
+  languages:
+  - python
+  - go
+  solutions:
+    python: 'import sys
+
+      data = [int(part) for part in sys.stdin.read().split()]
+
+      count = data[0]
+
+      print(max(data[1 : 1 + count]))
+
+      '
+    go: "package main\n\nimport \"fmt\"\n\nfunc main() {\n    var n int\n    fmt.Scan(&n)\n    var best int\n    for i :=\
+      \ 0; i < n; i++ {\n        var value int\n        fmt.Scan(&value)\n        if i == 0 || value > best {\n          \
+      \  best = value\n        }\n    }\n    fmt.Println(best)\n}\n"
+- id: frontend-code-03
+  specialization: frontend
+  kind: code
+  skills:
+  - vue
+  - javascript
+  difficulty: 4
+  body: 'На стандартный ввод подаётся одно слово — имя CSS-класса. Напечатайте его задом наперёд. Язык: Python или Go.'
+  tests_public:
+  - stdin: 'button
+
+      '
+    expected: 'nottub
+
+      '
+  tests_hidden:
+  - stdin: 'modal
+
+      '
+    expected: 'ladom
+
+      '
+  - stdin: 'header
+
+      '
+    expected: 'redaeh
+
+      '
+  languages:
+  - python
+  - go
+  solutions:
+    python: 'import sys
+
+      print(sys.stdin.readline().rstrip(''\r\n'')[::-1])
+
+      '
+    go: "package main\n\nimport (\n    \"bufio\"\n    \"fmt\"\n    \"os\"\n    \"strings\"\n)\n\nfunc main() {\n    reader\
+      \ := bufio.NewReader(os.Stdin)\n    line, _ := reader.ReadString('\\n')\n    line = strings.TrimRight(line, \"\\r\\\
+      n\")\n    chars := []rune(line)\n    for i, j := 0, len(chars)-1; i < j; i, j = i+1, j-1 {\n        chars[i], chars[j]\
+      \ = chars[j], chars[i]\n    }\n    fmt.Println(string(chars))\n}\n"

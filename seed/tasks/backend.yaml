@@ -1,0 +1,304 @@
+# Skill ids are the 10-skill sample in taxonomy/data/skills.yaml:
+# python, go, javascript, postgresql, kafka, kubernetes, react, docker, pytorch, vue.
+# `solutions` is a reference only. The loader does not copy it into tasks_bank.
+- id: backend-mcq-01
+  specialization: backend
+  kind: mcq
+  skills:
+  - python
+  difficulty: 1
+  body: Что вернёт выражение `''.join(['a', 'b'])` в Python?
+  options:
+  - id: a
+    text: Строку ab
+  - id: b
+    text: Строку 'a b'
+  - id: c
+    text: Список ['a', 'b']
+  - id: d
+    text: 'None'
+  answer: a
+  languages: []
+- id: backend-mcq-02
+  specialization: backend
+  kind: mcq
+  skills:
+  - python
+  difficulty: 2
+  body: Чему равно `bool([])` в Python?
+  options:
+  - id: a
+    text: 'True'
+  - id: b
+    text: 'False'
+  - id: c
+    text: 'None'
+  - id: d
+    text: Выражению нельзя вычислить значение
+  answer: b
+  languages: []
+- id: backend-mcq-03
+  specialization: backend
+  kind: mcq
+  skills:
+  - go
+  difficulty: 2
+  body: Какое нулевое значение у переменной типа int в Go?
+  options:
+  - id: a
+    text: nil
+  - id: b
+    text: '0'
+  - id: c
+    text: '1'
+  - id: d
+    text: Переменная без явной инициализации не компилируется
+  answer: b
+  languages: []
+- id: backend-mcq-04
+  specialization: backend
+  kind: mcq
+  skills:
+  - go
+  difficulty: 4
+  body: Срез в Go уже имеет len меньше cap. Что делает append одного элемента, если cap ещё хватает?
+  options:
+  - id: a
+    text: Всегда выделяет новый массив
+  - id: b
+    text: Может записать элемент в существующий backing array и увеличить len
+  - id: c
+    text: Паникует, потому что индекс равен len
+  - id: d
+    text: Меняет только cap и не меняет len
+  answer: b
+  languages: []
+- id: backend-mcq-05
+  specialization: backend
+  kind: mcq
+  skills:
+  - postgresql
+  difficulty: 3
+  body: Чему равно сравнение NULL = NULL в PostgreSQL?
+  options:
+  - id: a
+    text: 'TRUE'
+  - id: b
+    text: 'FALSE'
+  - id: c
+    text: 'NULL'
+  - id: d
+    text: Ошибка синтаксиса
+  answer: c
+  languages: []
+- id: backend-mcq-06
+  specialization: backend
+  kind: mcq
+  skills:
+  - postgresql
+  difficulty: 2
+  body: Какой тип индекса PostgreSQL обычно выбирают для поиска по равенству и диапазону обычного столбца int?
+  options:
+  - id: a
+    text: GIN
+  - id: b
+    text: B-tree
+  - id: c
+    text: BRIN как единственный вариант для первичного ключа
+  - id: d
+    text: GiST
+  answer: b
+  languages: []
+- id: backend-mcq-07
+  specialization: backend
+  kind: mcq
+  skills:
+  - kafka
+  difficulty: 3
+  body: Где consumer group в Kafka хранит зафиксированный offset?
+  options:
+  - id: a
+    text: Только в памяти клиента, брокер offset не знает
+  - id: b
+    text: В служебном топике __consumer_offsets
+  - id: c
+    text: Внутри каждого прочитанного сообщения
+  - id: d
+    text: Обязательно в ZooKeeper, даже в режиме KRaft
+  answer: b
+  languages: []
+- id: backend-mcq-08
+  specialization: backend
+  kind: mcq
+  skills:
+  - kafka
+  difficulty: 5
+  body: Куда попадут сообщения с одним и тем же ключом партиции?
+  options:
+  - id: a
+    text: В одну и ту же партицию, и внутри неё сохранится порядок
+  - id: b
+    text: Равномерно во все партиции топика
+  - id: c
+    text: Всегда в партицию 0
+  - id: d
+    text: В разные партиции при каждой отправке, даже при неизменном ключе
+  answer: a
+  languages: []
+- id: backend-mcq-09
+  specialization: backend
+  kind: mcq
+  skills:
+  - docker
+  difficulty: 2
+  body: Почему порядок инструкций в Dockerfile влияет на скорость повторной сборки?
+  options:
+  - id: a
+    text: Docker всегда пересобирает все слои с нуля
+  - id: b
+    text: Кэш слоёв инвалидируется начиная с изменённой инструкции и ниже
+  - id: c
+    text: Кэшируется только последняя инструкция
+  - id: d
+    text: Порядок инструкций на кэш не влияет
+  answer: b
+  languages: []
+- id: backend-code-01
+  specialization: backend
+  kind: code
+  skills:
+  - python
+  - go
+  difficulty: 2
+  body: 'На стандартный ввод подаются два целых числа — размеры двух ответов API. Напечатайте их сумму. Язык: Python или Go.'
+  tests_public:
+  - stdin: '2 3
+
+      '
+    expected: '5
+
+      '
+  - stdin: '10 1
+
+      '
+    expected: '11
+
+      '
+  tests_hidden:
+  - stdin: '801 208
+
+      '
+    expected: '1009
+
+      '
+  - stdin: '-15 4
+
+      '
+    expected: '-11
+
+      '
+  languages:
+  - python
+  - go
+  solutions:
+    python: 'import sys
+
+      a, b = map(int, sys.stdin.read().split())
+
+      print(a + b)
+
+      '
+    go: "package main\n\nimport \"fmt\"\n\nfunc main() {\n    var a, b int\n    fmt.Scan(&a, &b)\n    fmt.Println(a + b)\n\
+      }\n"
+- id: backend-code-02
+  specialization: backend
+  kind: code
+  skills:
+  - postgresql
+  difficulty: 3
+  body: 'Первая строка — целое n. Вторая строка — n целых, это длительности запросов к PostgreSQL в миллисекундах. Напечатайте
+    максимум. Язык: Python или Go.'
+  tests_public:
+  - stdin: '3
+
+      1 7 4
+
+      '
+    expected: '7
+
+      '
+  tests_hidden:
+  - stdin: '4
+
+      -5 -2 -9 -1
+
+      '
+    expected: '-1
+
+      '
+  - stdin: '1
+
+      42
+
+      '
+    expected: '42
+
+      '
+  languages:
+  - python
+  - go
+  solutions:
+    python: 'import sys
+
+      data = [int(part) for part in sys.stdin.read().split()]
+
+      count = data[0]
+
+      print(max(data[1 : 1 + count]))
+
+      '
+    go: "package main\n\nimport \"fmt\"\n\nfunc main() {\n    var n int\n    fmt.Scan(&n)\n    var best int\n    for i :=\
+      \ 0; i < n; i++ {\n        var value int\n        fmt.Scan(&value)\n        if i == 0 || value > best {\n          \
+      \  best = value\n        }\n    }\n    fmt.Println(best)\n}\n"
+- id: backend-code-03
+  specialization: backend
+  kind: code
+  skills:
+  - kafka
+  - go
+  difficulty: 4
+  body: 'На стандартный ввод подаётся одно слово из латинских букв — имя топика. Напечатайте его задом наперёд. Язык: Python
+    или Go.'
+  tests_public:
+  - stdin: 'order
+
+      '
+    expected: 'redro
+
+      '
+  tests_hidden:
+  - stdin: 'partition
+
+      '
+    expected: 'noititrap
+
+      '
+  - stdin: 'offset
+
+      '
+    expected: 'tesffo
+
+      '
+  languages:
+  - python
+  - go
+  solutions:
+    python: 'import sys
+
+      print(sys.stdin.readline().rstrip(''\r\n'')[::-1])
+
+      '
+    go: "package main\n\nimport (\n    \"bufio\"\n    \"fmt\"\n    \"os\"\n    \"strings\"\n)\n\nfunc main() {\n    reader\
+      \ := bufio.NewReader(os.Stdin)\n    line, _ := reader.ReadString('\\n')\n    line = strings.TrimRight(line, \"\\r\\\
+      n\")\n    chars := []rune(line)\n    for i, j := 0, len(chars)-1; i < j; i, j = i+1, j-1 {\n        chars[i], chars[j]\
+      \ = chars[j], chars[i]\n    }\n    fmt.Println(string(chars))\n}\n"

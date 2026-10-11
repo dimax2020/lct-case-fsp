@@ -1,0 +1,297 @@
+# Skill ids are the 10-skill sample in taxonomy/data/skills.yaml:
+# python, go, javascript, postgresql, kafka, kubernetes, react, docker, pytorch, vue.
+# `solutions` is a reference only. The loader does not copy it into tasks_bank.
+- id: data_ml-mcq-01
+  specialization: data_ml
+  kind: mcq
+  skills:
+  - python
+  difficulty: 1
+  body: Чему равно 7 // 2 в Python?
+  options:
+  - id: a
+    text: '3.5'
+  - id: b
+    text: '3'
+  - id: c
+    text: '4'
+  - id: d
+    text: '2'
+  answer: b
+  languages: []
+- id: data_ml-mcq-02
+  specialization: data_ml
+  kind: mcq
+  skills:
+  - python
+  difficulty: 3
+  body: Что делает срез data[:2] для списка data?
+  options:
+  - id: a
+    text: Берёт элементы с индексами 0 и 1
+  - id: b
+    text: Берёт только элемент с индексом 2
+  - id: c
+    text: Удаляет первые два элемента из исходного списка
+  - id: d
+    text: Разворачивает список
+  answer: a
+  languages: []
+- id: data_ml-mcq-03
+  specialization: data_ml
+  kind: mcq
+  skills:
+  - postgresql
+  difficulty: 2
+  body: Чем COUNT(col) отличается от COUNT(*) в PostgreSQL?
+  options:
+  - id: a
+    text: Ничем
+  - id: b
+    text: COUNT(col) не считает строки, где col равен NULL
+  - id: c
+    text: COUNT(*) не считает строки с NULL в любом столбце
+  - id: d
+    text: COUNT(col) всегда больше COUNT(*)
+  answer: b
+  languages: []
+- id: data_ml-mcq-04
+  specialization: data_ml
+  kind: mcq
+  skills:
+  - postgresql
+  difficulty: 4
+  body: Что возвращает оконная функция ROW_NUMBER() OVER (PARTITION BY user_id ORDER BY created_at)?
+  options:
+  - id: a
+    text: Один номер на всю таблицу, одинаковый у всех строк пользователя
+  - id: b
+    text: Порядковый номер строки внутри каждого user_id
+  - id: c
+    text: Количество уникальных user_id
+  - id: d
+    text: Только строки с максимальным created_at
+  answer: b
+  languages: []
+- id: data_ml-mcq-05
+  specialization: data_ml
+  kind: mcq
+  skills:
+  - pytorch
+  difficulty: 2
+  body: Зачем после вычисления loss вызывают loss.backward() в PyTorch?
+  options:
+  - id: a
+    text: Чтобы обнулить веса
+  - id: b
+    text: Чтобы вычислить градиенты по графу операций
+  - id: c
+    text: Чтобы переключить модель в режим eval
+  - id: d
+    text: Чтобы сохранить чекпоинт на диск
+  answer: b
+  languages: []
+- id: data_ml-mcq-06
+  specialization: data_ml
+  kind: mcq
+  skills:
+  - pytorch
+  difficulty: 4
+  body: Зачем перед прогоном на валидации вызывают model.eval()?
+  options:
+  - id: a
+    text: Чтобы Dropout и BatchNorm перешли в режим инференса
+  - id: b
+    text: Чтобы заново инициализировать веса
+  - id: c
+    text: Чтобы включить расчёт градиентов
+  - id: d
+    text: Чтобы удалить оптимизатор
+  answer: a
+  languages: []
+- id: data_ml-mcq-07
+  specialization: data_ml
+  kind: mcq
+  skills:
+  - pytorch
+  difficulty: 3
+  body: Что делает блок with torch.no_grad()?
+  options:
+  - id: a
+    text: Отключает отслеживание градиентов внутри блока
+  - id: b
+    text: Гарантирует, что веса обновятся
+  - id: c
+    text: Включает Dropout даже в режиме eval
+  - id: d
+    text: Переносит тензор на GPU
+  answer: a
+  languages: []
+- id: data_ml-mcq-08
+  specialization: data_ml
+  kind: mcq
+  skills:
+  - kafka
+  difficulty: 2
+  body: Что задаёт retention.ms у топика Kafka?
+  options:
+  - id: a
+    text: Сколько времени брокер хранит сообщения, прежде чем удалить их по сроку
+  - id: b
+    text: Размер потребительской группы
+  - id: c
+    text: Число реплик по умолчанию для всех топиков кластера
+  - id: d
+    text: Интервал heartbeat потребителя
+  answer: a
+  languages: []
+- id: data_ml-mcq-09
+  specialization: data_ml
+  kind: mcq
+  skills:
+  - python
+  - pytorch
+  difficulty: 5
+  body: Модель учится предсказывать клик. Где ошибка в подготовке признаков?
+  options:
+  - id: a
+    text: Признаки числовые, а цель бинарная
+  - id: b
+    text: StandardScaler обучили на всей выборке до разделения на train и test
+  - id: c
+    text: В обучающей выборке больше одной строки
+  - id: d
+    text: Для бинарной цели используют кросс-энтропию
+  answer: b
+  languages: []
+- id: data_ml-code-01
+  specialization: data_ml
+  kind: code
+  skills:
+  - python
+  difficulty: 2
+  body: 'На стандартный ввод подаются два целых числа — значения признака. Напечатайте их сумму. Язык: Python или Go.'
+  tests_public:
+  - stdin: '4 6
+
+      '
+    expected: '10
+
+      '
+  tests_hidden:
+  - stdin: '100 7
+
+      '
+    expected: '107
+
+      '
+  - stdin: '-3 -8
+
+      '
+    expected: '-11
+
+      '
+  languages:
+  - python
+  - go
+  solutions:
+    python: 'import sys
+
+      a, b = map(int, sys.stdin.read().split())
+
+      print(a + b)
+
+      '
+    go: "package main\n\nimport \"fmt\"\n\nfunc main() {\n    var a, b int\n    fmt.Scan(&a, &b)\n    fmt.Println(a + b)\n\
+      }\n"
+- id: data_ml-code-02
+  specialization: data_ml
+  kind: code
+  skills:
+  - pytorch
+  difficulty: 3
+  body: 'Первая строка — целое n. Вторая — n целых метрик качества, уже умноженных на 100. Напечатайте максимум. Язык: Python
+    или Go.'
+  tests_public:
+  - stdin: '5
+
+      10 40 25 70 15
+
+      '
+    expected: '70
+
+      '
+  tests_hidden:
+  - stdin: '3
+
+      -2 0 -7
+
+      '
+    expected: '0
+
+      '
+  - stdin: '2
+
+      8 9
+
+      '
+    expected: '9
+
+      '
+  languages:
+  - python
+  - go
+  solutions:
+    python: 'import sys
+
+      data = [int(part) for part in sys.stdin.read().split()]
+
+      count = data[0]
+
+      print(max(data[1 : 1 + count]))
+
+      '
+    go: "package main\n\nimport \"fmt\"\n\nfunc main() {\n    var n int\n    fmt.Scan(&n)\n    var best int\n    for i :=\
+      \ 0; i < n; i++ {\n        var value int\n        fmt.Scan(&value)\n        if i == 0 || value > best {\n          \
+      \  best = value\n        }\n    }\n    fmt.Println(best)\n}\n"
+- id: data_ml-code-03
+  specialization: data_ml
+  kind: code
+  skills:
+  - postgresql
+  - kafka
+  difficulty: 4
+  body: 'На стандартный ввод подаётся одно слово — имя колонки. Напечатайте его задом наперёд. Язык: Python или Go.'
+  tests_public:
+  - stdin: 'label
+
+      '
+    expected: 'lebal
+
+      '
+  tests_hidden:
+  - stdin: 'feature
+
+      '
+    expected: 'erutaef
+
+      '
+  - stdin: 'target
+
+      '
+    expected: 'tegrat
+
+      '
+  languages:
+  - python
+  - go
+  solutions:
+    python: 'import sys
+
+      print(sys.stdin.readline().rstrip(''\r\n'')[::-1])
+
+      '
+    go: "package main\n\nimport (\n    \"bufio\"\n    \"fmt\"\n    \"os\"\n    \"strings\"\n)\n\nfunc main() {\n    reader\
+      \ := bufio.NewReader(os.Stdin)\n    line, _ := reader.ReadString('\\n')\n    line = strings.TrimRight(line, \"\\r\\\
+      n\")\n    chars := []rune(line)\n    for i, j := 0, len(chars)-1; i < j; i, j = i+1, j-1 {\n        chars[i], chars[j]\
+      \ = chars[j], chars[i]\n    }\n    fmt.Println(string(chars))\n}\n"
