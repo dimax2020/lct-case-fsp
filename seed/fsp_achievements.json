@@ -1,1 +1,1202 @@
-[]
+[
+  {
+    "id": "e40c3b3d-a36d-51ce-8ec8-d21847380ee8",
+    "candidate_id": "b8306c36-e518-5778-9ec5-6d145951629f",
+    "candidate_key": "cand-backend-000",
+    "email": "candidate@demo.fsp",
+    "discipline": "backend",
+    "event": "Хакатон ФСП «Антифрод на Kafka»",
+    "place": 1,
+    "year": 2025
+  },
+  {
+    "id": "6e4d3901-735d-5730-adf1-e566eb0f1f1f",
+    "candidate_id": "dc41a883-711a-56c0-83e3-cff51df5ffc6",
+    "candidate_key": "cand-backend-023",
+    "email": "cand-backend-023@seed.fsp",
+    "discipline": "backend",
+    "event": "Хакатон ФСП «Платёжный контур»",
+    "place": 5,
+    "year": 2025
+  },
+  {
+    "id": "73edef75-71c4-5e31-8073-e3537d39d457",
+    "candidate_id": "8bbcd6b7-da63-5be2-ba29-7f7f97ca8ad3",
+    "candidate_key": "cand-backend-024",
+    "email": "cand-backend-024@seed.fsp",
+    "discipline": "data_ml",
+    "event": "Чемпионат ФСП по данным",
+    "place": null,
+    "year": 2023
+  },
+  {
+    "id": "f4245933-0b72-50ab-beac-e776d31a4395",
+    "candidate_id": "ea676f8f-f82e-50a9-9cca-5a3788311080",
+    "candidate_key": "cand-backend-026",
+    "email": "cand-backend-026@seed.fsp",
+    "discipline": "backend",
+    "event": "Хакатон ФСП «Платёжный контур»",
+    "place": 3,
+    "year": 2024
+  },
+  {
+    "id": "e7d451f9-9fef-51e6-ad2e-7dc2fce068ed",
+    "candidate_id": "26b750ed-6029-5623-8d84-be4bc6d12986",
+    "candidate_key": "cand-backend-031",
+    "email": "cand-backend-031@seed.fsp",
+    "discipline": "backend",
+    "event": "Хакатон ФСП «Платёжный контур»",
+    "place": 3,
+    "year": 2024
+  },
+  {
+    "id": "b0879634-0d3a-5a72-b3b2-3944f10ca8bf",
+    "candidate_id": "c1013ecc-dec7-5951-9b86-6a7adecf1274",
+    "candidate_key": "cand-backend-032",
+    "email": "cand-backend-032@seed.fsp",
+    "discipline": "frontend",
+    "event": "Хакатон ФСП «Витрина»",
+    "place": 1,
+    "year": 2024
+  },
+  {
+    "id": "20e71c4e-ebf6-5b57-8e40-4a78f46f0bd7",
+    "candidate_id": "21b7fb35-6681-5000-bcb9-9e757349dd3b",
+    "candidate_key": "cand-backend-038",
+    "email": "cand-backend-038@seed.fsp",
+    "discipline": "backend",
+    "event": "Хакатон ФСП «Платёжный контур»",
+    "place": 5,
+    "year": 2025
+  },
+  {
+    "id": "640808e3-76b5-54b7-8f10-a0d5a51f5491",
+    "candidate_id": "f8adef86-5670-52e8-9c11-3e3c51668106",
+    "candidate_key": "cand-backend-039",
+    "email": "cand-backend-039@seed.fsp",
+    "discipline": "backend",
+    "event": "Хакатон ФСП «Платёжный контур»",
+    "place": 2,
+    "year": 2025
+  },
+  {
+    "id": "18a1c482-bcb1-563e-9432-a0ba5405d1ff",
+    "candidate_id": "70c40018-f02e-54db-a0d3-7e19359c2a64",
+    "candidate_key": "cand-backend-040",
+    "email": "cand-backend-040@seed.fsp",
+    "discipline": "data_ml",
+    "event": "Чемпионат ФСП по данным",
+    "place": 2,
+    "year": 2024
+  },
+  {
+    "id": "aaad6ff3-1539-5cd3-8692-c06c48651b45",
+    "candidate_id": "84c9d3d8-1a35-5f48-9423-323cab2bf87a",
+    "candidate_key": "cand-backend-042",
+    "email": "cand-backend-042@seed.fsp",
+    "discipline": "backend",
+    "event": "Хакатон ФСП «Платёжный контур»",
+    "place": null,
+    "year": 2025
+  },
+  {
+    "id": "6dbd7030-5d4d-5f10-ae54-1a874de2d2a3",
+    "candidate_id": "2ef8b403-3c2b-5fbe-a294-39ca724fab26",
+    "candidate_key": "cand-backend-043",
+    "email": "cand-backend-043@seed.fsp",
+    "discipline": "frontend",
+    "event": "Хакатон ФСП «Витрина»",
+    "place": null,
+    "year": 2025
+  },
+  {
+    "id": "b3ad3a53-8541-581b-9fb5-b94a312f95f1",
+    "candidate_id": "f0c54ab0-8797-51b1-ba39-9fb7200dff3c",
+    "candidate_key": "cand-backend-044",
+    "email": "cand-backend-044@seed.fsp",
+    "discipline": "backend",
+    "event": "Хакатон ФСП «Платёжный контур»",
+    "place": 2,
+    "year": 2023
+  },
+  {
+    "id": "32eb357e-db65-5ccc-83e3-1507ce405bfa",
+    "candidate_id": "960587e4-6cdf-554b-87d4-60ea6d63376f",
+    "candidate_key": "cand-backend-046",
+    "email": "cand-backend-046@seed.fsp",
+    "discipline": "backend",
+    "event": "Хакатон ФСП «Платёжный контур»",
+    "place": null,
+    "year": 2025
+  },
+  {
+    "id": "b343b402-72ac-54e1-bf89-8af7df742943",
+    "candidate_id": "c7429915-0bba-5fb4-a14c-d417de9cdf91",
+    "candidate_key": "cand-backend-048",
+    "email": "cand-backend-048@seed.fsp",
+    "discipline": "data_ml",
+    "event": "Чемпионат ФСП по данным",
+    "place": 2,
+    "year": 2024
+  },
+  {
+    "id": "7e98d4b6-eba0-508a-be53-59aac86b49da",
+    "candidate_id": "955cb0dd-52e1-5b6e-8c26-63303181364e",
+    "candidate_key": "cand-backend-050",
+    "email": "cand-backend-050@seed.fsp",
+    "discipline": "backend",
+    "event": "Хакатон ФСП «Платёжный контур»",
+    "place": 5,
+    "year": 2025
+  },
+  {
+    "id": "2c0e9b50-edaf-5df5-8a4a-1c09431fe383",
+    "candidate_id": "b97ef329-4e3a-51e9-9bb7-e03a6b4e902f",
+    "candidate_key": "cand-backend-051",
+    "email": "cand-backend-051@seed.fsp",
+    "discipline": "backend",
+    "event": "Хакатон ФСП «Платёжный контур»",
+    "place": 5,
+    "year": 2024
+  },
+  {
+    "id": "434df740-310f-515a-859a-509fe5d01143",
+    "candidate_id": "e366fe64-0934-5525-a8f4-3086ea83b140",
+    "candidate_key": "cand-backend-052",
+    "email": "cand-backend-052@seed.fsp",
+    "discipline": "frontend",
+    "event": "Хакатон ФСП «Витрина»",
+    "place": 3,
+    "year": 2025
+  },
+  {
+    "id": "ffef1357-aa4f-502f-b3b8-c865ac730121",
+    "candidate_id": "429cd7b1-83c0-5453-9a84-d4e9d4604ef9",
+    "candidate_key": "cand-backend-057",
+    "email": "cand-backend-057@seed.fsp",
+    "discipline": "backend",
+    "event": "Хакатон ФСП «Платёжный контур»",
+    "place": 1,
+    "year": 2024
+  },
+  {
+    "id": "28ecaae9-be12-503b-840c-d953da8c9ab5",
+    "candidate_id": "f833e318-ba7d-5fdd-93e9-9a51f9b39b69",
+    "candidate_key": "cand-backend-059",
+    "email": "cand-backend-059@seed.fsp",
+    "discipline": "devops",
+    "event": "Хакатон ФСП «Кластер»",
+    "place": 5,
+    "year": 2024
+  },
+  {
+    "id": "112de338-7a4c-5da9-a3b7-236f899d60e7",
+    "candidate_id": "3428ff9a-568e-5671-9dd5-02b60efe1fec",
+    "candidate_key": "cand-backend-065",
+    "email": "cand-backend-065@seed.fsp",
+    "discipline": "backend",
+    "event": "Хакатон ФСП «Платёжный контур»",
+    "place": 5,
+    "year": 2023
+  },
+  {
+    "id": "919856c5-01d4-51d6-9a67-51c8ed53f86c",
+    "candidate_id": "30be3c13-3361-53d7-b576-ce344817c9e3",
+    "candidate_key": "cand-backend-066",
+    "email": "cand-backend-066@seed.fsp",
+    "discipline": "frontend",
+    "event": "Хакатон ФСП «Витрина»",
+    "place": 2,
+    "year": 2025
+  },
+  {
+    "id": "9428756e-9425-5a2b-a11b-edd6b1283c00",
+    "candidate_id": "f8a77923-647e-50e5-b88c-61d728997e40",
+    "candidate_key": "cand-backend-073",
+    "email": "cand-backend-073@seed.fsp",
+    "discipline": "devops",
+    "event": "Хакатон ФСП «Кластер»",
+    "place": 2,
+    "year": 2023
+  },
+  {
+    "id": "660bf91b-c2c5-5316-b65c-77e092bdd7eb",
+    "candidate_id": "634fd3a8-b76b-5163-9461-b6311f7a1d0e",
+    "candidate_key": "cand-backend-075",
+    "email": "cand-backend-075@seed.fsp",
+    "discipline": "data_ml",
+    "event": "Чемпионат ФСП по данным",
+    "place": null,
+    "year": 2023
+  },
+  {
+    "id": "e8c3f778-3ef2-5818-b2f7-dbd62be234fe",
+    "candidate_id": "1a91c0d1-e38b-5979-bb89-419428ac902b",
+    "candidate_key": "cand-backend-080",
+    "email": "cand-backend-080@seed.fsp",
+    "discipline": "data_ml",
+    "event": "Чемпионат ФСП по данным",
+    "place": 3,
+    "year": 2024
+  },
+  {
+    "id": "d01725dc-909e-5ee7-82d5-3951b274de20",
+    "candidate_id": "56c805e5-bd55-5282-9fec-742799012b50",
+    "candidate_key": "cand-backend-083",
+    "email": "cand-backend-083@seed.fsp",
+    "discipline": "devops",
+    "event": "Хакатон ФСП «Кластер»",
+    "place": 3,
+    "year": 2023
+  },
+  {
+    "id": "8d1322f6-c013-5b1d-b513-648497bd36cd",
+    "candidate_id": "4c4f9a93-9218-5423-9d60-7332dbcef07d",
+    "candidate_key": "cand-backend-092",
+    "email": "cand-backend-092@seed.fsp",
+    "discipline": "backend",
+    "event": "Хакатон ФСП «Платёжный контур»",
+    "place": null,
+    "year": 2024
+  },
+  {
+    "id": "0210b8bd-160c-597f-ad3d-882d7dc804db",
+    "candidate_id": "fe15bf97-23b8-5f0c-9cf5-ef340bb7487f",
+    "candidate_key": "cand-backend-096",
+    "email": "cand-backend-096@seed.fsp",
+    "discipline": "backend",
+    "event": "Хакатон ФСП «Платёжный контур»",
+    "place": 2,
+    "year": 2025
+  },
+  {
+    "id": "a64c20bd-beb3-5bd9-b3b6-a5c822e6f5d4",
+    "candidate_id": "962cf28f-4f37-5b0e-bb79-11ba435e1122",
+    "candidate_key": "cand-backend-099",
+    "email": "cand-backend-099@seed.fsp",
+    "discipline": "frontend",
+    "event": "Хакатон ФСП «Витрина»",
+    "place": 3,
+    "year": 2025
+  },
+  {
+    "id": "1c893e42-506d-5170-b384-61e4fa82e395",
+    "candidate_id": "b125faa2-70bc-5e93-a407-2220b02f4535",
+    "candidate_key": "cand-frontend-002",
+    "email": "cand-frontend-002@seed.fsp",
+    "discipline": "devops",
+    "event": "Хакатон ФСП «Кластер»",
+    "place": 2,
+    "year": 2025
+  },
+  {
+    "id": "d7581406-bb19-5bfa-a16f-d5f4ad17a61d",
+    "candidate_id": "2f460e37-67ad-59d2-bb5b-42a63ba17cb2",
+    "candidate_key": "cand-frontend-007",
+    "email": "cand-frontend-007@seed.fsp",
+    "discipline": "frontend",
+    "event": "Хакатон ФСП «Витрина»",
+    "place": 3,
+    "year": 2025
+  },
+  {
+    "id": "68af4b59-5780-5557-ac11-805f0d618f9d",
+    "candidate_id": "2ebb9635-2cc2-56ba-93e6-28715bbcb4f1",
+    "candidate_key": "cand-frontend-008",
+    "email": "cand-frontend-008@seed.fsp",
+    "discipline": "frontend",
+    "event": "Хакатон ФСП «Витрина»",
+    "place": 3,
+    "year": 2023
+  },
+  {
+    "id": "b86ea45c-3895-511d-8f73-d651cf4b677a",
+    "candidate_id": "585869e0-92fd-5a9b-ac57-3ebf184bce91",
+    "candidate_key": "cand-frontend-009",
+    "email": "cand-frontend-009@seed.fsp",
+    "discipline": "frontend",
+    "event": "Хакатон ФСП «Витрина»",
+    "place": 5,
+    "year": 2024
+  },
+  {
+    "id": "0b5bc1cb-a0d6-5e69-ab04-32dd59cd10af",
+    "candidate_id": "2fd7b143-2b68-5032-b4f6-1913e470d36e",
+    "candidate_key": "cand-frontend-010",
+    "email": "cand-frontend-010@seed.fsp",
+    "discipline": "backend",
+    "event": "Хакатон ФСП «Платёжный контур»",
+    "place": 3,
+    "year": 2025
+  },
+  {
+    "id": "c4ce7492-0bdc-5fcd-a8cc-7163d636a52c",
+    "candidate_id": "10e8c388-4962-5dcd-a388-7e63534dfc0e",
+    "candidate_key": "cand-frontend-012",
+    "email": "cand-frontend-012@seed.fsp",
+    "discipline": "frontend",
+    "event": "Хакатон ФСП «Витрина»",
+    "place": 2,
+    "year": 2025
+  },
+  {
+    "id": "2137dbd3-031f-575b-afc1-f3e82ba75c2b",
+    "candidate_id": "75b4e338-0157-541a-9506-c7b148d34c19",
+    "candidate_key": "cand-frontend-013",
+    "email": "cand-frontend-013@seed.fsp",
+    "discipline": "frontend",
+    "event": "Хакатон ФСП «Витрина»",
+    "place": 1,
+    "year": 2023
+  },
+  {
+    "id": "591f01b8-b6d2-5fbb-b9ce-a6dce217c1ee",
+    "candidate_id": "0aa42461-6ec2-5049-8b3d-dcff05a3b0e7",
+    "candidate_key": "cand-frontend-015",
+    "email": "cand-frontend-015@seed.fsp",
+    "discipline": "frontend",
+    "event": "Хакатон ФСП «Витрина»",
+    "place": 2,
+    "year": 2025
+  },
+  {
+    "id": "b5a14a4d-c637-56db-960b-2b082728caa6",
+    "candidate_id": "62febb86-61d5-5730-a2e8-fae3ea9e59ec",
+    "candidate_key": "cand-frontend-016",
+    "email": "cand-frontend-016@seed.fsp",
+    "discipline": "frontend",
+    "event": "Хакатон ФСП «Витрина»",
+    "place": 5,
+    "year": 2025
+  },
+  {
+    "id": "051477f9-887b-5a48-80d1-bb7fbb1f046a",
+    "candidate_id": "00b96b47-2d37-57f6-8fdc-89581a7e728e",
+    "candidate_key": "cand-frontend-018",
+    "email": "cand-frontend-018@seed.fsp",
+    "discipline": "backend",
+    "event": "Хакатон ФСП «Платёжный контур»",
+    "place": 1,
+    "year": 2025
+  },
+  {
+    "id": "287355d7-7316-5d97-8a47-9464de0b38f3",
+    "candidate_id": "72f6e9bf-c5aa-5172-ab26-6a8306de6408",
+    "candidate_key": "cand-frontend-019",
+    "email": "cand-frontend-019@seed.fsp",
+    "discipline": "frontend",
+    "event": "Хакатон ФСП «Витрина»",
+    "place": null,
+    "year": 2023
+  },
+  {
+    "id": "d6a770b2-6d03-5e8f-a719-ef5f140fbaa9",
+    "candidate_id": "5b8401d3-7d68-5d89-8177-781a29337feb",
+    "candidate_key": "cand-frontend-030",
+    "email": "cand-frontend-030@seed.fsp",
+    "discipline": "backend",
+    "event": "Хакатон ФСП «Платёжный контур»",
+    "place": 2,
+    "year": 2025
+  },
+  {
+    "id": "391dcf27-b982-5714-96a2-fb6a1d3add70",
+    "candidate_id": "5e4307a3-4dfd-5c0f-b5a0-c91539db6a00",
+    "candidate_key": "cand-frontend-033",
+    "email": "cand-frontend-033@seed.fsp",
+    "discipline": "frontend",
+    "event": "Хакатон ФСП «Витрина»",
+    "place": 5,
+    "year": 2024
+  },
+  {
+    "id": "fe076e72-2bd8-5e93-a553-82ad1beb93d4",
+    "candidate_id": "d23d31aa-58af-5636-b331-ea2d619378d4",
+    "candidate_key": "cand-frontend-035",
+    "email": "cand-frontend-035@seed.fsp",
+    "discipline": "frontend",
+    "event": "Хакатон ФСП «Витрина»",
+    "place": 1,
+    "year": 2023
+  },
+  {
+    "id": "818bd9d6-69da-59a6-8ae7-109a1e9816f3",
+    "candidate_id": "ddf89b8c-f870-5082-9d76-a34e7ef88c8c",
+    "candidate_key": "cand-frontend-046",
+    "email": "cand-frontend-046@seed.fsp",
+    "discipline": "frontend",
+    "event": "Хакатон ФСП «Витрина»",
+    "place": 2,
+    "year": 2023
+  },
+  {
+    "id": "1938196d-2f3d-57f4-bcda-a9612ea76e20",
+    "candidate_id": "083aadcf-326a-500f-8219-057eaaa487c3",
+    "candidate_key": "cand-frontend-054",
+    "email": "cand-frontend-054@seed.fsp",
+    "discipline": "backend",
+    "event": "Хакатон ФСП «Платёжный контур»",
+    "place": 5,
+    "year": 2024
+  },
+  {
+    "id": "e52949f0-81ad-5ba4-b07f-90c9018b301e",
+    "candidate_id": "6f8938a1-de00-517f-8177-2baaf1655480",
+    "candidate_key": "cand-frontend-059",
+    "email": "cand-frontend-059@seed.fsp",
+    "discipline": "frontend",
+    "event": "Хакатон ФСП «Витрина»",
+    "place": 1,
+    "year": 2023
+  },
+  {
+    "id": "5c2c7bf3-7a61-5efc-96a5-8bb175b3da82",
+    "candidate_id": "4fae8d02-4131-57ef-9ca6-170c5f736cc0",
+    "candidate_key": "cand-frontend-062",
+    "email": "cand-frontend-062@seed.fsp",
+    "discipline": "frontend",
+    "event": "Хакатон ФСП «Витрина»",
+    "place": 3,
+    "year": 2025
+  },
+  {
+    "id": "9395b667-85c9-54bd-baca-0fa52d47c32b",
+    "candidate_id": "ad1a7ca9-307d-5672-a1c5-32c1340a7c8f",
+    "candidate_key": "cand-frontend-066",
+    "email": "cand-frontend-066@seed.fsp",
+    "discipline": "data_ml",
+    "event": "Чемпионат ФСП по данным",
+    "place": 3,
+    "year": 2025
+  },
+  {
+    "id": "a4565392-2d2e-58cf-9718-6a960223b328",
+    "candidate_id": "78407195-3a66-585e-81fa-af93d005d7a6",
+    "candidate_key": "cand-frontend-068",
+    "email": "cand-frontend-068@seed.fsp",
+    "discipline": "frontend",
+    "event": "Хакатон ФСП «Витрина»",
+    "place": 1,
+    "year": 2025
+  },
+  {
+    "id": "c1120961-766a-5b6a-8e69-427e7f18705f",
+    "candidate_id": "3b792708-973d-5503-ab48-27da708c8b54",
+    "candidate_key": "cand-frontend-070",
+    "email": "cand-frontend-070@seed.fsp",
+    "discipline": "devops",
+    "event": "Хакатон ФСП «Кластер»",
+    "place": 1,
+    "year": 2025
+  },
+  {
+    "id": "1e0d3cda-d935-5bc9-af9d-69728c42605e",
+    "candidate_id": "4232c9a4-e736-56f8-99c7-864117544f04",
+    "candidate_key": "cand-frontend-073",
+    "email": "cand-frontend-073@seed.fsp",
+    "discipline": "devops",
+    "event": "Хакатон ФСП «Кластер»",
+    "place": null,
+    "year": 2024
+  },
+  {
+    "id": "f6f2f7ba-a50f-5760-b520-9e5da9f23ceb",
+    "candidate_id": "e6d46842-b24b-5c06-82cc-118bfd1f5dc6",
+    "candidate_key": "cand-frontend-074",
+    "email": "cand-frontend-074@seed.fsp",
+    "discipline": "backend",
+    "event": "Хакатон ФСП «Платёжный контур»",
+    "place": null,
+    "year": 2025
+  },
+  {
+    "id": "11a75d56-2414-512e-924a-5796e5672a01",
+    "candidate_id": "fda89f7f-fa1f-525b-a202-538ee00047e0",
+    "candidate_key": "cand-frontend-078",
+    "email": "cand-frontend-078@seed.fsp",
+    "discipline": "frontend",
+    "event": "Хакатон ФСП «Витрина»",
+    "place": 5,
+    "year": 2025
+  },
+  {
+    "id": "6b838ab5-4cdc-5552-920d-f01da843de96",
+    "candidate_id": "b157d7bf-e4dc-53d1-a544-31268a7218ea",
+    "candidate_key": "cand-frontend-080",
+    "email": "cand-frontend-080@seed.fsp",
+    "discipline": "data_ml",
+    "event": "Чемпионат ФСП по данным",
+    "place": 1,
+    "year": 2023
+  },
+  {
+    "id": "e9ddff6a-f98e-513d-a412-5c0b838f7c0c",
+    "candidate_id": "26f733e0-58da-568d-9bf6-c60ba2078ce3",
+    "candidate_key": "cand-frontend-083",
+    "email": "cand-frontend-083@seed.fsp",
+    "discipline": "frontend",
+    "event": "Хакатон ФСП «Витрина»",
+    "place": 2,
+    "year": 2024
+  },
+  {
+    "id": "380213d9-55fe-50ce-9ad0-fbdfadd9fd71",
+    "candidate_id": "6d9d9baa-d01f-5724-b54b-195a2c54d767",
+    "candidate_key": "cand-frontend-088",
+    "email": "cand-frontend-088@seed.fsp",
+    "discipline": "devops",
+    "event": "Хакатон ФСП «Кластер»",
+    "place": 2,
+    "year": 2023
+  },
+  {
+    "id": "17780023-4c23-57a9-b9f8-bbdb37942a19",
+    "candidate_id": "082d3c76-095b-5e4e-bd04-d2c05b1e6729",
+    "candidate_key": "cand-frontend-089",
+    "email": "cand-frontend-089@seed.fsp",
+    "discipline": "frontend",
+    "event": "Хакатон ФСП «Витрина»",
+    "place": 3,
+    "year": 2025
+  },
+  {
+    "id": "181f0c55-b47e-5c49-9485-2c0db735683b",
+    "candidate_id": "9bd2438e-0777-543d-86aa-60efd066034c",
+    "candidate_key": "cand-frontend-097",
+    "email": "cand-frontend-097@seed.fsp",
+    "discipline": "frontend",
+    "event": "Хакатон ФСП «Витрина»",
+    "place": 2,
+    "year": 2024
+  },
+  {
+    "id": "ebb28f7a-4549-513f-898e-56e1ac1d87da",
+    "candidate_id": "ccc90317-84f1-5035-ab27-3dd584b4d5ae",
+    "candidate_key": "cand-data_ml-001",
+    "email": "cand-data_ml-001@seed.fsp",
+    "discipline": "data_ml",
+    "event": "Чемпионат ФСП по данным",
+    "place": 1,
+    "year": 2025
+  },
+  {
+    "id": "da4d78ad-3137-582a-869b-38225f912778",
+    "candidate_id": "ee3941a2-7534-5bfa-81f3-3530f5390520",
+    "candidate_key": "cand-data_ml-002",
+    "email": "cand-data_ml-002@seed.fsp",
+    "discipline": "data_ml",
+    "event": "Чемпионат ФСП по данным",
+    "place": 3,
+    "year": 2023
+  },
+  {
+    "id": "e9c60881-0229-5554-9d18-d9162bcfa097",
+    "candidate_id": "b35982c7-7626-5f12-9644-bc696dddcffc",
+    "candidate_key": "cand-data_ml-006",
+    "email": "cand-data_ml-006@seed.fsp",
+    "discipline": "data_ml",
+    "event": "Чемпионат ФСП по данным",
+    "place": 2,
+    "year": 2025
+  },
+  {
+    "id": "55c9b717-40c3-57b8-bf27-9f8f2e2c944c",
+    "candidate_id": "f1080d12-783c-5434-9421-63deae870b1e",
+    "candidate_key": "cand-data_ml-009",
+    "email": "cand-data_ml-009@seed.fsp",
+    "discipline": "data_ml",
+    "event": "Чемпионат ФСП по данным",
+    "place": 5,
+    "year": 2025
+  },
+  {
+    "id": "9db0c95b-f458-576e-ad13-e56293d496f2",
+    "candidate_id": "d5f459d9-65e2-52c4-bae2-ca75e8674f8d",
+    "candidate_key": "cand-data_ml-010",
+    "email": "cand-data_ml-010@seed.fsp",
+    "discipline": "data_ml",
+    "event": "Чемпионат ФСП по данным",
+    "place": 5,
+    "year": 2023
+  },
+  {
+    "id": "fc20087a-3c3a-5ebc-9fe5-f2df80dc89dd",
+    "candidate_id": "3254e998-2e7a-5a09-97a8-e536a1e30c51",
+    "candidate_key": "cand-data_ml-011",
+    "email": "cand-data_ml-011@seed.fsp",
+    "discipline": "frontend",
+    "event": "Хакатон ФСП «Витрина»",
+    "place": 5,
+    "year": 2023
+  },
+  {
+    "id": "6f517693-08ab-576b-878f-7961a0744902",
+    "candidate_id": "59c5de2e-9188-5191-8b13-0fbc7275c8d0",
+    "candidate_key": "cand-data_ml-015",
+    "email": "cand-data_ml-015@seed.fsp",
+    "discipline": "frontend",
+    "event": "Хакатон ФСП «Витрина»",
+    "place": 1,
+    "year": 2025
+  },
+  {
+    "id": "b11ec0d6-cf3b-541c-adae-c26c9a299fc3",
+    "candidate_id": "567a3a18-e2b3-56ef-83d5-7c0cf5bf5e11",
+    "candidate_key": "cand-data_ml-018",
+    "email": "cand-data_ml-018@seed.fsp",
+    "discipline": "data_ml",
+    "event": "Чемпионат ФСП по данным",
+    "place": 1,
+    "year": 2025
+  },
+  {
+    "id": "71368b02-6f27-5770-a84e-ccf022182433",
+    "candidate_id": "f423d58a-5b59-5e0b-bc5f-eaae689260ee",
+    "candidate_key": "cand-data_ml-020",
+    "email": "cand-data_ml-020@seed.fsp",
+    "discipline": "data_ml",
+    "event": "Чемпионат ФСП по данным",
+    "place": 1,
+    "year": 2024
+  },
+  {
+    "id": "66170403-0011-5bf5-9609-d3ad0151be7b",
+    "candidate_id": "cc65ee87-a7cc-5940-be13-d3315a9426c4",
+    "candidate_key": "cand-data_ml-022",
+    "email": "cand-data_ml-022@seed.fsp",
+    "discipline": "data_ml",
+    "event": "Чемпионат ФСП по данным",
+    "place": 3,
+    "year": 2024
+  },
+  {
+    "id": "88664442-35e1-55c7-a56d-dcc42d81b75b",
+    "candidate_id": "d0b199ed-66f9-5f37-b022-59f879a00116",
+    "candidate_key": "cand-data_ml-023",
+    "email": "cand-data_ml-023@seed.fsp",
+    "discipline": "backend",
+    "event": "Хакатон ФСП «Платёжный контур»",
+    "place": 2,
+    "year": 2024
+  },
+  {
+    "id": "79527074-f51f-5796-a140-34f0d5640a09",
+    "candidate_id": "72433f0a-5330-5e1d-8996-83cb039fc3b7",
+    "candidate_key": "cand-data_ml-027",
+    "email": "cand-data_ml-027@seed.fsp",
+    "discipline": "data_ml",
+    "event": "Чемпионат ФСП по данным",
+    "place": 2,
+    "year": 2025
+  },
+  {
+    "id": "83cc7e5a-c1aa-5cf7-a39d-a0b115919ad8",
+    "candidate_id": "284d6cc8-b98d-54ef-aafb-40c48a363f8a",
+    "candidate_key": "cand-data_ml-028",
+    "email": "cand-data_ml-028@seed.fsp",
+    "discipline": "data_ml",
+    "event": "Чемпионат ФСП по данным",
+    "place": 2,
+    "year": 2023
+  },
+  {
+    "id": "a9102a0d-7a32-5cb9-bc0c-2474bb9e6f04",
+    "candidate_id": "04133f16-63a5-5b70-9bd8-98f32d55ebd0",
+    "candidate_key": "cand-data_ml-035",
+    "email": "cand-data_ml-035@seed.fsp",
+    "discipline": "data_ml",
+    "event": "Чемпионат ФСП по данным",
+    "place": 3,
+    "year": 2025
+  },
+  {
+    "id": "1cbe0c7a-a3c0-53be-a89b-957743f43696",
+    "candidate_id": "d2ca21d0-cc2d-59aa-b268-260278b75d9e",
+    "candidate_key": "cand-data_ml-041",
+    "email": "cand-data_ml-041@seed.fsp",
+    "discipline": "data_ml",
+    "event": "Чемпионат ФСП по данным",
+    "place": 3,
+    "year": 2023
+  },
+  {
+    "id": "55f3cee5-99a9-596b-a25b-baf92625a84f",
+    "candidate_id": "1031402c-37ae-580e-9c43-796717191b3c",
+    "candidate_key": "cand-data_ml-042",
+    "email": "cand-data_ml-042@seed.fsp",
+    "discipline": "data_ml",
+    "event": "Чемпионат ФСП по данным",
+    "place": null,
+    "year": 2025
+  },
+  {
+    "id": "3e0569d7-7f94-5270-89a6-52cd3bd3db63",
+    "candidate_id": "418488f6-40c4-527b-a1fd-1b118da861a9",
+    "candidate_key": "cand-data_ml-045",
+    "email": "cand-data_ml-045@seed.fsp",
+    "discipline": "data_ml",
+    "event": "Чемпионат ФСП по данным",
+    "place": 2,
+    "year": 2023
+  },
+  {
+    "id": "2fdfdd92-d17d-51db-b98f-08642df86612",
+    "candidate_id": "ee44a5e8-6732-5996-93e3-0f911ec2d45e",
+    "candidate_key": "cand-data_ml-049",
+    "email": "cand-data_ml-049@seed.fsp",
+    "discipline": "data_ml",
+    "event": "Чемпионат ФСП по данным",
+    "place": null,
+    "year": 2024
+  },
+  {
+    "id": "bd34f0c8-868d-5c81-90e7-140d013f409a",
+    "candidate_id": "1a77f8a3-a8fb-5118-9ccc-49d7f6f0d8d0",
+    "candidate_key": "cand-data_ml-050",
+    "email": "cand-data_ml-050@seed.fsp",
+    "discipline": "devops",
+    "event": "Хакатон ФСП «Кластер»",
+    "place": 5,
+    "year": 2025
+  },
+  {
+    "id": "36a75423-81ff-51b9-8b68-746579b7c084",
+    "candidate_id": "320d2a1b-481a-5320-842a-1b3e1f4cc81a",
+    "candidate_key": "cand-data_ml-051",
+    "email": "cand-data_ml-051@seed.fsp",
+    "discipline": "data_ml",
+    "event": "Чемпионат ФСП по данным",
+    "place": null,
+    "year": 2023
+  },
+  {
+    "id": "7f5aca75-7e15-5dc9-bd7a-7e0f8d45402a",
+    "candidate_id": "39aa9ef2-ff86-5295-8a47-5ef1307dffe5",
+    "candidate_key": "cand-data_ml-054",
+    "email": "cand-data_ml-054@seed.fsp",
+    "discipline": "data_ml",
+    "event": "Чемпионат ФСП по данным",
+    "place": 1,
+    "year": 2024
+  },
+  {
+    "id": "bc0e9819-e35d-5f01-9c33-d12c81fbb9ca",
+    "candidate_id": "fa64f0f2-beff-5504-92ba-59e5538a5329",
+    "candidate_key": "cand-data_ml-056",
+    "email": "cand-data_ml-056@seed.fsp",
+    "discipline": "devops",
+    "event": "Хакатон ФСП «Кластер»",
+    "place": null,
+    "year": 2024
+  },
+  {
+    "id": "e1316d79-e95b-54c4-8b95-1f98d664f599",
+    "candidate_id": "12d14f0a-53fe-5203-abf8-8d7b8e1920e1",
+    "candidate_key": "cand-data_ml-060",
+    "email": "cand-data_ml-060@seed.fsp",
+    "discipline": "data_ml",
+    "event": "Чемпионат ФСП по данным",
+    "place": 5,
+    "year": 2025
+  },
+  {
+    "id": "387f8463-5d6a-5579-a276-cbc5e913d5d4",
+    "candidate_id": "4bfa7627-01fa-5fc4-9f84-7b8e066de33a",
+    "candidate_key": "cand-data_ml-061",
+    "email": "cand-data_ml-061@seed.fsp",
+    "discipline": "backend",
+    "event": "Хакатон ФСП «Платёжный контур»",
+    "place": 5,
+    "year": 2025
+  },
+  {
+    "id": "cfb567ff-cf79-5c40-961a-94d83589972f",
+    "candidate_id": "c90e0742-9421-5b5c-ad4a-0cda9a5634ab",
+    "candidate_key": "cand-data_ml-064",
+    "email": "cand-data_ml-064@seed.fsp",
+    "discipline": "data_ml",
+    "event": "Чемпионат ФСП по данным",
+    "place": null,
+    "year": 2025
+  },
+  {
+    "id": "9fe22229-aaeb-5c19-b1cb-35f209a48332",
+    "candidate_id": "d981cf61-b45e-55b8-bcb4-76c3eb2d6311",
+    "candidate_key": "cand-data_ml-065",
+    "email": "cand-data_ml-065@seed.fsp",
+    "discipline": "data_ml",
+    "event": "Чемпионат ФСП по данным",
+    "place": null,
+    "year": 2023
+  },
+  {
+    "id": "32078c7f-c8ce-558e-8daa-6f89b8de1d3f",
+    "candidate_id": "44df1a59-fef8-5984-b4c3-bc6ee540f4ba",
+    "candidate_key": "cand-data_ml-066",
+    "email": "cand-data_ml-066@seed.fsp",
+    "discipline": "data_ml",
+    "event": "Чемпионат ФСП по данным",
+    "place": 5,
+    "year": 2023
+  },
+  {
+    "id": "76f7144a-10b9-5189-a354-559297f1a607",
+    "candidate_id": "d3c1ca2a-2d29-5f50-a7ce-660c52aa8a05",
+    "candidate_key": "cand-data_ml-076",
+    "email": "cand-data_ml-076@seed.fsp",
+    "discipline": "devops",
+    "event": "Хакатон ФСП «Кластер»",
+    "place": null,
+    "year": 2024
+  },
+  {
+    "id": "a0ce1a24-4015-5c04-b68c-aee1a8a1d48b",
+    "candidate_id": "1cbdf2c7-ac6c-5dbf-9179-00c8572e9e6c",
+    "candidate_key": "cand-data_ml-078",
+    "email": "cand-data_ml-078@seed.fsp",
+    "discipline": "data_ml",
+    "event": "Чемпионат ФСП по данным",
+    "place": 3,
+    "year": 2024
+  },
+  {
+    "id": "4c66c2c2-0537-5464-8657-2d483768f070",
+    "candidate_id": "b3d1a0d7-1b8d-5bb4-9225-04b715730f89",
+    "candidate_key": "cand-data_ml-081",
+    "email": "cand-data_ml-081@seed.fsp",
+    "discipline": "data_ml",
+    "event": "Чемпионат ФСП по данным",
+    "place": 2,
+    "year": 2025
+  },
+  {
+    "id": "30fd8fea-6e64-59d2-9de5-8ad09e6a7a01",
+    "candidate_id": "4c71653c-fd51-5172-a0c4-34e5ae2fe66e",
+    "candidate_key": "cand-data_ml-084",
+    "email": "cand-data_ml-084@seed.fsp",
+    "discipline": "backend",
+    "event": "Хакатон ФСП «Платёжный контур»",
+    "place": 1,
+    "year": 2025
+  },
+  {
+    "id": "ad0a20f3-b138-5a3d-bc9b-b83f2da29567",
+    "candidate_id": "a1798d27-6441-563d-ae99-21b223310c62",
+    "candidate_key": "cand-data_ml-086",
+    "email": "cand-data_ml-086@seed.fsp",
+    "discipline": "backend",
+    "event": "Хакатон ФСП «Платёжный контур»",
+    "place": 5,
+    "year": 2025
+  },
+  {
+    "id": "d6562207-1906-569c-a87f-05d31a828aa2",
+    "candidate_id": "bbdfdef8-5618-523c-b5c6-64485a7960d1",
+    "candidate_key": "cand-data_ml-087",
+    "email": "cand-data_ml-087@seed.fsp",
+    "discipline": "data_ml",
+    "event": "Чемпионат ФСП по данным",
+    "place": 1,
+    "year": 2023
+  },
+  {
+    "id": "4dd30ca4-2647-5601-9672-ad9de116852f",
+    "candidate_id": "38380122-e277-5939-a9c9-1ed552352083",
+    "candidate_key": "cand-data_ml-090",
+    "email": "cand-data_ml-090@seed.fsp",
+    "discipline": "data_ml",
+    "event": "Чемпионат ФСП по данным",
+    "place": 3,
+    "year": 2023
+  },
+  {
+    "id": "81d5b977-247c-5fc1-99b5-bc15758c24e1",
+    "candidate_id": "242b5d1b-0c85-5d0c-8443-54fd89be1ebe",
+    "candidate_key": "cand-data_ml-092",
+    "email": "cand-data_ml-092@seed.fsp",
+    "discipline": "backend",
+    "event": "Хакатон ФСП «Платёжный контур»",
+    "place": 5,
+    "year": 2023
+  },
+  {
+    "id": "375a04d5-8c5d-5914-a8e2-0ba4ba216a24",
+    "candidate_id": "b581e80c-142f-59fb-96ce-72d4c1201cb0",
+    "candidate_key": "cand-data_ml-096",
+    "email": "cand-data_ml-096@seed.fsp",
+    "discipline": "devops",
+    "event": "Хакатон ФСП «Кластер»",
+    "place": 2,
+    "year": 2023
+  },
+  {
+    "id": "05e95933-e064-5e8a-bb04-61321fa90123",
+    "candidate_id": "c05268e0-442b-5f1a-8fea-9ed4734fd7e9",
+    "candidate_key": "cand-devops-006",
+    "email": "cand-devops-006@seed.fsp",
+    "discipline": "devops",
+    "event": "Хакатон ФСП «Кластер»",
+    "place": 2,
+    "year": 2025
+  },
+  {
+    "id": "fa603b8f-e106-51d6-b7dc-d28b353e9a5d",
+    "candidate_id": "761d7ed0-7f9f-5f49-a28d-3c19e8226503",
+    "candidate_key": "cand-devops-011",
+    "email": "cand-devops-011@seed.fsp",
+    "discipline": "devops",
+    "event": "Хакатон ФСП «Кластер»",
+    "place": null,
+    "year": 2023
+  },
+  {
+    "id": "9cccc9d2-790a-5d48-84f1-4cae9e2db426",
+    "candidate_id": "bf3c4c35-f10b-54c4-ba66-16e0ab8dca59",
+    "candidate_key": "cand-devops-012",
+    "email": "cand-devops-012@seed.fsp",
+    "discipline": "devops",
+    "event": "Хакатон ФСП «Кластер»",
+    "place": 1,
+    "year": 2025
+  },
+  {
+    "id": "7490c3b6-0b9a-56ec-bdd2-9a171661c39c",
+    "candidate_id": "be3c6f09-f128-5255-8a85-577ee583af0e",
+    "candidate_key": "cand-devops-013",
+    "email": "cand-devops-013@seed.fsp",
+    "discipline": "devops",
+    "event": "Хакатон ФСП «Кластер»",
+    "place": 3,
+    "year": 2024
+  },
+  {
+    "id": "1acae359-abb4-516d-87d7-c7beef687c95",
+    "candidate_id": "0e65735c-2099-5176-a9d7-bfd2d4958914",
+    "candidate_key": "cand-devops-016",
+    "email": "cand-devops-016@seed.fsp",
+    "discipline": "devops",
+    "event": "Хакатон ФСП «Кластер»",
+    "place": 3,
+    "year": 2024
+  },
+  {
+    "id": "96280844-61f6-5005-9b08-2e7ddbe32f17",
+    "candidate_id": "7b50c31d-6f3f-56d4-a6fe-47e6270d683d",
+    "candidate_key": "cand-devops-018",
+    "email": "cand-devops-018@seed.fsp",
+    "discipline": "devops",
+    "event": "Хакатон ФСП «Кластер»",
+    "place": 5,
+    "year": 2023
+  },
+  {
+    "id": "8c7e4ea3-1a47-5147-8680-924989f32fda",
+    "candidate_id": "0d18eb08-d2aa-56eb-a4f1-28cb46975f33",
+    "candidate_key": "cand-devops-023",
+    "email": "cand-devops-023@seed.fsp",
+    "discipline": "frontend",
+    "event": "Хакатон ФСП «Витрина»",
+    "place": 2,
+    "year": 2023
+  },
+  {
+    "id": "4e59be5e-5175-5180-9a4b-d995f29fb33f",
+    "candidate_id": "eade68df-0900-58b2-bb63-7b5583c27e6a",
+    "candidate_key": "cand-devops-026",
+    "email": "cand-devops-026@seed.fsp",
+    "discipline": "data_ml",
+    "event": "Чемпионат ФСП по данным",
+    "place": 3,
+    "year": 2024
+  },
+  {
+    "id": "02ae0c0e-4d1c-5f2e-933b-f50a00bdaa51",
+    "candidate_id": "76d86993-8e5b-554c-9cfd-c4ebcdaa6670",
+    "candidate_key": "cand-devops-031",
+    "email": "cand-devops-031@seed.fsp",
+    "discipline": "devops",
+    "event": "Хакатон ФСП «Кластер»",
+    "place": 5,
+    "year": 2025
+  },
+  {
+    "id": "d0ccbc4d-8e01-5fb4-bdaa-20e837c3d214",
+    "candidate_id": "5c0dfec8-a256-51d6-a0a6-aa274a3a1ac6",
+    "candidate_key": "cand-devops-040",
+    "email": "cand-devops-040@seed.fsp",
+    "discipline": "devops",
+    "event": "Хакатон ФСП «Кластер»",
+    "place": 5,
+    "year": 2025
+  },
+  {
+    "id": "d2ceaba9-b91c-5860-b02a-ae53d405ffe0",
+    "candidate_id": "da23a240-9a4b-5c2b-a1d1-09ac70e977bc",
+    "candidate_key": "cand-devops-041",
+    "email": "cand-devops-041@seed.fsp",
+    "discipline": "backend",
+    "event": "Хакатон ФСП «Платёжный контур»",
+    "place": 1,
+    "year": 2025
+  },
+  {
+    "id": "014f0916-007a-579c-88e5-b73d2820e245",
+    "candidate_id": "69eb5cf8-16ec-5aeb-9866-c5575eaa93e9",
+    "candidate_key": "cand-devops-044",
+    "email": "cand-devops-044@seed.fsp",
+    "discipline": "devops",
+    "event": "Хакатон ФСП «Кластер»",
+    "place": 3,
+    "year": 2023
+  },
+  {
+    "id": "62102d19-6dbe-5305-9714-4bc648f3e2f9",
+    "candidate_id": "c8c77dc8-dc77-5a59-8739-c99c33548f17",
+    "candidate_key": "cand-devops-046",
+    "email": "cand-devops-046@seed.fsp",
+    "discipline": "devops",
+    "event": "Хакатон ФСП «Кластер»",
+    "place": 3,
+    "year": 2024
+  },
+  {
+    "id": "3277ecd0-b434-59ab-8260-9319b108c62c",
+    "candidate_id": "99d4aa2d-3f88-59e2-9c04-3f942e35465e",
+    "candidate_key": "cand-devops-047",
+    "email": "cand-devops-047@seed.fsp",
+    "discipline": "data_ml",
+    "event": "Чемпионат ФСП по данным",
+    "place": 2,
+    "year": 2024
+  },
+  {
+    "id": "7df6cd62-450b-5bfd-8ce4-77adf8838ef7",
+    "candidate_id": "aa4ac307-a626-53bc-8ce8-ea3209bc5a06",
+    "candidate_key": "cand-devops-055",
+    "email": "cand-devops-055@seed.fsp",
+    "discipline": "devops",
+    "event": "Хакатон ФСП «Кластер»",
+    "place": 5,
+    "year": 2024
+  },
+  {
+    "id": "da396a24-d58b-52da-b89f-764349274e6e",
+    "candidate_id": "6b0be441-86ec-54e7-977f-6459bd73f9c6",
+    "candidate_key": "cand-devops-056",
+    "email": "cand-devops-056@seed.fsp",
+    "discipline": "devops",
+    "event": "Хакатон ФСП «Кластер»",
+    "place": 1,
+    "year": 2024
+  },
+  {
+    "id": "2a83ce7c-9884-59ab-a29d-d49ae767007d",
+    "candidate_id": "8c8dc70e-65c2-5a7e-8180-acc6854a4907",
+    "candidate_key": "cand-devops-063",
+    "email": "cand-devops-063@seed.fsp",
+    "discipline": "data_ml",
+    "event": "Чемпионат ФСП по данным",
+    "place": 1,
+    "year": 2025
+  },
+  {
+    "id": "dd9e9225-7991-567c-9c67-c91c06b787e0",
+    "candidate_id": "5a61dfdf-aecb-5bf2-9288-c61407d17b9d",
+    "candidate_key": "cand-devops-068",
+    "email": "cand-devops-068@seed.fsp",
+    "discipline": "backend",
+    "event": "Хакатон ФСП «Платёжный контур»",
+    "place": null,
+    "year": 2025
+  },
+  {
+    "id": "981187ac-062e-5ed5-bf38-31bfef2ddf2e",
+    "candidate_id": "f379e598-7647-518b-a348-afd3e37711c8",
+    "candidate_key": "cand-devops-074",
+    "email": "cand-devops-074@seed.fsp",
+    "discipline": "devops",
+    "event": "Хакатон ФСП «Кластер»",
+    "place": 3,
+    "year": 2025
+  },
+  {
+    "id": "9abfe5e4-1648-5bbe-b8aa-e985dafee7e6",
+    "candidate_id": "356626ec-5e8d-5566-a879-043a723c7bae",
+    "candidate_key": "cand-devops-077",
+    "email": "cand-devops-077@seed.fsp",
+    "discipline": "backend",
+    "event": "Хакатон ФСП «Платёжный контур»",
+    "place": 3,
+    "year": 2023
+  },
+  {
+    "id": "b2003c99-eefa-5586-b481-94002f04358b",
+    "candidate_id": "afd03e44-e789-5262-8619-caef9434d16a",
+    "candidate_key": "cand-devops-079",
+    "email": "cand-devops-079@seed.fsp",
+    "discipline": "data_ml",
+    "event": "Чемпионат ФСП по данным",
+    "place": 1,
+    "year": 2023
+  },
+  {
+    "id": "1a7c208a-dde9-5e57-8667-1c1b720bb769",
+    "candidate_id": "b4ac3a12-1cd0-5ab4-8a66-5faefa97b464",
+    "candidate_key": "cand-devops-087",
+    "email": "cand-devops-087@seed.fsp",
+    "discipline": "devops",
+    "event": "Хакатон ФСП «Кластер»",
+    "place": 5,
+    "year": 2023
+  },
+  {
+    "id": "bc55cfd9-804c-56e2-aec1-f3ed9d55f80c",
+    "candidate_id": "6a25f1cb-428d-5815-872e-0ab4abd93883",
+    "candidate_key": "cand-devops-088",
+    "email": "cand-devops-088@seed.fsp",
+    "discipline": "devops",
+    "event": "Хакатон ФСП «Кластер»",
+    "place": null,
+    "year": 2024
+  },
+  {
+    "id": "adc84c59-5249-5e15-b563-495778b0f67c",
+    "candidate_id": "85b5bde3-077a-57b3-9763-5ceffbde7cce",
+    "candidate_key": "cand-devops-090",
+    "email": "cand-devops-090@seed.fsp",
+    "discipline": "devops",
+    "event": "Хакатон ФСП «Кластер»",
+    "place": 1,
+    "year": 2023
+  },
+  {
+    "id": "d2118578-73c4-548d-9558-f78b29810447",
+    "candidate_id": "08cd184f-f727-5cce-8c78-3e547a06585e",
+    "candidate_key": "cand-devops-091",
+    "email": "cand-devops-091@seed.fsp",
+    "discipline": "devops",
+    "event": "Хакатон ФСП «Кластер»",
+    "place": null,
+    "year": 2024
+  },
+  {
+    "id": "58cd804b-9b07-5261-a3ea-5b41a55c6423",
+    "candidate_id": "eef198f1-ea00-526a-a655-af315e92a3b0",
+    "candidate_key": "cand-devops-094",
+    "email": "cand-devops-094@seed.fsp",
+    "discipline": "devops",
+    "event": "Хакатон ФСП «Кластер»",
+    "place": 2,
+    "year": 2024
+  },
+  {
+    "id": "c7ea1634-e665-5d7c-81a3-9dc7298bc5d0",
+    "candidate_id": "61b60e55-4b8e-5e7f-8fa9-8939843b6240",
+    "candidate_key": "cand-devops-097",
+    "email": "cand-devops-097@seed.fsp",
+    "discipline": "devops",
+    "event": "Хакатон ФСП «Кластер»",
+    "place": null,
+    "year": 2025
+  }
+]

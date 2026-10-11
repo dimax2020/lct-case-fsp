@@ -1,5 +1,12 @@
-"""Idempotent seed goes through module services, not raw SQL. Agent G implements it."""
+"""Idempotent reseed.
+
+Module services do not persist yet (no upsert on profile, company, need or
+invitation). ``app.demo.load`` writes the committed JSON with SQL text so this
+package does not import their models. See that module for the blocker.
+"""
+
+from app.demo.load import load_seed
 
 
 async def reseed() -> dict[str, int]:
-    return {"candidates": 0, "companies": 0, "needs": 0, "invitations": 0}
+    return await load_seed()
