@@ -33,8 +33,8 @@ function go() {
 
 <template>
   <div class="fsp-shell" style="display: flex; flex-direction: column;">
-    <header class="u-between" style="padding: 16px var(--page-x); box-shadow: inset 0 -1px 0 var(--line);">
-      <NuxtLink to="/"><img src="/brand/championship-logo-white.svg" alt="Чемпионат России — на главную" style="height: 36px; display: block;" class="fsp-only-dark"><img src="/brand/championship-logo-navy.svg" alt="Чемпионат России — на главную" style="height: 36px; display: block;" class="fsp-only-light"></NuxtLink>
+    <header class="fsp-topbar u-between" style="padding: 16px var(--page-x); box-shadow: inset 0 -1px 0 var(--line);">
+      <NuxtLink to="/"><img src="/brand/fsp-star-dark.svg" alt="ФСП — на главную" style="width: 36px; height: 36px; display: block; object-fit: contain;" class="fsp-only-dark"><img src="/brand/fsp-star-light.svg" alt="ФСП — на главную" style="width: 36px; height: 36px; display: block; object-fit: contain;" class="fsp-only-light"></NuxtLink>
       <div class="u-note-sm">
         <template v-if="mode === 'register'">Уже есть аккаунт? <a href="#" class="fsp-link" @click.prevent="mode = 'login'">Войти</a></template>
         <template v-else>Нет аккаунта? <a href="#" class="fsp-link" @click.prevent="mode = 'register'">Зарегистрироваться</a></template>

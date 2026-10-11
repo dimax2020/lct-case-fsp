@@ -25,6 +25,8 @@ class Invitation(Base):
     deadline: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     decline_reason: Mapped[str | None] = mapped_column(String(32))
     hiring_stage: Mapped[str | None] = mapped_column(String(32))
+    practice_id: Mapped[str | None] = mapped_column(String(80))
+    practice_title: Mapped[str | None] = mapped_column(String(200))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     viewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     accepted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

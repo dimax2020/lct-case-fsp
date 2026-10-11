@@ -123,9 +123,9 @@ function loginView(err) {
 function who(p) {
   if (p.candidateEmail) return `Выполняет: ${p.candidateEmail}`;
   const count = (p.vacancyIds && p.vacancyIds.length) || (p.vacancyId ? 1 : 0);
-  if (count > 1) return `Закреплено за вакансиями: ${count}. Кандидат увидит задание после отклика`;
-  if (count === 1) return 'Прикреплено к вакансии. Кандидат увидит задание после отклика';
-  return 'Выберите вакансии, чтобы кандидат получил задание после отклика';
+  if (count > 1) return `Закреплено за вакансиями: ${count}. Основной путь — прикрепить задание к приглашению`;
+  if (count === 1) return 'Прикреплено к вакансии. Основной путь — прикрепить задание к приглашению';
+  return 'Прикрепите задание к приглашению кандидата — он увидит его после принятия';
 }
 
 function takerStatus(status) {
@@ -258,7 +258,7 @@ async function onPin(practiceId) {
       state.practice.vacancyIds = updated.vacancyIds || [];
       state.practice.vacancyId = updated.vacancyId;
     }
-    if (box) box.innerHTML = flash(vacancyIds.length ? 'Тестовое закреплено за выбранными вакансиями. Кандидат увидит его после отклика.' : 'Закрепление снято.', 'ok');
+    if (box) box.innerHTML = flash(vacancyIds.length ? 'Тестовое закреплено за вакансиями. Чтобы кандидат его получил, прикрепите задание к приглашению.' : 'Закрепление снято.', 'ok');
   } catch (err) {
     if (box) box.innerHTML = flash(err.message, 'error');
   }
@@ -441,7 +441,7 @@ function vacancyHtml() {
   return `
     <section class="card" id="vacancy-card">
       <h2>Закрепить за вакансией</h2>
-      <p class="muted">Можно выбрать несколько вакансий. После отклика кандидат сразу получает это тестовое.</p>
+      <p class="muted">Можно выбрать несколько вакансий. Чтобы кандидат получил задание, прикрепите его к приглашению.</p>
       <div class="pin-list" id="pin-${esc(p.id)}"><p class="muted">Загрузка вакансий…</p></div>
       <div id="vacancy-msg"></div>
       <h2>Кто взял тестовое</h2>
@@ -1312,7 +1312,7 @@ async function loadAttempts(id) {
     const data = await api('GET', `/v1/practices/${id}/attempts`);
     const items = data.items || [];
     if (!items.length) {
-      box.innerHTML = '<p class="muted">Пока никто не откликнулся.</p>';
+      box.innerHTML = '<p class="muted">Пока никто не принял приглашение с этим заданием.</p>';
       return;
     }
     box.innerHTML = `<ul class="list">${items.map((a) => `

@@ -170,7 +170,7 @@ async function unlinkFsp() {
               </div>
               <div class="fsp-cut set-note">
                 <FspIcon name="user" />
-                <span>Телефон и почта скрыты от всех работодателей. Компания увидит их, только если вы примете её приглашение или откликнетесь сами.</span>
+                <span>Телефон и почта скрыты от всех работодателей. Компания увидит их, только если вы примете её приглашение.</span>
               </div>
               <div style="margin-top: 20px; position: relative;">
                 <FspInput v-model="companyQ" label="Скрыть профиль от компаний" icon="search" placeholder="Начните вводить название компании" autocomplete="off" @input="onCompanyInput" />

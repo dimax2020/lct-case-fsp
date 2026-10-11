@@ -1237,6 +1237,10 @@ export interface components {
             contact_value: string;
             /** Deadline */
             deadline?: string | null;
+            /** Practice Id */
+            practice_id?: string | null;
+            /** Practice Title */
+            practice_title?: string | null;
         };
         /** InvitationList */
         InvitationList: {
@@ -1294,6 +1298,10 @@ export interface components {
             candidate_phone?: string | null;
             /** Recruiter Contact */
             recruiter_contact?: string | null;
+            /** Practice Id */
+            practice_id?: string | null;
+            /** Practice Title */
+            practice_title?: string | null;
         };
         /**
          * InvitationStatus

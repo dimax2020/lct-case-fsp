@@ -485,6 +485,13 @@ export async function buildServer(platform: Platform): Promise<FastifyInstance> 
     return presentPractice(practice, people.get(practice.id));
   });
 
+  app.post('/v1/practices/:id/join', async (req) => {
+    const { practice, copyRepoFrom } = await platform.practices.joinPractice(req.principal, (req.params as { id: string }).id);
+    if (copyRepoFrom) await platform.git.cloneBare(copyRepoFrom, practice.id).catch(() => undefined);
+    const people = await platform.practices.people([practice]);
+    return presentPractice(practice, people.get(practice.id));
+  });
+
   // ---------- Candidate: invite, consent, start ----------
   app.post('/v1/invitations/redeem', async (req) => {
     platform.limits.redeem.consume(`redeem:${req.ip}`);

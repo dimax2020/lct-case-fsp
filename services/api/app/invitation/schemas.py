@@ -17,6 +17,8 @@ class InvitationCreate(BaseModel):
     contact_channel: ContactChannel
     contact_value: str = Field(min_length=1, max_length=320)
     deadline: datetime | None = None
+    practice_id: str | None = Field(default=None, max_length=80)
+    practice_title: str | None = Field(default=None, max_length=200)
 
 
 class InvitationOut(BaseModel):
@@ -38,6 +40,8 @@ class InvitationOut(BaseModel):
     candidate_email: str | None = None
     candidate_phone: str | None = None
     recruiter_contact: str | None = None
+    practice_id: str | None = None
+    practice_title: str | None = None
 
     @model_serializer(mode="wrap")
     def _hide_nulls(self, handler: Any) -> Any:

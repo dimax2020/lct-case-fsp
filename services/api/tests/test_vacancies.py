@@ -432,136 +432,19 @@ async def test_publish_edit_and_open_catalog(api: tuple[AsyncClient, async_sessi
     assert admin.status_code == 403
 
 
-async def test_apply_contacts_and_statuses(api: tuple[AsyncClient, async_sessionmaker[AsyncSession]]) -> None:
+async def test_apply_disabled(api: tuple[AsyncClient, async_sessionmaker[AsyncSession]]) -> None:
     client, factory = api
     await bootstrap(factory)
     created = await client.post("/api/v1/vacancies", headers=EMPLOYER, json=body())
     assert created.status_code == 201, created.text
     vacancy_id = created.json()["id"]
-    closed = await client.post("/api/v1/vacancies", headers=EMPLOYER, json=body(title="Закрытая"))
-    assert closed.status_code == 201, closed.text
-    closed_id = closed.json()["id"]
-    async with factory() as session:
-        row = await session.get(Vacancy, UUID(closed_id))
-        assert row is not None
-        row.status = "closed"
-        await session.commit()
-
     applied = await client.post(
         f"/api/v1/vacancies/{vacancy_id}/applications",
         headers=CANDIDATE,
         json={"message": "Готов обсудить задачи"},
     )
-    assert applied.status_code == 201, applied.text
-    first = applied.json()
-    assert first["status"] == "sent"
-    assert first["company_name"] == "ФСП Лаб"
-    assert first["title"] == "Backend-разработчик"
-    assert first["salary_from"] == 200_000
-    assert first["salary_to"] == 320_000
-    assert "candidate_email" not in first
-    assert "candidate_phone" not in first
-    assert CONTACT_B not in applied.text
-    assert CONTACT_C not in applied.text
-    assert PHONE_C not in applied.text
-
-    duplicate = await client.post(
-        f"/api/v1/vacancies/{vacancy_id}/applications",
-        headers=CANDIDATE,
-        json={"message": "ещё раз"},
-    )
-    assert duplicate.status_code == 409
-    assert duplicate.json()["error"]["code"] == "conflict"
-
-    other = await client.post(
-        f"/api/v1/vacancies/{vacancy_id}/applications",
-        headers=CANDIDATE_B,
-        json={"message": "тоже интересно"},
-    )
-    assert other.status_code == 201, other.text
-    closed_apply = await client.post(
-        f"/api/v1/vacancies/{closed_id}/applications",
-        headers=CANDIDATE,
-        json={"message": "на закрытую"},
-    )
-    assert closed_apply.status_code == 409
-    assert closed_apply.json()["error"]["code"] == "vacancy_closed"
-
-    mine = await client.get("/api/v1/applications", headers=CANDIDATE, params={"role": "candidate"})
-    assert mine.status_code == 200, mine.text
-    mine_body = mine.json()
-    assert len(mine_body["items"]) == 1
-    assert mine_body["items"][0]["status"] == "sent"
-    assert mine_body["items"][0]["company_name"] == "ФСП Лаб"
-    assert mine_body["counts"]["sent"] == 1
-    assert "candidate_email" not in mine_body["items"][0]
-    assert CONTACT_B not in mine.text
-    assert PHONE_B not in mine.text
-    assert CONTACT_C not in mine.text
-    assert PHONE_C not in mine.text
-    wrong_role = await client.get("/api/v1/applications", headers=CANDIDATE, params={"role": "employer"})
-    assert wrong_role.status_code == 403
-
-    incoming = await client.get("/api/v1/applications", headers=EMPLOYER, params={"role": "employer"})
-    assert incoming.status_code == 200, incoming.text
-    incoming_body = incoming.json()
-    assert incoming_body["counts"]["sent"] == 2
-    by_email = {item["candidate_email"]: item for item in incoming_body["items"]}
-    assert set(by_email) == {CONTACT_A, CONTACT_B}
-    assert by_email[CONTACT_A]["candidate_phone"] == PHONE_A
-    assert by_email[CONTACT_B]["candidate_phone"] == PHONE_B
-    assert CONTACT_B not in json.dumps(by_email[CONTACT_A], ensure_ascii=False)
-    assert PHONE_A not in json.dumps(by_email[CONTACT_B], ensure_ascii=False)
-    assert CONTACT_C not in incoming.text
-    assert PHONE_C not in incoming.text
-    assert LOGIN_A not in incoming.text
-
-    application_id = first["id"]
-    viewed = await client.post(f"/api/v1/applications/{application_id}/view", headers=EMPLOYER)
-    assert viewed.status_code == 200, viewed.text
-    assert viewed.json()["status"] == "viewed"
-    assert viewed.json()["candidate_email"] == CONTACT_A
-    assert viewed.json()["candidate_phone"] == PHONE_A
-    repeat = await client.post(f"/api/v1/applications/{application_id}/view", headers=EMPLOYER)
-    assert repeat.status_code == 200
-    assert repeat.json()["status"] == "viewed"
-    accepted = await client.post(f"/api/v1/applications/{application_id}/accept", headers=EMPLOYER)
-    assert accepted.status_code == 200, accepted.text
-    assert accepted.json()["status"] == "accepted"
-    late = await client.post(
-        f"/api/v1/applications/{application_id}/decline",
-        headers=EMPLOYER,
-        json={"reason": "уже принят"},
-    )
-    assert late.status_code == 409
-    assert late.json()["error"]["code"] == "invalid_transition"
-
-    declined = await client.post(
-        f"/api/v1/applications/{other.json()['id']}/decline",
-        headers=EMPLOYER,
-        json={"reason": "другой стек"},
-    )
-    assert declined.status_code == 200, declined.text
-    assert declined.json()["status"] == "declined"
-    assert declined.json()["decline_reason"] == "другой стек"
-    assert declined.json()["candidate_email"] == CONTACT_B
-    empty_reason = await client.post(
-        f"/api/v1/applications/{other.json()['id']}/decline",
-        headers=EMPLOYER,
-        json={"reason": ""},
-    )
-    assert empty_reason.status_code == 422
-    candidate_view = await client.post(f"/api/v1/applications/{application_id}/view", headers=CANDIDATE)
-    assert candidate_view.status_code == 403
-    stranger = await client.post(f"/api/v1/applications/{application_id}/view", headers=OTHER_EMPLOYER)
-    assert stranger.status_code == 404
-
-    final = await client.get("/api/v1/applications", headers=CANDIDATE)
-    assert final.status_code == 200, final.text
-    assert len(final.json()["items"]) == 1
-    assert final.json()["items"][0]["status"] == "accepted"
-    assert CONTACT_B not in final.text
-    assert PHONE_B not in final.text
+    assert applied.status_code == 409, applied.text
+    assert applied.json()["error"]["code"] == "applications_disabled"
 
 
 async def test_validation_errors(api: tuple[AsyncClient, async_sessionmaker[AsyncSession]]) -> None:

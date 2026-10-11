@@ -1,5 +1,6 @@
 """Invitation state machine, favorites, and contact reveal."""
 
+import re
 from dataclasses import dataclass
 from datetime import UTC, date, datetime
 from typing import Any
@@ -18,6 +19,7 @@ from app.invitation.models import Favorite, Invitation
 from app.invitation.schemas import DeclineIn, FavoriteOut, InvitationCreate, InvitationList, InvitationOut
 from app.matching.service import invalidate
 
+_PRACTICE_ID = re.compile(r"^[A-Za-z0-9_-]{4,80}$")
 _OPEN = frozenset({"sent", "viewed"})
 _TRANSITIONS: dict[str, dict[str, str]] = {
     "sent": {
@@ -359,6 +361,8 @@ async def _serialize(session: AsyncSession, inv: Invitation, viewer: str) -> Inv
         "company_name": profile.name if profile and profile.name else None,
         "need_title": need.title if need else None,
         "candidate_display_name": candidate.display_name if candidate else None,
+        "practice_id": inv.practice_id,
+        "practice_title": inv.practice_title,
     }
     for key in ("candidate_email", "candidate_phone", "recruiter_contact"):
         if key in contacts and contacts[key] is not None:
@@ -441,6 +445,16 @@ async def _for_employer(session: AsyncSession, invitation_id: UUID, user: User) 
     return inv
 
 
+def _practice_fields(body: InvitationCreate) -> tuple[str | None, str | None]:
+    raw = (body.practice_id or "").strip()
+    if not raw:
+        return None, None
+    if not _PRACTICE_ID.match(raw):
+        raise AppError("validation_error", "Некорректный идентификатор задания", status_code=422)
+    title = (body.practice_title or "").strip()[:200] or "Тестовое задание"
+    return raw, title
+
+
 async def _candidate_exists(session: AsyncSession, candidate_id: UUID) -> bool:
     row = (await session.execute(text("SELECT 1 FROM candidates WHERE id = :id"), {"id": candidate_id})).first()
     return row is not None
@@ -471,6 +485,7 @@ async def create_invitation(session: AsyncSession, principal: Principal, body: I
             "Приглашение этому кандидату по этой потребности уже отправлено",
             status_code=409,
         )
+    practice_id, practice_title = _practice_fields(body)
     inv = Invitation(
         need_id=body.need_id,
         candidate_id=body.candidate_id,
@@ -482,6 +497,8 @@ async def create_invitation(session: AsyncSession, principal: Principal, body: I
         contact_channel=body.contact_channel.value,
         contact_value=body.contact_value.strip(),
         deadline=_utc(body.deadline),
+        practice_id=practice_id,
+        practice_title=practice_title,
         created_at=datetime.now(UTC),
     )
     session.add(inv)

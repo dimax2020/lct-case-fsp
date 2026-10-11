@@ -58,8 +58,15 @@ async function select(inv: Inv) {
 async function accept() {
   if (!current.value) return
   try {
-    replace(await read(api.POST('/api/v1/invitations/{id}/accept', { params: { path: { id: current.value.id } } })))
-    show('Приглашение принято — компания видит ваши контакты')
+    let inv = current.value
+    if (inv.status === 'sent') {
+      inv = await read(api.POST('/api/v1/invitations/{id}/view', { params: { path: { id: inv.id } } }))
+      replace(inv)
+    }
+    replace(await read(api.POST('/api/v1/invitations/{id}/accept', { params: { path: { id: inv.id } } })))
+    show(inv.practice_title
+      ? 'Приглашение принято. Можно открыть тестовое задание.'
+      : 'Приглашение принято — компания видит ваши контакты')
     tab.value = 'ok'
   } catch (e) {
     show(e instanceof Error ? e.message : 'Не удалось принять')
@@ -93,7 +100,7 @@ const reasonName = (id?: string | null) => screen.data.value?.reasons.find(r => 
     <FspHeader product="Карьера" :user="cabinetUser" :links="candidateLinks" />
     <main class="fsp-page">
       <h1 class="fsp-display fsp-title">Приглашения</h1>
-      <p style="margin: 0 0 24px; font-size: 16px; color: var(--text-muted);">Контакты компании открываются только после принятия.</p>
+      <p style="margin: 0 0 24px; font-size: 16px; color: var(--text-muted);">Откликнуться на вакансию нельзя. Вы только принимаете или отклоняете предложения компаний. Контакты открываются после принятия.</p>
       <ScreenState :phase="screen.phase.value" :error="screen.error.value" @retry="screen.load">
         <FspTabs v-model="tab" :items="tabs" />
         <div style="display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start; margin-top: 24px;">
@@ -105,6 +112,7 @@ const reasonName = (id?: string | null) => screen.data.value?.reasons.find(r => 
                 <span style="display: flex; justify-content: space-between; gap: 8px; width: 100%;"><b>{{ i.title }}</b><span style="font-size: 12px; color: var(--text-muted);">{{ whenLabel(i.created_at) }}</span></span>
                 <span class="u-note-sm">{{ i.company_name }}</span>
                 <span style="font-weight: 700;">{{ salaryRange(i.salary_from, i.salary_to) }}</span>
+                <span v-if="i.practice_title" class="u-note-sm">Задание: {{ i.practice_title }}</span>
                 <FspStatusBadge :status="inviteTone(i.status)">{{ i.status === 'sent' ? 'Новое' : inviteLabel(i.status) }}</FspStatusBadge>
               </span>
             </button>
@@ -119,6 +127,14 @@ const reasonName = (id?: string | null) => screen.data.value?.reasons.find(r => 
               <div style="font-size: 30px; line-height: 36px; font-weight: 700; margin-top: 6px;">{{ salaryRange(current.salary_from, current.salary_to) }}</div>
             </FspPlate>
             <p style="margin: 0; font-size: 16px; line-height: 24px;">{{ current.message || 'Без текста предложения' }}</p>
+            <section v-if="current.practice_title" class="fsp-cut" style="--cut: var(--cut-m); --fill: var(--surface); --edge: var(--line-card); --bw: var(--border-card); padding: 20px;">
+              <div class="fsp-eyebrow">Тестовое задание</div>
+              <div class="u-strong u-mt-4">{{ current.practice_title }}</div>
+              <p class="u-note" style="margin: 8px 0 0;">{{ current.status === 'accepted' ? 'Задание уже открыто в кабинете.' : 'Откроется после принятия приглашения.' }}</p>
+              <div v-if="current.status === 'accepted' && current.practice_id" style="margin-top: 12px;">
+                <FspButton :href="`/candidate/process#practice=${encodeURIComponent(current.practice_id)}`">Открыть задание</FspButton>
+              </div>
+            </section>
             <section style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 16px; padding: 20px 0; box-shadow: inset 0 1px 0 var(--line), inset 0 -1px 0 var(--line);">
               <div><div class="u-small">Ответить до</div><div class="u-strong u-mt-4">{{ shortDate(current.deadline) }}</div></div>
               <div><div class="u-small">Связь</div><div class="u-strong u-mt-4">{{ current.status === 'accepted' ? (current.recruiter_contact || 'Контакт не указан') : 'Откроется после принятия' }}</div></div>
@@ -139,7 +155,10 @@ const reasonName = (id?: string | null) => screen.data.value?.reasons.find(r => 
                 </div>
               </div>
             </div>
-            <FspStatusBadge v-else-if="current.status === 'accepted'" status="offer">Вы приняли приглашение</FspStatusBadge>
+            <div v-else-if="current.status === 'accepted'" class="fsp-stack-12">
+              <FspStatusBadge status="offer">Вы приняли приглашение</FspStatusBadge>
+              <FspButton v-if="current.practice_id" variant="outline" :href="`/candidate/process#practice=${encodeURIComponent(current.practice_id)}`">Перейти к заданию</FspButton>
+            </div>
           </article>
         </div>
       </ScreenState>

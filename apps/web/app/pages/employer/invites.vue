@@ -79,6 +79,7 @@ async function revoke(inv: Inv) {
               <tr style="text-align: left; color: var(--text-muted); font-size: 12px; letter-spacing: .06em; text-transform: uppercase;">
                 <th style="padding: 16px 16px 12px 0; font-weight: 600;">Кандидат</th>
                 <th style="padding: 16px 16px 12px 0; font-weight: 600;">Должность</th>
+                <th style="padding: 16px 16px 12px 0; font-weight: 600;">Задание</th>
                 <th style="padding: 16px 16px 12px 0; font-weight: 600;">Вилка</th>
                 <th style="padding: 16px 16px 12px 0; font-weight: 600;">Отправлено</th>
                 <th style="padding: 16px 16px 12px 0; font-weight: 600;">Статус</th>
@@ -86,7 +87,7 @@ async function revoke(inv: Inv) {
               </tr>
             </thead>
             <tbody>
-              <tr v-if="!list.length"><td colspan="6" style="padding: 24px 0; color: var(--text-muted);">Здесь пока пусто.</td></tr>
+              <tr v-if="!list.length"><td colspan="7" style="padding: 24px 0; color: var(--text-muted);">Здесь пока пусто.</td></tr>
               <tr v-for="r in list" :key="r.id" style="box-shadow: inset 0 1px 0 var(--line);">
                 <td style="padding: 16px 16px 16px 0;">
                   <NuxtLink :to="`/employer/candidate?need=${r.need_id}&candidate=${r.candidate_id}`" style="display: flex; gap: 12px; align-items: center; text-decoration: none; color: inherit;">
@@ -95,6 +96,7 @@ async function revoke(inv: Inv) {
                   </NuxtLink>
                 </td>
                 <td style="padding: 16px 16px 16px 0;">{{ r.title }}</td>
+                <td style="padding: 16px 16px 16px 0;">{{ r.practice_title || '—' }}</td>
                 <td style="padding: 16px 16px 16px 0; font-weight: 600; white-space: nowrap;">{{ salaryRange(r.salary_from, r.salary_to) }}</td>
                 <td style="padding: 16px 16px 16px 0; color: var(--text-muted);">{{ shortDate(r.created_at) }}</td>
                 <td style="padding: 16px 16px 16px 0;"><FspStatusBadge :status="inviteTone(r.status)">{{ inviteLabel(r.status) }}</FspStatusBadge></td>

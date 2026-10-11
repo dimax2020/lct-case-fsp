@@ -17,14 +17,6 @@ type InvitationRow = {
   candidate_display_name?: string | null
 }
 
-type ApplicationRow = {
-  id: string
-  status?: string
-  title?: string
-  created_at?: string
-  candidate_email?: string | null
-}
-
 const SEEN_KEY = 'fsp-seen-notifications'
 
 function readSeen(): string[] {
@@ -46,9 +38,8 @@ function writeSeen(ids: string[]) {
 }
 
 /**
- * Уведомления собираются из приглашений и откликов, которые уже есть в API:
- * кандидату — новые приглашения и решения по откликам, работодателю — ответы
- * на приглашения и новые отклики. Прочитанные id хранятся в браузере.
+ * Уведомления собираются из приглашений: кандидату — новые предложения,
+ * работодателю — ответы. Прочитанные id хранятся в браузере.
  */
 export function useNotifications(role: Readonly<Ref<'candidate' | 'employer'>>) {
   const items = ref<NotificationItem[]>([])
@@ -76,19 +67,6 @@ export function useNotifications(role: Readonly<Ref<'candidate' | 'employer'>>) 
       }
     } catch {
       // Уведомления не критичны: молча показываем то, что удалось собрать.
-    }
-    try {
-      const apps = asList<ApplicationRow>(await apiFetch<unknown>('/api/v1/applications', { query: { role: role.value } }))
-      for (const app of apps) {
-        if (role.value === 'candidate' && (app.status === 'accepted' || app.status === 'declined')) {
-          out.push({ id: `app-${app.id}-${app.status}`, text: `${app.status === 'accepted' ? 'Отклик принят' : 'Отклик отклонён'}: ${app.title ?? 'вакансия'}`, to: '/candidate/vacancy', at: app.created_at ?? null })
-        }
-        if (role.value === 'employer' && app.status === 'sent') {
-          out.push({ id: `app-${app.id}-sent`, text: `Новый отклик на «${app.title ?? 'вакансию'}»`, to: '/employer/vacancies', at: app.created_at ?? null })
-        }
-      }
-    } catch {
-      // см. выше
     }
     items.value = out.sort((a, b) => String(b.at ?? '').localeCompare(String(a.at ?? ''))).slice(0, 12)
     loaded.value = true

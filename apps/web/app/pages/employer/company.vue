@@ -82,7 +82,7 @@ async function save() {
 
 <template>
   <div class="fsp-shell">
-    <FspHeader product="Для компаний" :user="name || 'Компания'" :links="employerLinks" logo-dark="/brand/championship-logo-white.svg" logo-light="/brand/championship-logo-navy.svg" />
+    <FspHeader product="Для компаний" :user="name || 'Компания'" :links="employerLinks" />
 
     <main class="fsp-page">
       <h1 class="fsp-display fsp-title">Профиль компании</h1>

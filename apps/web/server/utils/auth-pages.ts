@@ -52,7 +52,7 @@ export function rolePickerHtml(next: string, error = ''): string {
 </head>
 <body>
   <main>
-    <a href="/"><img src="/brand/championship-logo-white.svg" alt="Чемпионат России — на главную"></a>
+    <a href="/"><img src="/brand/fsp-star-dark.svg" alt="ФСП — на главную"></a>
     <h1>Кто вы?</h1>
     <p>Аккаунт создан. Роль выбирается один раз и попадает в токен Keycloak. Демо-пользователи уже имеют роль и эту страницу не видят.</p>
     <p><a href="/">На главную</a> · <a href="/auth/keycloak/logout">Выйти</a></p>

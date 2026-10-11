@@ -94,7 +94,7 @@
   .fsp-card { padding: 20px 16px; }
   /* шапка: логотип и действия в первой строке, навигация — прокручиваемой второй */
   .fsp-header { height: auto; flex-wrap: wrap; padding: 10px var(--page-x) 0; row-gap: 0; }
-  .fsp-header-brand img { height: 28px; }
+  .fsp-header-brand img { width: 28px; height: 28px; }
   .fsp-header-actions { margin-left: auto; }
   .fsp-header-nav { order: 3; flex: 1 0 100%; }
   .fsp-header-nav a { line-height: 44px; }

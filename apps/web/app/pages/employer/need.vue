@@ -207,7 +207,7 @@ onBeforeUnmount(() => clearTimeout(skillTimer))
 
 <template>
   <div class="fsp-shell">
-    <FspHeader product="Для компаний" :user="companyName" :links="employerLinks" logo-dark="/brand/championship-logo-white.svg" logo-light="/brand/championship-logo-navy.svg" />
+    <FspHeader product="Для компаний" :user="companyName" :links="employerLinks" />
     <main class="fsp-page">
       <h1 class="fsp-display fsp-title">Кого ищем</h1>
       <p style="margin: 0 0 32px; font-size: 16px; color: var(--text-muted);">Опишите потребность — соберём подборку из уже проверенных кандидатов. Вакансию публиковать не обязательно.</p>

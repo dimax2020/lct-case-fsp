@@ -320,7 +320,7 @@ onBeforeUnmount(() => { clearTimeout(pollTimer); clearTimeout(skillTimer) })
 
 <template>
   <div class="fsp-shell">
-    <FspHeader product="Карьера" :user="userName" :links="candidateLinks" logo-dark="/brand/championship-logo-white.svg" logo-light="/brand/championship-logo-navy.svg" />
+    <FspHeader product="Карьера" :user="userName" :links="candidateLinks" />
     <main class="fsp-page fsp-stack-32">
       <ScreenState :phase="screen.phase.value" :error="screen.error.value" @retry="screen.load">
         <template v-if="profile">

@@ -4,12 +4,11 @@ const props = defineProps<{
   variant?: 'card' | 'row'; active?: boolean; title?: string; company?: string; logo?: string; href?: string
   salaryFrom?: number | string; salaryTo?: number | string; currency?: string; salaryNote?: string
   city?: string; format?: string; experience?: string; tags?: TagT[]; discipline?: string; hot?: boolean
-  posted?: string; status?: any; saved?: boolean; applyLabel?: string
+  posted?: string; status?: any; saved?: boolean
 }>()
-const emit = defineEmits<{ apply: []; save: [boolean] }>()
+const emit = defineEmits<{ save: [boolean] }>()
 const { show } = useToast()
 const isSaved = ref(!!props.saved)
-const applied = ref(false)
 
 const fmt = (n: number | string) => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')
 const salary = computed(() => {
@@ -24,11 +23,6 @@ function toggle() {
   isSaved.value = !isSaved.value
   emit('save', isSaved.value)
   show(isSaved.value ? 'Вакансия добавлена в избранное' : 'Вакансия убрана из избранного')
-}
-function apply() {
-  applied.value = true
-  emit('apply')
-  show('Отклик отправлен — работодатель увидит ваш профиль')
 }
 </script>
 
@@ -60,11 +54,9 @@ function apply() {
     </div>
     <div class="fsp-vacancy-foot">
       <FspStatusBadge v-if="status" :status="status" />
-      <FspStatusBadge v-else-if="applied" status="review">Отклик отправлен</FspStatusBadge>
       <span v-else class="fsp-spacer" />
       <FspButton variant="ghost" :icon="isSaved ? 'bookmark-fill' : 'bookmark'"
         :aria-label="isSaved ? 'Убрать из избранного' : 'В избранное'" :aria-pressed="isSaved" @click="toggle" />
-      <FspButton v-if="!status && !applied" @click="apply">{{ applyLabel || 'Откликнуться' }}</FspButton>
     </div>
   </article>
 </template>

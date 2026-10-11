@@ -232,9 +232,13 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-sans);
 .fsp-active .fsp-logo { --fill: var(--active-logo); color: var(--on-active-logo); }
 
 /* ---------- Шапка ---------- */
-.fsp-header { height: var(--header-h); display: flex; align-items: center; gap: var(--space-8); padding: 0 var(--space-8); background: var(--bg); box-shadow: inset 0 -1px 0 var(--line); }
+.fsp-header, .fsp-topbar {
+  position: sticky; top: 0; z-index: 40;
+  background: var(--bg);
+}
+.fsp-header { height: var(--header-h); display: flex; align-items: center; gap: var(--space-8); padding: 0 var(--space-8); box-shadow: inset 0 -1px 0 var(--line); }
 .fsp-header-brand { display: flex; align-items: center; gap: var(--space-4); text-decoration: none; color: var(--text); flex: none; }
-.fsp-header-brand img { height: 36px; display: block; }
+.fsp-header-brand img { width: 36px; height: 36px; display: block; object-fit: contain; }
 .fsp-header-product { font-family: var(--font-display); font-weight: 700; font-size: 13px; letter-spacing: .04em; text-transform: uppercase; padding-left: var(--space-4); box-shadow: inset 1px 0 0 var(--line-strong); line-height: 28px; }
 .fsp-header-nav { display: flex; gap: var(--space-6); flex: 1; }
 .fsp-header-nav a { position: relative; display: inline-flex; align-items: center; font: 500 15px/var(--header-h) var(--font-sans); color: var(--text-muted); text-decoration: none; }

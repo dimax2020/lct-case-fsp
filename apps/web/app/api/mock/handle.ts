@@ -736,29 +736,7 @@ async function routeOfficial(db: Db, method: string, path: string, url: URL, req
 
   const applyPath = path.match(/^\/api\/v1\/vacancies\/([^/]+)\/applications$/)
   if (applyPath && method === 'POST') {
-    if (role() !== 'candidate') return fail(403, 'Недостаточно прав')
-    const state = ensureVacancies(db)
-    const vacancy = (state.vacancies ?? []).find(v => v.id === take(applyPath))
-    if (!vacancy || vacancy.status !== 'open') return fail(404, 'Вакансия не найдена')
-    const dup = (state.applications ?? []).find(a => a.vacancy_id === vacancy.id && a.candidate_id === IDS.candidate)
-    if (dup) return fail(409, 'Вы уже откликались на эту вакансию')
-    const body = await readBody<{ message?: string }>(req)
-    const row: AppRec = {
-      id: uid(),
-      vacancy_id: vacancy.id,
-      candidate_id: IDS.candidate,
-      status: 'sent',
-      message: body.message?.trim() || 'Отклик',
-      title: vacancy.title,
-      company_name: vacancy.company_name,
-      salary_from: vacancy.salary_from,
-      salary_to: vacancy.salary_to,
-      candidate_display_name: db.profile.display_name,
-      candidate_email: db.profile.contact_email || 'candidate@demo.fsp',
-      candidate_phone: db.profile.phone || '',
-    }
-    state.applications = [row, ...(state.applications ?? [])]
-    return json(appView(row, false), 201)
+    return fail(409, 'Отклики отключены. Дождитесь приглашения работодателя.', 'applications_disabled')
   }
 
   const vacancyPath = path.match(/^\/api\/v1\/vacancies\/([^/]+)$/)
@@ -1251,6 +1229,8 @@ async function route(db: Db, method: string, path: string, url: URL, req: Reques
       candidate_email: null,
       candidate_phone: null,
       recruiter_contact: null,
+      practice_id: body.practice_id ?? null,
+      practice_title: body.practice_title ?? null,
     }
     db.invitations.unshift(inv)
     db.messages[inv.id] = []

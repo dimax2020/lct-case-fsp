@@ -254,8 +254,29 @@ export class PracticeService {
   }
 
   /**
-   * Opens the task attached to a vacancy for the candidate who applied.
+   * Opens a template task for the candidate who accepted an invitation.
    * The same candidate gets the same copy on the next visit.
+   */
+  async joinPractice(principal: Principal | null, practiceId: string): Promise<{ practice: PracticeRow; copyRepoFrom: string | null }> {
+    const cand = requireKind(principal, 'candidate');
+    const id = String(practiceId || '').trim();
+    if (!id) throw new DomainError('VALIDATION', 'укажите задание');
+    const row = await this.ctx.db.one<PracticeRow>(`SELECT * FROM practices WHERE id = $1`, [id]);
+    if (!row) throw new DomainError('NOT_FOUND', 'тестовое задание не найдено');
+    if (row.candidate_id === cand.id) return { practice: row, copyRepoFrom: null };
+    if (row.source_practice_id || row.candidate_id) {
+      throw new DomainError('FORBIDDEN', 'это выполнение другого кандидата');
+    }
+    const existing = await this.ctx.db.one<PracticeRow>(
+      `SELECT * FROM practices WHERE source_practice_id = $1 AND candidate_id = $2`,
+      [row.id, cand.id],
+    );
+    if (existing) return { practice: existing, copyRepoFrom: null };
+    return this.cloneForCandidate(row, cand.id, row.vacancy_id);
+  }
+
+  /**
+   * Opens the task attached to a vacancy. Same copy is reused on the next visit.
    */
   async joinVacancy(principal: Principal | null, vacancyId: string): Promise<{ practice: PracticeRow; copyRepoFrom: string | null }> {
     const cand = requireKind(principal, 'candidate');
@@ -274,6 +295,10 @@ export class PracticeService {
       [template.id, cand.id],
     );
     if (existing) return { practice: existing, copyRepoFrom: null };
+    return this.cloneForCandidate(template, cand.id, id);
+  }
+
+  private async cloneForCandidate(template: PracticeRow, candidateId: string, vacancyId: string | null) {
     const now = this.ctx.clock.now();
     const practiceId = newId('prc');
     const row = await this.ctx.db.one<PracticeRow>(
@@ -287,7 +312,7 @@ export class PracticeService {
         practiceId,
         template.organisation_id,
         template.employer_id,
-        cand.id,
+        candidateId,
         template.title,
         template.description,
         template.rules ?? '',
@@ -301,7 +326,7 @@ export class PracticeService {
         template.brief,
         template.brief_filename,
         template.project_source ?? 'template',
-        id,
+        vacancyId,
         template.id,
         now,
       ],

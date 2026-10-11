@@ -272,24 +272,12 @@ async def apply_to_vacancy(
     vacancy_id: UUID,
     body: ApplicationCreate,
 ) -> ApplicationOut:
-    user = await _user(session, principal)
-    candidate = await _candidate_for(session, user.id)
-    vacancy = await _open_vacancy(session, vacancy_id)
-    existing = await session.scalar(
-        select(Application.id).where(Application.vacancy_id == vacancy.id, Application.candidate_id == candidate.id)
+    del session, principal, vacancy_id, body
+    raise AppError(
+        "applications_disabled",
+        "Отклики отключены. Работодатель сам присылает приглашение, при желании — с тестовым заданием.",
+        status_code=409,
     )
-    if existing is not None:
-        raise AppError("conflict", "Вы уже откликались на эту вакансию", status_code=409)
-    application = Application(vacancy_id=vacancy.id, candidate_id=candidate.id, status="sent", message=body.message)
-    session.add(application)
-    try:
-        await session.commit()
-    except IntegrityError:
-        await session.rollback()
-        raise AppError("conflict", "Вы уже откликались на эту вакансию", status_code=409) from None
-    await session.refresh(application)
-    name = await _company_name(session, vacancy.company_id)
-    return _application_out(application, vacancy, name, viewer="candidate")
 
 
 async def _contacts(session: AsyncSession, candidate_id: UUID) -> tuple[str | None, str | None]:

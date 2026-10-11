@@ -18,7 +18,7 @@ function loginView(err) {
   app().innerHTML = `
     <section class="card" id="login">
       <h1>Вход кандидата</h1>
-      <p class="lede">Имя подставляется из кабинета. Задание открывается после отклика на вакансию.</p>
+      <p class="lede">Имя подставляется из кабинета. Задание открывается после принятия приглашения.</p>
       ${err ? flash(err, 'error') : ''}
       <form id="login-form">
         <label for="name">Ваше имя</label>
@@ -558,17 +558,6 @@ async function resume(practiceId) {
   return connectView();
 }
 
-async function candidateApplications() {
-  try {
-    const res = await fetch('/api/v1/applications?role=candidate', { credentials: 'include' });
-    if (!res.ok) return [];
-    const data = await res.json();
-    return Array.isArray(data) ? data : (data.items || []);
-  } catch {
-    return [];
-  }
-}
-
 async function downloadExtension(button) {
   const previous = button.textContent;
   button.disabled = true;
@@ -599,17 +588,13 @@ function bindExtensionDownload() {
   });
 }
 
-function offerView(practices, applications) {
+function offerView(practices) {
   const cards = practices.map((practice) => {
-    const application = applications.find((row) => row.vacancy_id === practice.vacancyId) || {};
-    const company = application.company_name || 'Компания';
-    const vacancy = application.title || 'Вакансия';
     return `
       <section class="card">
-        <p class="kicker muted">Компания</p>
-        <p class="offer-main">${esc(company)}</p>
-        <p class="kicker muted">Вакансия</p>
-        <p class="offer-main">${esc(vacancy)}</p>
+        <p class="kicker muted">Тестовое задание</p>
+        <p class="offer-main">${esc(practice.title || 'Задание')}</p>
+        <p class="muted">Открыто после принятия приглашения.</p>
         <div class="actions">
           <button class="btn start-task" type="button" data-id="${esc(practice.id)}">Выполнить тестовое задание</button>
           <button class="btn secondary download-extension" type="button">Скачать расширение VS Code</button>
@@ -650,22 +635,25 @@ function taskList(items) {
 async function enter() {
   const h = hashParams();
   let joinError = '';
-  if (h.vacancy) {
+  if (h.practice) {
+    try {
+      await api('POST', `/v1/practices/${encodeURIComponent(h.practice)}/join`, {});
+    } catch (e) {
+      joinError = e.message || '';
+    }
+  } else if (h.vacancy) {
     try {
       await api('POST', `/v1/vacancies/${encodeURIComponent(h.vacancy)}/join`, {});
     } catch (e) {
       joinError = e.message || '';
     }
   }
-  const [list, applications] = await Promise.all([
-    api('GET', '/v1/practices?limit=20'),
-    candidateApplications(),
-  ]);
+  const list = await api('GET', '/v1/practices?limit=20');
   const items = list.items || [];
   if (!items.length) {
-    return notice(joinError || 'Откликнитесь на вакансию. Если работодатель прикрепил тестовое задание, оно откроется здесь: его нужно выполнить и ответить на вопросы.');
+    return notice(joinError || 'Задание появится, когда вы примете приглашение с тестовым заданием.');
   }
-  return offerView(items, applications);
+  return offerView(items);
 }
 
 bindLogout();

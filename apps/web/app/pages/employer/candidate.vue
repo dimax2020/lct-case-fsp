@@ -3,6 +3,7 @@ import type { components } from '~/api/schema'
 import { read } from '~/utils/read'
 import { apiBlob, apiFetch } from '~/utils/raw'
 import type { PsychEmployerView } from '~/utils/psych'
+import { listEmployerPractices, type EpaPractice } from '~/utils/epa'
 
 type Channel = components['schemas']['ContactChannel']
 
@@ -63,6 +64,10 @@ const channel = ref<Channel>('email')
 const contact = ref('')
 const deadline = ref('')
 const err = ref('')
+const practices = ref<EpaPractice[]>([])
+const practiceId = ref('')
+const practicesError = ref('')
+const sending = ref(false)
 
 watch(screen.data, (bundle) => {
   if (!bundle?.need) return
@@ -75,6 +80,26 @@ watch(screen.data, (bundle) => {
 
 const card = computed(() => screen.data.value?.card ?? null)
 const companyName = computed(() => screen.data.value?.company?.name || 'Компания')
+const selectedPractice = computed(() => practices.value.find(item => item.id === practiceId.value) ?? null)
+const processHref = computed(() => {
+  const back = `/employer/candidate?need=${encodeURIComponent(needId.value)}&candidate=${encodeURIComponent(candidateId.value)}`
+  return `/employer/process?return=${encodeURIComponent(back)}`
+})
+
+async function loadPractices() {
+  practicesError.value = ''
+  try {
+    const me = await $fetch<{ name?: string | null }>('/api/bff/session')
+    const name = me.name || screen.data.value?.company?.name
+    if (!name) return
+    practices.value = await listEmployerPractices(name)
+  } catch {
+    practices.value = []
+    practicesError.value = 'Список заданий не загрузился. Создайте задание и обновите страницу.'
+  }
+}
+
+watch(() => screen.data.value?.company, () => { void loadPractices() }, { immediate: true })
 
 async function send() {
   err.value = ''
@@ -86,6 +111,7 @@ async function send() {
   }
   if (!contact.value.trim()) { err.value = 'Укажите контакт'; return }
   if (!card.value || !needId.value) return
+  sending.value = true
   try {
     await read(api.POST('/api/v1/invitations', {
       body: {
@@ -98,19 +124,25 @@ async function send() {
         contact_channel: channel.value,
         contact_value: contact.value.trim(),
         deadline: deadline.value ? new Date(deadline.value).toISOString() : null,
+        practice_id: selectedPractice.value?.id ?? null,
+        practice_title: selectedPractice.value?.title ?? null,
       },
     }))
-    show(`Приглашение отправлено: ${card.value.display_name}`)
+    show(selectedPractice.value
+      ? `Приглашение и задание «${selectedPractice.value.title}» отправлены: ${card.value.display_name}`
+      : `Приглашение отправлено: ${card.value.display_name}`)
     await navigateTo('/employer/invites')
   } catch (e) {
     err.value = e instanceof Error ? e.message : 'Не удалось отправить'
+  } finally {
+    sending.value = false
   }
 }
 </script>
 
 <template>
   <div class="fsp-shell">
-    <FspHeader product="Для компаний" :user="companyName" :links="employerLinks" logo-dark="/brand/championship-logo-white.svg" logo-light="/brand/championship-logo-navy.svg" />
+    <FspHeader product="Для компаний" :user="companyName" :links="employerLinks" />
     <main class="fsp-page">
       <NuxtLink to="/employer/pool" style="display: inline-block; font-size: 14px; color: var(--text-muted); text-decoration: none; margin-bottom: 20px;">← Подборка</NuxtLink>
       <ScreenState :phase="screen.phase.value" :error="screen.error.value" @retry="screen.load">
@@ -172,26 +204,43 @@ async function send() {
           </div>
           <aside class="fsp-cut fsp-active" style="flex: 1 1 380px; min-width: 0; --cut: var(--cut-l); padding: 28px; display: flex; flex-direction: column; gap: 18px;">
             <h2 class="fsp-display" style="font-size: 20px;">Приглашение</h2>
+            <p class="u-note" style="margin: 0; color: var(--on-plate-muted);">Кандидат не откликается сам. Он только принимает или отклоняет это предложение.</p>
             <FspStatusBadge v-if="card.invitation_status" :status="inviteTone(card.invitation_status)">{{ inviteLabel(card.invitation_status) }}</FspStatusBadge>
-            <FspInput v-model="title" label="Должность" />
-            <label style="display: flex; flex-direction: column; gap: 6px;">
-              <span class="fsp-eyebrow">Предложение</span>
-              <textarea v-model="message" rows="5" style="font: 400 15px/22px var(--font-sans); color: var(--text); background: var(--field); border: 1px solid var(--line-strong); padding: 12px 14px; resize: vertical;" />
-            </label>
-            <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px;">
-              <FspInput v-model="salaryFrom" label="Зарплата от" suffix="₽" />
-              <FspInput v-model="salaryTo" label="до" suffix="₽" />
+            <div>
+              <div class="fsp-eyebrow fsp-eyebrow--plate u-mb-8">1 · Предложение</div>
+              <div class="fsp-stack-16">
+                <FspInput v-model="title" label="Должность" />
+                <label style="display: flex; flex-direction: column; gap: 6px;">
+                  <span class="fsp-eyebrow fsp-eyebrow--plate">Текст</span>
+                  <textarea v-model="message" rows="5" style="font: 400 15px/22px var(--font-sans); color: var(--text); background: var(--field); border: 1px solid var(--line-strong); padding: 12px 14px; resize: vertical;" />
+                </label>
+                <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px;">
+                  <FspInput v-model="salaryFrom" label="Зарплата от" suffix="₽" />
+                  <FspInput v-model="salaryTo" label="до" suffix="₽" />
+                </div>
+                <div>
+                  <div class="fsp-eyebrow fsp-eyebrow--plate u-mb-8">Способ связи</div>
+                  <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px;">
+                    <FspChip v-for="c in (['email', 'phone', 'telegram'] as Channel[])" :key="c" :selected="channel === c" locked @click="channel = c">{{ c === 'email' ? 'Почта' : c === 'phone' ? 'Телефон' : 'Telegram' }}</FspChip>
+                  </div>
+                  <FspInput v-model="contact" aria-label="Контакт рекрутера" />
+                </div>
+                <FspInput v-model="deadline" label="Ответить до" type="date" icon="clock" />
+              </div>
             </div>
             <div>
-              <div class="fsp-eyebrow u-mb-8">Способ связи</div>
-              <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px;">
-                <FspChip v-for="c in (['email', 'phone', 'telegram'] as Channel[])" :key="c" :selected="channel === c" locked @click="channel = c">{{ c === 'email' ? 'Почта' : c === 'phone' ? 'Телефон' : 'Telegram' }}</FspChip>
+              <div class="fsp-eyebrow fsp-eyebrow--plate u-mb-8">2 · Тестовое задание</div>
+              <p class="u-note" style="margin: 0 0 10px; color: var(--on-plate-muted);">Необязательно. Если прикрепите, кандидат увидит задание сразу после принятия.</p>
+              <div class="u-row-wrap">
+                <FspChip :selected="!practiceId" locked @click="practiceId = ''">Без задания</FspChip>
+                <FspChip v-for="p in practices" :key="p.id" :selected="practiceId === p.id" locked @click="practiceId = p.id">{{ p.title }}</FspChip>
               </div>
-              <FspInput v-model="contact" aria-label="Контакт рекрутера" />
+              <p v-if="practicesError" class="u-note" style="margin: 8px 0 0;">{{ practicesError }}</p>
+              <p v-else-if="!practices.length" class="u-note" style="margin: 8px 0 0; color: var(--on-plate-muted);">Заданий пока нет.</p>
+              <div style="margin-top: 10px;"><FspButton size="sm" variant="outline" :href="processHref">Создать задание</FspButton></div>
             </div>
-            <FspInput v-model="deadline" label="Ответить до" type="date" icon="clock" />
             <div v-if="err" style="font-size: 13px; color: var(--danger);">{{ err }}</div>
-            <FspButton size="lg" :block="true" :disabled="!!card.invitation_status && card.invitation_status !== 'declined'" @click="send">Отправить приглашение</FspButton>
+            <FspButton size="lg" :block="true" :disabled="sending || (!!card.invitation_status && card.invitation_status !== 'declined')" @click="send">{{ selectedPractice ? 'Отправить с заданием' : 'Отправить приглашение' }}</FspButton>
           </aside>
         </div>
       </ScreenState>

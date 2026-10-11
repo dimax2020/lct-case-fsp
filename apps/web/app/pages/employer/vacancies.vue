@@ -21,32 +21,18 @@ type Vacancy = {
   city?: string | null
   status?: string
 }
-type AppRow = {
-  id: string
-  vacancy_id?: string
-  status?: string
-  created_at?: string
-  candidate_display_name?: string
-  candidate_email?: string | null
-  candidate_phone?: string | null
-  message?: string
-  decline_reason?: string | null
-}
-
 useHead({ title: 'Вакансии — Карьера ФСП' })
 
 const { show } = useToast()
 const api = useApi()
 const screen = useScreen(async () => {
-  const [vacancies, applications, company, domains] = await Promise.all([
+  const [vacancies, company, domains] = await Promise.all([
     apiFetch<unknown>('/api/v1/vacancies'),
-    apiFetch<unknown>('/api/v1/applications', { query: { role: 'employer' } }),
     read(api.GET('/api/v1/companies/me')).catch(() => null),
     read(api.GET('/api/v1/taxonomy/domains')).catch(() => []),
   ])
   return {
     vacancies: asList<Vacancy>(vacancies).filter(v => !company || !('company_id' in v) || (v as Vacancy & { company_id?: string }).company_id === company.id),
-    applications: asList<AppRow>(applications),
     companyName: company?.name || 'Компания',
     domains,
   }
@@ -68,19 +54,11 @@ const skillQ = ref('')
 const skillHits = ref<SkillHit[]>([])
 const formError = ref('')
 const saving = ref(false)
-const declining = ref('')
-const declineReason = ref('')
 let skillTimer: ReturnType<typeof setTimeout> | undefined
-
-const DECLINE_REASONS = ['Не подходит стек', 'Не подходит грейд', 'Вакансия закрыта', 'Выбрали другого кандидата']
 
 function fork(row: { salary_from?: number; salary_to?: number }) {
   if (typeof row.salary_from === 'number' && typeof row.salary_to === 'number') return salaryRange(row.salary_from, row.salary_to)
   return '—'
-}
-
-function appsFor(id: string) {
-  return (screen.data.value?.applications ?? []).filter(row => row.vacancy_id === id)
 }
 
 function toggleGrade(g: Grade) {
@@ -192,25 +170,6 @@ async function submit() {
   }
 }
 
-function replaceApp(next: AppRow) {
-  const rows = screen.data.value?.applications
-  if (!rows) return
-  const idx = rows.findIndex(r => r.id === next.id)
-  if (idx >= 0) rows[idx] = { ...rows[idx], ...next }
-}
-
-async function act(row: AppRow, action: 'view' | 'accept' | 'decline') {
-  try {
-    const body = action === 'decline' ? { reason: declineReason.value || DECLINE_REASONS[0] } : undefined
-    replaceApp(await apiFetch<AppRow>(`/api/v1/applications/${encodeURIComponent(row.id)}/${action}`, { method: 'POST', body }))
-    if (action === 'accept') show('Отклик принят — свяжитесь с кандидатом по контактам')
-    if (action === 'decline') show('Отклик отклонён, кандидат увидит статус')
-    declining.value = ''
-    declineReason.value = ''
-  } catch (e) {
-    show(e instanceof Error ? e.message : 'Не удалось обновить отклик')
-  }
-}
 </script>
 
 <template>
@@ -219,7 +178,7 @@ async function act(row: AppRow, action: 'view' | 'accept' | 'decline') {
     <main class="fsp-page fsp-stack-32">
       <div>
         <h1 class="fsp-display fsp-title">Вакансии</h1>
-        <p class="u-muted-p" style="font-size: 16px;">Публикация вакансий и отклики кандидатов. Контакты откликнувшегося кандидата видны сразу: он сам проявил инициативу.</p>
+        <p class="u-muted-p" style="font-size: 16px;">Публичный каталог вакансий. Кандидаты не откликаются: найм идёт через приглашение из подборки, к нему можно прикрепить тестовое задание.</p>
       </div>
       <ScreenState :phase="screen.phase.value" :error="screen.error.value" @retry="screen.load">
         <form id="vacancy-form" class="fsp-cut fsp-card fsp-stack-16" @submit.prevent="submit">
@@ -277,6 +236,7 @@ async function act(row: AppRow, action: 'view' | 'accept' | 'decline') {
 
         <section class="fsp-section fsp-stack-24">
           <h2 class="fsp-display u-h3">Мои вакансии</h2>
+          <p class="u-note">Найм идёт из подборки: приглашение и тестовое задание отправляются кандидату напрямую.</p>
           <p v-if="!(screen.data.value?.vacancies.length)" class="u-muted-p">Опубликованных вакансий пока нет.</p>
           <article v-for="v in screen.data.value?.vacancies ?? []" :key="v.id" class="fsp-divider fsp-stack-12">
             <div class="u-between" style="align-items: baseline;">
@@ -292,34 +252,6 @@ async function act(row: AppRow, action: 'view' | 'accept' | 'decline') {
             <div class="u-row-wrap">
               <FspTag v-for="skill in v.must_skills ?? []" :key="skill">{{ skillLabel(skill) }}</FspTag>
             </div>
-            <div>
-              <div class="fsp-eyebrow u-mb-8">Отклики · {{ appsFor(v.id).length }}</div>
-              <p v-if="!appsFor(v.id).length" class="u-muted-p">Откликов пока нет.</p>
-              <div v-for="a in appsFor(v.id)" :key="a.id" class="vac-app">
-                <div class="u-row-center">
-                  <b>{{ a.candidate_display_name || a.candidate_email || 'Кандидат' }}</b>
-                  <FspStatusBadge v-if="a.status" :status="inviteTone(a.status)">{{ inviteLabel(a.status) }}</FspStatusBadge>
-                  <span v-if="a.created_at" class="u-small">{{ whenLabel(a.created_at) }}</span>
-                </div>
-                <div class="u-note-sm">
-                  <template v-if="a.candidate_email">{{ a.candidate_email }}</template><template v-if="a.candidate_phone"> · {{ a.candidate_phone }}</template>
-                </div>
-                <p v-if="a.message" style="margin: 0;">{{ a.message }}</p>
-                <p v-if="a.status === 'declined' && a.decline_reason" class="u-small" style="margin: 0;">Причина отказа: {{ a.decline_reason }}</p>
-                <div v-if="a.status === 'sent' || a.status === 'viewed'" class="u-row-wrap">
-                  <template v-if="declining !== a.id">
-                    <FspButton v-if="a.status === 'sent'" size="sm" variant="ghost" @click="act(a, 'view')">Отметить просмотренным</FspButton>
-                    <FspButton size="sm" variant="accept" icon="check" @click="act(a, 'accept')">Пригласить на интервью</FspButton>
-                    <FspButton size="sm" variant="decline" icon="x" @click="declining = a.id; declineReason = DECLINE_REASONS[0] ?? ''">Отклонить</FspButton>
-                  </template>
-                  <template v-else>
-                    <FspChip v-for="r in DECLINE_REASONS" :key="r" :selected="declineReason === r" locked @click="declineReason = r">{{ r }}</FspChip>
-                    <FspButton size="sm" variant="decline" @click="act(a, 'decline')">Отправить отказ</FspButton>
-                    <FspButton size="sm" variant="ghost" @click="declining = ''">Отмена</FspButton>
-                  </template>
-                </div>
-              </div>
-            </div>
           </article>
         </section>
       </ScreenState>
@@ -327,6 +259,3 @@ async function act(row: AppRow, action: 'view' | 'accept' | 'decline') {
   </div>
 </template>
 
-<style>
-.vac-app { padding: 12px 0; box-shadow: inset 0 1px 0 var(--line); display: flex; flex-direction: column; gap: 8px; }
-</style>

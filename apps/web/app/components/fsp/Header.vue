@@ -3,7 +3,7 @@ export interface NavLink { label: string; href?: string; active?: boolean }
 const props = withDefaults(defineProps<{
   product?: string; links?: NavLink[]; user?: string
   logoDark?: string; logoLight?: string; logoAlt?: string; homeHref?: string
-}>(), { links: () => [], logoDark: '/brand/championship-logo-white.svg', logoLight: '/brand/championship-logo-navy.svg', logoAlt: 'Чемпионат России', homeHref: '/' })
+}>(), { links: () => [], logoDark: '/brand/fsp-star-dark.svg', logoLight: '/brand/fsp-star-light.svg', logoAlt: 'ФСП — на главную', homeHref: '/' })
 
 const route = useRoute()
 const isEmployer = computed(() => route.path.startsWith('/employer'))
