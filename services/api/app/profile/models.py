@@ -18,6 +18,7 @@ class Candidate(Base):
     city: Mapped[str | None] = mapped_column(String(120))
     specialization: Mapped[str | None] = mapped_column(String(32), index=True)
     grade: Mapped[str | None] = mapped_column(String(32))
+    grade_changed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     grade_score: Mapped[float | None] = mapped_column(Float)
     ready_for_next: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
     category_rank: Mapped[int | None] = mapped_column(Integer)

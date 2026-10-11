@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Literal
 from uuid import UUID
 
 from pydantic import BaseModel, Field
@@ -92,3 +93,30 @@ class DemoFinishIn(BaseModel):
     score: float = Field(ge=0, le=100)
     skill_scores: list[SkillScore] = Field(default_factory=list)
     grade: Grade | None = None
+
+
+class RetakeIn(BaseModel):
+    direction: Literal["up", "down"]
+
+
+class MicroTaskCreate(BaseModel):
+    title: str = Field(min_length=1, max_length=200)
+    body: str = Field(min_length=1)
+    need_id: UUID | None = None
+
+
+class MicroTaskOut(BaseModel):
+    id: UUID
+    title: str
+    body: str
+    need_id: UUID | None = None
+
+
+class MicroAnswerIn(BaseModel):
+    answer: str = Field(min_length=20)
+
+
+class MicroAnswerOut(BaseModel):
+    id: UUID
+    task_id: UUID
+    answer: str

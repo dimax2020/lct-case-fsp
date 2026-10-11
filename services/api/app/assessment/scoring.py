@@ -1,8 +1,11 @@
 """Pure scoring for a finished attempt. Pending code counts as zero and does not block finish."""
 
 from dataclasses import dataclass
+from datetime import UTC, datetime, timedelta
 
 from app.core.enums import GRADE_ORDER, Grade
+
+GRADE_COOLDOWN = timedelta(days=90)
 
 
 @dataclass(frozen=True)
@@ -23,14 +26,34 @@ class GradedAnswer:
     total: int | None
 
 
-def grade_for(score: float, declared: str) -> tuple[str, bool]:
-    """Return (result grade, ready_for_next) from TEST-4 thresholds."""
-    if score < 40:
-        current = Grade(declared)
-        index = GRADE_ORDER.index(current)
-        lowered = GRADE_ORDER[index - 1] if index else current
-        return lowered.value, False
-    return Grade(declared).value, score >= 75
+def grade_for(score: float, declared: str, current: str | None = None) -> tuple[str, bool]:
+    """Return (kept grade, ready_for_next).
+
+    A score under 40 does not lower the grade. The first assignment uses the
+    declared grade whatever the score. ready_for_next is true only at 75+.
+    """
+    kept = Grade(current).value if current else Grade(declared).value
+    return kept, score >= 75
+
+
+def cooldown_active(changed_at: datetime | None, now: datetime) -> bool:
+    """True when a grade change is still inside the 90-day window."""
+    if changed_at is None:
+        return False
+    left = changed_at if changed_at.tzinfo is not None else changed_at.replace(tzinfo=UTC)
+    right = now if now.tzinfo is not None else now.replace(tzinfo=UTC)
+    return right - left < GRADE_COOLDOWN
+
+
+def neighbor_grade(current: str, direction: str) -> str:
+    """Next grade up or down the official scale. Raises ValueError at the edge."""
+    if direction not in {"up", "down"}:
+        raise ValueError(direction)
+    index = GRADE_ORDER.index(Grade(current))
+    nxt = index + 1 if direction == "up" else index - 1
+    if nxt < 0 or nxt >= len(GRADE_ORDER):
+        raise ValueError(direction)
+    return GRADE_ORDER[nxt].value
 
 
 def task_fraction(task: GradedTask, answer: GradedAnswer | None) -> float:

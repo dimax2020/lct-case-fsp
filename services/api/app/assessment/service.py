@@ -18,13 +18,22 @@ from app.assessment.schemas import (
     AttemptView,
     DemoFinishIn,
     PublicTest,
+    RetakeIn,
     RunOut,
     SkillScore,
     TaskOption,
     TaskPublic,
 )
-from app.assessment.scoring import GradedAnswer, GradedTask, grade_for, score_attempt
+from app.assessment.scoring import (
+    GradedAnswer,
+    GradedTask,
+    cooldown_active,
+    grade_for,
+    neighbor_grade,
+    score_attempt,
+)
 from app.core.auth import Principal
+from app.core.enums import Grade
 from app.core.errors import AppError
 from app.core.provision import provision_user
 from app.core.settings import get_settings
@@ -180,6 +189,29 @@ async def _candidate_id(session: AsyncSession, principal: Principal) -> UUID:
     return new_id
 
 
+async def ensure_candidate_id(session: AsyncSession, principal: Principal) -> UUID:
+    return await _candidate_id(session, principal)
+
+
+async def _candidate_state(session: AsyncSession, candidate_id: UUID) -> tuple[str | None, str | None, datetime | None]:
+    found = await session.execute(
+        text(
+            """
+            SELECT grade, specialization, grade_changed_at
+            FROM candidates
+            WHERE id = CAST(:id AS uuid)
+            """
+        ),
+        {"id": str(candidate_id)},
+    )
+    grade, specialization, changed_at = found.one()
+    return (
+        str(grade) if grade else None,
+        str(specialization) if specialization else None,
+        changed_at if isinstance(changed_at, datetime) else None,
+    )
+
+
 async def _owned_attempt(session: AsyncSession, attempt_id: UUID, candidate_id: UUID) -> Attempt:
     attempt = await session.get(Attempt, attempt_id)
     if attempt is None or attempt.candidate_id != candidate_id:
@@ -287,6 +319,7 @@ async def _apply_result(
     grade: str,
     ready: bool,
     skill_scores: dict[str, float],
+    changed_at: datetime | None = None,
 ) -> AttemptResult:
     previous = await session.execute(
         text("SELECT specialization, grade FROM candidates WHERE id = CAST(:id AS uuid)"),
@@ -298,24 +331,29 @@ async def _apply_result(
     attempt.result_grade = grade
     attempt.ready_for_next = ready
     attempt.finished_at = datetime.now(UTC)
+    params: dict[str, object] = {
+        "spec": attempt.specialization,
+        "grade": grade,
+        "score": score,
+        "ready": ready,
+        "id": str(attempt.candidate_id),
+    }
+    changed_sql = ""
+    if changed_at is not None:
+        changed_sql = ",\n                grade_changed_at = :changed_at"
+        params["changed_at"] = changed_at
     await session.execute(
         text(
-            """
+            f"""
             UPDATE candidates
             SET specialization = :spec,
                 grade = :grade,
                 grade_score = :score,
-                ready_for_next = :ready
+                ready_for_next = :ready{changed_sql}
             WHERE id = CAST(:id AS uuid)
             """
         ),
-        {
-            "spec": attempt.specialization,
-            "grade": grade,
-            "score": score,
-            "ready": ready,
-            "id": str(attempt.candidate_id),
-        },
+        params,
     )
     await session.execute(
         text("DELETE FROM candidate_skills WHERE candidate_id = CAST(:id AS uuid) AND source = 'test'"),
@@ -370,22 +408,52 @@ def _graded(specs: list[TaskSpec], answers: list[AttemptAnswer]) -> tuple[float,
     return score_attempt(tasks, graded)
 
 
-async def create_attempt(session: AsyncSession, principal: Principal, body: AttemptCreate) -> AttemptView:
+async def _open_attempt(
+    session: AsyncSession,
+    candidate_id: UUID,
+    specialization: str,
+    declared_grade: str,
+    *,
+    grade_change: bool = False,
+) -> Attempt:
     try:
         await load_tasks(session)
     except ValueError as exc:
         raise AppError("task_bank_invalid", str(exc), status_code=500) from exc
-    candidate_id = await _candidate_id(session, principal)
     started = datetime.now(UTC)
     attempt = Attempt(
         candidate_id=candidate_id,
-        specialization=body.specialization.value,
-        declared_grade=body.declared_grade.value,
+        specialization=specialization,
+        declared_grade=declared_grade,
         started_at=started,
         deadline_at=started + timedelta(minutes=ATTEMPT_MINUTES),
+        grade_change=grade_change,
     )
     session.add(attempt)
     await session.commit()
+    return attempt
+
+
+async def create_attempt(session: AsyncSession, principal: Principal, body: AttemptCreate) -> AttemptView:
+    candidate_id = await _candidate_id(session, principal)
+    attempt = await _open_attempt(session, candidate_id, body.specialization.value, body.declared_grade.value)
+    return await _view(session, attempt)
+
+
+async def retake(session: AsyncSession, principal: Principal, body: RetakeIn) -> AttemptView:
+    candidate_id = await _candidate_id(session, principal)
+    grade, specialization, changed_at = await _candidate_state(session, candidate_id)
+    if grade is None:
+        raise AppError("grade_required", "Сначала получите грейд", status_code=409)
+    if cooldown_active(changed_at, datetime.now(UTC)):
+        raise AppError("grade_cooldown", "Грейд можно сменить не чаще одного раза в 90 дней", status_code=409)
+    if specialization is None:
+        raise AppError("specialization_required", "Сначала выберите специализацию", status_code=409)
+    try:
+        declared = neighbor_grade(grade, body.direction)
+    except ValueError:
+        raise AppError("grade_boundary", "Соседнего грейда нет", status_code=400) from None
+    attempt = await _open_attempt(session, candidate_id, specialization, declared, grade_change=True)
     return await _view(session, attempt)
 
 
@@ -452,8 +520,23 @@ async def finish_attempt(session: AsyncSession, principal: Principal, attempt_id
     specs = _specs_for(attempt.specialization)
     answers = await _answers(session, attempt.id)
     score, skill_scores = _graded(specs, answers)
-    grade, ready = grade_for(score, attempt.declared_grade)
-    return await _apply_result(session, attempt, score=score, grade=grade, ready=ready, skill_scores=skill_scores)
+    if attempt.grade_change:
+        grade = Grade(attempt.declared_grade).value
+        ready = score >= 75
+        changed_at = datetime.now(UTC)
+    else:
+        current, _, _ = await _candidate_state(session, candidate_id)
+        grade, ready = grade_for(score, attempt.declared_grade, current)
+        changed_at = None
+    return await _apply_result(
+        session,
+        attempt,
+        score=score,
+        grade=grade,
+        ready=ready,
+        skill_scores=skill_scores,
+        changed_at=changed_at,
+    )
 
 
 async def demo_finish_attempt(session: AsyncSession, attempt_id: UUID, body: DemoFinishIn) -> AttemptResult:

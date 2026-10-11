@@ -3,8 +3,21 @@ from uuid import UUID
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.assessment import service
-from app.assessment.schemas import AnswerIn, AttemptCreate, AttemptResult, AttemptView, DemoFinishIn, RunIn, RunOut
+from app.assessment import micro, service
+from app.assessment.schemas import (
+    AnswerIn,
+    AttemptCreate,
+    AttemptResult,
+    AttemptView,
+    DemoFinishIn,
+    MicroAnswerIn,
+    MicroAnswerOut,
+    MicroTaskCreate,
+    MicroTaskOut,
+    RetakeIn,
+    RunIn,
+    RunOut,
+)
 from app.core.auth import Principal, require_role
 from app.core.db import get_session
 
@@ -52,6 +65,43 @@ async def finish_attempt(
     session: AsyncSession = Depends(get_session),
 ) -> AttemptResult:
     return await service.finish_attempt(session, principal, id)
+
+
+# Kept out of the generated schema until contracts/openapi.yaml lists these paths.
+@router.post("/retake", response_model=AttemptView, status_code=201, include_in_schema=False)
+async def retake(
+    body: RetakeIn,
+    principal: Principal = Depends(require_role("candidate")),
+    session: AsyncSession = Depends(get_session),
+) -> AttemptView:
+    return await service.retake(session, principal, body)
+
+
+@router.get("/micro-tasks", response_model=list[MicroTaskOut], include_in_schema=False)
+async def list_micro_tasks(
+    principal: Principal = Depends(require_role("candidate")),
+    session: AsyncSession = Depends(get_session),
+) -> list[MicroTaskOut]:
+    return await micro.list_micro_tasks(session, principal)
+
+
+@router.post("/micro-tasks", response_model=MicroTaskOut, status_code=201, include_in_schema=False)
+async def create_micro_task(
+    body: MicroTaskCreate,
+    _: Principal = Depends(require_role("employer")),
+    session: AsyncSession = Depends(get_session),
+) -> MicroTaskOut:
+    return await micro.create_micro_task(session, body)
+
+
+@router.post("/micro-tasks/{id}/answer", response_model=MicroAnswerOut, status_code=201, include_in_schema=False)
+async def answer_micro_task(
+    id: UUID,
+    body: MicroAnswerIn,
+    principal: Principal = Depends(require_role("candidate")),
+    session: AsyncSession = Depends(get_session),
+) -> MicroAnswerOut:
+    return await micro.answer_micro_task(session, principal, id, body)
 
 
 @router.post("/attempts/{id}/demo-finish", response_model=AttemptResult)
