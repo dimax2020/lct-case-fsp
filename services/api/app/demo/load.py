@@ -136,6 +136,9 @@ async def _apply(
     await _run(session, _NEED, [_need_row(row) for row in needs])
     await _run(session, _REQUIREMENT, _requirement_rows(needs))
     await _run(session, _INVITATION, [_invitation_row(row) for row in invitations])
+    from app.vacancy.seed_extra import seed_demo_vacancies
+
+    await seed_demo_vacancies(session)
 
 
 async def _after_load(candidate_ids: list[str], need_ids: list[str]) -> None:

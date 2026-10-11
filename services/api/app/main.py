@@ -15,6 +15,7 @@ from app.need.router import router as need_router
 from app.profile.router import router as profile_router
 from app.resume.router import router as resume_router
 from app.taxonomy.router import router as taxonomy_router
+from app.vacancy.router import router as vacancy_router
 
 API_PREFIX = "/api/v1"
 
@@ -48,6 +49,7 @@ def create_app() -> FastAPI:
         company_router,
         need_router,
         invitation_router,
+        vacancy_router,
         chat_router,
         taxonomy_router,
         demo_router,
