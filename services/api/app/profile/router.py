@@ -1,9 +1,13 @@
+from collections.abc import AsyncIterator
 from uuid import UUID
 
 from fastapi import APIRouter, Depends
+from fastapi.responses import Response
+from sqlalchemy.ext.asyncio import AsyncSession
 
+import app.profile.evidence  # noqa: F401  registers rebuild_evidence on the shared broker
+import app.profile.storage as storage
 from app.core.auth import Principal, require_role
-from app.core.errors import not_implemented
 from app.profile.schemas import (
     CandidateProfile,
     CandidateSettings,
@@ -13,75 +17,116 @@ from app.profile.schemas import (
     ProjectIn,
     ProjectOut,
 )
+from app.profile.service import get_db
 
 router = APIRouter(tags=["profile"])
 
 
+async def _db() -> AsyncIterator[AsyncSession]:
+    async for session in get_db():
+        yield session
+
+
 @router.get("/me", response_model=Me)
-async def get_me(_: Principal = Depends(require_role("candidate", "employer", "admin"))) -> None:
-    not_implemented()
+async def get_me(
+    principal: Principal = Depends(require_role("candidate", "employer", "admin")),
+    session: AsyncSession = Depends(_db),
+) -> Me:
+    return await storage.build_me(session, principal)
 
 
 @router.get("/candidates/me", response_model=CandidateProfile)
-async def get_my_candidate(_: Principal = Depends(require_role("candidate"))) -> None:
-    not_implemented()
+async def get_my_candidate(
+    principal: Principal = Depends(require_role("candidate")),
+    session: AsyncSession = Depends(_db),
+) -> CandidateProfile:
+    candidate = await storage.current_candidate(session, principal)
+    return await storage.profile_view(session, candidate)
 
 
 @router.put("/candidates/me", response_model=CandidateProfile)
 async def update_my_candidate(
     body: CandidateUpdate,
-    _: Principal = Depends(require_role("candidate")),
-) -> None:
-    del body
-    not_implemented()
+    principal: Principal = Depends(require_role("candidate")),
+    session: AsyncSession = Depends(_db),
+) -> CandidateProfile:
+    candidate = await storage.current_candidate(session, principal)
+    return await storage.update_profile(session, candidate, body)
 
 
 @router.get("/candidates/me/projects", response_model=list[ProjectOut])
-async def list_my_projects(_: Principal = Depends(require_role("candidate"))) -> None:
-    not_implemented()
+async def list_my_projects(
+    principal: Principal = Depends(require_role("candidate")),
+    session: AsyncSession = Depends(_db),
+) -> list[ProjectOut]:
+    candidate = await storage.current_candidate(session, principal)
+    return await storage.list_projects(session, candidate)
 
 
 @router.post("/candidates/me/projects", response_model=ProjectOut, status_code=201)
-async def create_project(body: ProjectIn, _: Principal = Depends(require_role("candidate"))) -> None:
-    del body
-    not_implemented()
+async def create_my_project(
+    body: ProjectIn,
+    principal: Principal = Depends(require_role("candidate")),
+    session: AsyncSession = Depends(_db),
+) -> ProjectOut:
+    candidate = await storage.current_candidate(session, principal)
+    return await storage.create_project(session, candidate, body)
 
 
 @router.put("/candidates/me/projects/{id}", response_model=ProjectOut)
-async def update_project(
+async def update_my_project(
     id: UUID,
     body: ProjectIn,
-    _: Principal = Depends(require_role("candidate")),
-) -> None:
-    del id, body
-    not_implemented()
+    principal: Principal = Depends(require_role("candidate")),
+    session: AsyncSession = Depends(_db),
+) -> ProjectOut:
+    candidate = await storage.current_candidate(session, principal)
+    return await storage.update_project(session, candidate, id, body)
 
 
 @router.delete("/candidates/me/projects/{id}", status_code=204)
-async def delete_project(id: UUID, _: Principal = Depends(require_role("candidate"))) -> None:
-    del id
-    not_implemented()
+async def delete_my_project(
+    id: UUID,
+    principal: Principal = Depends(require_role("candidate")),
+    session: AsyncSession = Depends(_db),
+) -> Response:
+    candidate = await storage.current_candidate(session, principal)
+    await storage.delete_project(session, candidate, id)
+    return Response(status_code=204)
 
 
 @router.post("/candidates/me/fsp-link", response_model=CandidateProfile)
-async def link_fsp(_: Principal = Depends(require_role("candidate"))) -> None:
-    not_implemented()
+async def link_my_fsp(
+    principal: Principal = Depends(require_role("candidate")),
+    session: AsyncSession = Depends(_db),
+) -> CandidateProfile:
+    candidate = await storage.current_candidate(session, principal)
+    return await storage.link_fsp(session, candidate)
 
 
 @router.get("/candidates/me/grade", response_model=GradeView)
-async def get_my_grade(_: Principal = Depends(require_role("candidate"))) -> None:
-    not_implemented()
+async def get_my_grade(
+    principal: Principal = Depends(require_role("candidate")),
+    session: AsyncSession = Depends(_db),
+) -> GradeView:
+    candidate = await storage.current_candidate(session, principal)
+    return await storage.grade_view(session, candidate)
 
 
 @router.get("/candidates/me/settings", response_model=CandidateSettings)
-async def get_my_settings(_: Principal = Depends(require_role("candidate"))) -> None:
-    not_implemented()
+async def get_my_settings(
+    principal: Principal = Depends(require_role("candidate")),
+    session: AsyncSession = Depends(_db),
+) -> CandidateSettings:
+    candidate = await storage.current_candidate(session, principal)
+    return await storage.settings_view(candidate)
 
 
 @router.put("/candidates/me/settings", response_model=CandidateSettings)
 async def update_my_settings(
     body: CandidateSettings,
-    _: Principal = Depends(require_role("candidate")),
-) -> None:
-    del body
-    not_implemented()
+    principal: Principal = Depends(require_role("candidate")),
+    session: AsyncSession = Depends(_db),
+) -> CandidateSettings:
+    candidate = await storage.current_candidate(session, principal)
+    return await storage.update_settings(session, candidate, body)

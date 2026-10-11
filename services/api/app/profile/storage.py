@@ -1,0 +1,619 @@
+"""ORM-backed profile operations. Imported by the profile router, not by other modules."""
+
+import json
+import logging
+import sys
+from datetime import UTC, datetime
+from typing import Any
+from uuid import UUID
+
+from sqlalchemy import delete, select, text
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core import db
+from app.core.auth import Principal
+from app.core.enums import Grade, SkillSource, Specialization
+from app.core.errors import AppError
+from app.core.models import User
+from app.core.provision import provision_user, set_candidate_hook
+from app.profile.fsp import load_achievements
+from app.profile.models import Candidate, CandidateSkill, EvidenceUnit, Experience, FspAchievement, Project
+from app.profile.parsing import as_date, canonical_role, display_name, experience_years
+from app.profile.present import candidate_profile, project_out
+from app.profile.schemas import (
+    CandidateProfile,
+    CandidateSettings,
+    CandidateUpdate,
+    GradeHistoryItem,
+    GradeView,
+    Me,
+    ProjectIn,
+    ProjectOut,
+    SkillScore,
+)
+from app.profile.service import CandidateFeatures, EvidenceFeature, FspFeature, SkillFeature, bind
+from app.taxonomy.service import normalize, normalize_domain
+
+logger = logging.getLogger(__name__)
+
+def _empty_features(candidate_id: UUID) -> CandidateFeatures:
+    return CandidateFeatures(
+        candidate_id=str(candidate_id),
+        full_name="",
+        display_name="",
+        specialization=None,
+        grade=None,
+        grade_score=None,
+        min_salary=None,
+        formats=[],
+        status="paused",
+        visible=False,
+        city=None,
+        liked_skills=[],
+        disliked_skills=[],
+        liked_domains=[],
+        blocked_domains=[],
+        last_active_at=None,
+    )
+
+
+def _vector(value: Any) -> list[float] | None:
+    if value is None:
+        return None
+    return [float(item) for item in list(value)]
+
+
+async def get_candidate_features(candidate_id: UUID) -> CandidateFeatures:
+    """Read matching features from the database. A missing row is an empty profile."""
+    async with db.SessionLocal() as session:
+        candidate = await session.get(Candidate, candidate_id)
+        if candidate is None:
+            return _empty_features(candidate_id)
+        skills = list(
+            await session.scalars(select(CandidateSkill).where(CandidateSkill.candidate_id == candidate_id))
+        )
+        units = list(await session.scalars(select(EvidenceUnit).where(EvidenceUnit.candidate_id == candidate_id)))
+        achievements = list(
+            await session.scalars(select(FspAchievement).where(FspAchievement.candidate_id == candidate_id))
+        )
+        experiences = list(await session.scalars(select(Experience).where(Experience.candidate_id == candidate_id)))
+        invites = await _open_invites(session, candidate_id)
+        return CandidateFeatures(
+            candidate_id=str(candidate.id),
+            full_name=candidate.full_name or "",
+            display_name=display_name(candidate.full_name or ""),
+            specialization=candidate.specialization,
+            grade=candidate.grade,
+            grade_score=candidate.grade_score,
+            min_salary=candidate.min_salary,
+            formats=list(candidate.formats or []),
+            status=candidate.status,
+            visible=bool(candidate.visible),
+            city=candidate.city,
+            liked_skills=list(candidate.liked_skills or []),
+            disliked_skills=list(candidate.disliked_skills or []),
+            liked_domains=list(candidate.liked_domains or []),
+            blocked_domains=list(candidate.blocked_domains or []),
+            last_active_at=candidate.last_active_at,
+            skills=[SkillFeature(skill_id=row.skill_id, score=row.score, source=row.source) for row in skills],
+            evidence=[
+                EvidenceFeature(
+                    id=str(row.id),
+                    task=row.task,
+                    domain=row.domain,
+                    skills=list(row.skills or []),
+                    role=row.role,
+                    date=row.occurred_on,
+                    trust=row.trust,
+                    embedding=_vector(row.embedding),
+                    origin=row.origin,
+                    evidence_span=row.evidence_span,
+                )
+                for row in units
+            ],
+            fsp=[
+                FspFeature(discipline=row.discipline, event=row.event, place=row.place, year=row.year)
+                for row in achievements
+            ],
+            open_invites=invites,
+            experience_years=experience_years(experiences),
+        )
+
+
+async def get_or_create_candidate(session: AsyncSession, user_id: UUID) -> Candidate:
+    found = await session.scalar(select(Candidate).where(Candidate.user_id == user_id))
+    if found is not None:
+        return found
+    candidate = Candidate(user_id=user_id, full_name="", status="paused", visible=True)
+    session.add(candidate)
+    await session.flush()
+    return candidate
+
+
+async def ensure_candidate(user_id: UUID) -> UUID:
+    """Create the candidate row for a user and return its id."""
+    async with db.SessionLocal() as session:
+        candidate = await get_or_create_candidate(session, user_id)
+        await session.commit()
+        return candidate.id
+
+
+async def _candidate_hook(session: AsyncSession, user: User) -> None:
+    await get_or_create_candidate(session, user.id)
+
+
+async def current_candidate(session: AsyncSession, principal: Principal) -> Candidate:
+    user = await provision_user(session, principal)
+    return await get_or_create_candidate(session, user.id)
+
+
+def require_skills(values: list[str]) -> list[str]:
+    found: list[str] = []
+    for raw in values:
+        skill_id = normalize(raw)
+        if skill_id is None:
+            raise AppError("unknown_skill", f"Неизвестный навык: {raw}", status_code=400)
+        if skill_id not in found:
+            found.append(skill_id)
+    return found
+
+
+def require_domains(values: list[str]) -> list[str]:
+    found: list[str] = []
+    for raw in values:
+        domain_id = normalize_domain(raw)
+        if domain_id is None:
+            raise AppError("unknown_domain", f"Неизвестный домен: {raw}", status_code=400)
+        if domain_id not in found:
+            found.append(domain_id)
+    return found
+
+
+async def _touch(candidate: Candidate) -> None:
+    candidate.last_active_at = datetime.now(UTC)
+
+
+async def _load_skills(session: AsyncSession, candidate_id: UUID) -> list[CandidateSkill]:
+    rows = await session.scalars(
+        select(CandidateSkill)
+        .where(CandidateSkill.candidate_id == candidate_id)
+        .order_by(CandidateSkill.skill_id, CandidateSkill.source)
+    )
+    return list(rows)
+
+
+async def _load_projects(session: AsyncSession, candidate_id: UUID) -> list[Project]:
+    rows = await session.scalars(
+        select(Project)
+        .where(Project.candidate_id == candidate_id)
+        .order_by(Project.occurred_on.desc().nulls_last(), Project.created_at.desc())
+    )
+    return list(rows)
+
+
+async def _load_experiences(session: AsyncSession, candidate_id: UUID) -> list[Experience]:
+    rows = await session.scalars(
+        select(Experience).where(Experience.candidate_id == candidate_id).order_by(Experience.start.desc().nulls_last())
+    )
+    return list(rows)
+
+
+async def _load_achievements(session: AsyncSession, candidate_id: UUID) -> list[FspAchievement]:
+    rows = await session.scalars(
+        select(FspAchievement)
+        .where(FspAchievement.candidate_id == candidate_id)
+        .order_by(FspAchievement.year.desc().nulls_last())
+    )
+    return list(rows)
+
+
+async def profile_view(session: AsyncSession, candidate: Candidate) -> CandidateProfile:
+    await _touch(candidate)
+    return candidate_profile(
+        candidate,
+        await _load_skills(session, candidate.id),
+        await _load_projects(session, candidate.id),
+        await _load_experiences(session, candidate.id),
+        await _load_achievements(session, candidate.id),
+    )
+
+
+async def update_profile(session: AsyncSession, candidate: Candidate, body: CandidateUpdate) -> CandidateProfile:
+    data = body.model_dump(mode="json", exclude_unset=True)
+    if "full_name" in data:
+        candidate.full_name = data["full_name"] or ""
+    if "city" in data:
+        candidate.city = data["city"]
+    if "specialization" in data:
+        candidate.specialization = data["specialization"]
+    if "min_salary" in data:
+        candidate.min_salary = data["min_salary"]
+    if "formats" in data:
+        candidate.formats = list(data["formats"] or [])
+    if data.get("status"):
+        candidate.status = data["status"]
+    if data.get("visible") is not None:
+        candidate.visible = bool(data["visible"])
+    if "liked_skills" in data:
+        candidate.liked_skills = require_skills(list(data["liked_skills"] or []))
+    if "disliked_skills" in data:
+        candidate.disliked_skills = require_skills(list(data["disliked_skills"] or []))
+    if "liked_domains" in data:
+        candidate.liked_domains = require_domains(list(data["liked_domains"] or []))
+    if "blocked_domains" in data:
+        candidate.blocked_domains = require_domains(list(data["blocked_domains"] or []))
+    if "phone" in data:
+        candidate.phone = data["phone"]
+    if "contact_email" in data:
+        candidate.contact_email = data["contact_email"]
+    await _touch(candidate)
+    await session.flush()
+    return await profile_view(session, candidate)
+
+
+async def replace_skills(
+    session: AsyncSession,
+    candidate_id: UUID,
+    source: str,
+    skill_ids: list[str],
+    score: float | None = None,
+) -> None:
+    await session.execute(
+        delete(CandidateSkill).where(CandidateSkill.candidate_id == candidate_id, CandidateSkill.source == source)
+    )
+    for skill_id in skill_ids:
+        session.add(CandidateSkill(candidate_id=candidate_id, skill_id=skill_id, source=source, score=score))
+    await session.flush()
+
+
+async def sync_project_skills(session: AsyncSession, candidate_id: UUID) -> None:
+    rows = list(await session.scalars(select(Project).where(Project.candidate_id == candidate_id)))
+    skill_ids: list[str] = []
+    for row in rows:
+        if row.source == "resume":
+            continue
+        for skill_id in row.skills or []:
+            if skill_id not in skill_ids:
+                skill_ids.append(skill_id)
+    await replace_skills(session, candidate_id, SkillSource.project.value, skill_ids)
+
+
+async def finish_evidence(session: AsyncSession, candidate_id: UUID) -> None:
+    from app.profile.evidence import kick, rebuild, recompute
+
+    await rebuild(session, candidate_id)
+    await session.commit()
+    await recompute(candidate_id)
+    await kick(candidate_id)
+
+
+async def _owned_project(session: AsyncSession, candidate_id: UUID, project_id: UUID) -> Project:
+    project = await session.get(Project, project_id)
+    if project is None or project.candidate_id != candidate_id:
+        raise AppError("not_found", "Проект не найден", status_code=404)
+    return project
+
+
+def _fill_project(project: Project, body: ProjectIn, skills: list[str]) -> None:
+    project.task = body.task
+    project.role = body.role.value
+    project.skills = skills
+    project.scale = body.scale
+    project.outcome = body.outcome
+    project.occurred_on = as_date(body.date)
+    project.url = body.url
+
+
+async def list_projects(session: AsyncSession, candidate: Candidate) -> list[ProjectOut]:
+    return [project_out(row) for row in await _load_projects(session, candidate.id)]
+
+
+async def create_project(session: AsyncSession, candidate: Candidate, body: ProjectIn) -> ProjectOut:
+    skills = require_skills(body.skills)
+    project = Project(candidate_id=candidate.id, task=body.task, role=body.role.value, skills=skills, source="self")
+    _fill_project(project, body, skills)
+    session.add(project)
+    await session.flush()
+    await sync_project_skills(session, candidate.id)
+    await _touch(candidate)
+    await finish_evidence(session, candidate.id)
+    return project_out(project)
+
+
+async def update_project(session: AsyncSession, candidate: Candidate, project_id: UUID, body: ProjectIn) -> ProjectOut:
+    project = await _owned_project(session, candidate.id, project_id)
+    skills = require_skills(body.skills)
+    _fill_project(project, body, skills)
+    await session.flush()
+    await sync_project_skills(session, candidate.id)
+    await _touch(candidate)
+    await finish_evidence(session, candidate.id)
+    return project_out(project)
+
+
+async def delete_project(session: AsyncSession, candidate: Candidate, project_id: UUID) -> None:
+    project = await _owned_project(session, candidate.id, project_id)
+    await session.delete(project)
+    await session.flush()
+    await sync_project_skills(session, candidate.id)
+    await _touch(candidate)
+    await finish_evidence(session, candidate.id)
+
+
+async def link_fsp(session: AsyncSession, candidate: Candidate) -> CandidateProfile:
+    user = await session.get(User, candidate.user_id)
+    items = load_achievements(user.kc_sub if user else "", user.email if user else None)
+    await session.execute(delete(FspAchievement).where(FspAchievement.candidate_id == candidate.id))
+    skill_ids: list[str] = []
+    for item in items:
+        session.add(
+            FspAchievement(
+                candidate_id=candidate.id,
+                discipline=item["discipline"],
+                event=item["event"],
+                place=item["place"],
+                year=item["year"],
+            )
+        )
+        for raw in [*item.get("skills", []), item["discipline"]]:
+            skill_id = normalize(str(raw))
+            if skill_id and skill_id not in skill_ids:
+                skill_ids.append(skill_id)
+    await replace_skills(session, candidate.id, SkillSource.fsp_id.value, skill_ids)
+    await _touch(candidate)
+    await finish_evidence(session, candidate.id)
+    return await profile_view(session, candidate)
+
+
+def _quoted(span: object, source: str) -> str | None:
+    if not isinstance(span, str):
+        return None
+    text_span = span.strip()
+    if text_span and text_span in source:
+        return text_span
+    return None
+
+
+async def apply_confirmed_resume(
+    session: AsyncSession,
+    candidate_id: UUID,
+    payload: dict[str, Any],
+    raw_text: str,
+) -> dict[str, Any]:
+    """Store resume rows that have a quote in the source text, then rebuild evidence."""
+    experiences_out: list[dict[str, Any]] = []
+    await session.execute(delete(Experience).where(Experience.candidate_id == candidate_id))
+    for item in payload.get("experiences") or []:
+        if not isinstance(item, dict):
+            continue
+        span = _quoted(item.get("evidence_span"), raw_text)
+        if span is None:
+            continue
+        company = str(item.get("company") or "")
+        role = str(item.get("role") or "")
+        description = str(item.get("description") or "")
+        start = as_date(item.get("start") if isinstance(item.get("start"), str) else None)
+        end = as_date(item.get("end") if isinstance(item.get("end"), str) else None)
+        session.add(
+            Experience(
+                candidate_id=candidate_id,
+                company=company,
+                role=role,
+                start=start,
+                end=end,
+                description=description,
+                evidence_span=span,
+            )
+        )
+        experiences_out.append(
+            {
+                "company": company,
+                "role": role,
+                "start": start.isoformat() if start else None,
+                "end": end.isoformat() if end else None,
+                "description": description,
+                "evidence_span": span,
+            }
+        )
+
+    skill_ids: list[str] = []
+    skills_out: list[dict[str, Any]] = []
+    for item in payload.get("skills") or []:
+        if not isinstance(item, dict):
+            continue
+        span = _quoted(item.get("evidence_span"), raw_text)
+        if span is None:
+            continue
+        name = str(item.get("name") or "")
+        skill_id = normalize(str(item.get("skill_id") or "")) or normalize(name)
+        if skill_id is None:
+            continue
+        if skill_id not in skill_ids:
+            skill_ids.append(skill_id)
+        skills_out.append({"name": name or skill_id, "skill_id": skill_id, "evidence_span": span})
+    await replace_skills(session, candidate_id, SkillSource.resume.value, skill_ids)
+
+    await session.execute(delete(Project).where(Project.candidate_id == candidate_id, Project.source == "resume"))
+    projects_out: list[dict[str, Any]] = []
+    for item in payload.get("projects") or []:
+        if not isinstance(item, dict):
+            continue
+        span = _quoted(item.get("evidence_span"), raw_text)
+        task = str(item.get("task") or "").strip()
+        if span is None or not task:
+            continue
+        project_skills: list[str] = []
+        for raw in item.get("skills") or []:
+            skill_id = normalize(str(raw))
+            if skill_id and skill_id not in project_skills:
+                project_skills.append(skill_id)
+        role = canonical_role(str(item.get("role") or ""))
+        outcome = item.get("outcome")
+        session.add(
+            Project(
+                candidate_id=candidate_id,
+                task=task,
+                role=role,
+                skills=project_skills,
+                outcome=str(outcome) if outcome else None,
+                source="resume",
+            )
+        )
+        projects_out.append(
+            {
+                "task": task,
+                "role": role,
+                "skills": project_skills,
+                "outcome": str(outcome) if outcome else None,
+                "evidence_span": span,
+            }
+        )
+    await session.flush()
+    await sync_project_skills(session, candidate_id)
+    return {"experiences": experiences_out, "skills": skills_out, "projects": projects_out}
+
+
+async def build_me(session: AsyncSession, principal: Principal) -> Me:
+    user = await provision_user(session, principal)
+    candidate_id = None
+    if user.role == "candidate":
+        candidate_id = (await get_or_create_candidate(session, user.id)).id
+    return Me(
+        sub=principal.sub,
+        role=user.role,
+        email=user.email,
+        user_id=user.id,
+        candidate_id=candidate_id,
+        company_id=await _company_id(session, user.id),
+    )
+
+
+async def grade_view(session: AsyncSession, candidate: Candidate) -> GradeView:
+    rows = await _attempt_rows(session, candidate.id)
+    declared: Grade | None = None
+    skill_scores: list[SkillScore] = []
+    history: list[GradeHistoryItem] = []
+    if rows:
+        declared = _as_grade(rows[0].get("declared_grade"))
+    for row in rows:
+        if row.get("finished_at") is None:
+            continue
+        grade = _as_grade(row.get("result_grade"))
+        score = row.get("score")
+        if grade is None or score is None or row.get("finished_at") is None:
+            continue
+        if not skill_scores:
+            skill_scores = _skill_scores(row.get("skill_scores"))
+        history.append(
+            GradeHistoryItem(
+                attempt_id=row["id"],
+                finished_at=row["finished_at"],
+                score=float(score),
+                grade=grade,
+            )
+        )
+    specialization = None
+    if candidate.specialization:
+        try:
+            specialization = Specialization(candidate.specialization)
+        except ValueError:
+            specialization = None
+    return GradeView(
+        specialization=specialization,
+        declared_grade=declared,
+        grade=_as_grade(candidate.grade),
+        score=candidate.grade_score,
+        ready_for_next=bool(candidate.ready_for_next),
+        rank=candidate.category_rank,
+        category_size=candidate.category_size,
+        skill_scores=skill_scores,
+        history=history,
+    )
+
+
+async def settings_view(candidate: Candidate) -> CandidateSettings:
+    return CandidateSettings(visible=bool(candidate.visible), hidden_company_ids=list(candidate.hidden_company_ids or []))
+
+
+async def update_settings(session: AsyncSession, candidate: Candidate, body: CandidateSettings) -> CandidateSettings:
+    candidate.visible = body.visible
+    candidate.hidden_company_ids = list(body.hidden_company_ids)
+    await _touch(candidate)
+    await session.flush()
+    return await settings_view(candidate)
+
+
+def _as_grade(value: object) -> Grade | None:
+    if not isinstance(value, str) or not value:
+        return None
+    try:
+        return Grade(value)
+    except ValueError:
+        return None
+
+
+def _skill_scores(value: object) -> list[SkillScore]:
+    if isinstance(value, str):
+        try:
+            value = json.loads(value)
+        except json.JSONDecodeError:
+            return []
+    scores: list[SkillScore] = []
+    if isinstance(value, dict):
+        for key, raw in value.items():
+            try:
+                scores.append(SkillScore(skill_id=str(key), score=float(raw)))
+            except (TypeError, ValueError):
+                continue
+        return scores
+    if isinstance(value, list):
+        for item in value:
+            if not isinstance(item, dict) or "skill_id" not in item:
+                continue
+            try:
+                scores.append(SkillScore(skill_id=str(item["skill_id"]), score=float(item["score"])))
+            except (TypeError, ValueError, KeyError):
+                continue
+    return scores
+
+
+async def _open_invites(session: AsyncSession, candidate_id: UUID) -> int:
+    sql = text(
+        "SELECT COUNT(*) FROM invitations WHERE candidate_id = :candidate_id AND status IN ('sent', 'viewed')"
+    )
+    try:
+        async with session.begin_nested():
+            value = (await session.execute(sql, {"candidate_id": candidate_id})).scalar_one()
+    except Exception:
+        logger.info("open invite count is unavailable for %s", candidate_id)
+        return 0
+    return int(value or 0)
+
+
+async def _company_id(session: AsyncSession, user_id: UUID) -> UUID | None:
+    sql = text("SELECT id FROM companies WHERE owner_user_id = :user_id")
+    try:
+        async with session.begin_nested():
+            value = (await session.execute(sql, {"user_id": user_id})).scalar_one_or_none()
+    except Exception:
+        logger.info("company lookup is unavailable for %s", user_id)
+        return None
+    return value if isinstance(value, UUID) else None
+
+
+async def _attempt_rows(session: AsyncSession, candidate_id: UUID) -> list[Any]:
+    sql = text(
+        "SELECT id, finished_at, score, result_grade, declared_grade, skill_scores "
+        "FROM attempts WHERE candidate_id = :candidate_id ORDER BY started_at DESC"
+    )
+    try:
+        async with session.begin_nested():
+            result = await session.execute(sql, {"candidate_id": candidate_id})
+            return list(result.mappings().all())
+    except Exception:
+        logger.info("attempt history is unavailable for %s", candidate_id)
+        return []
+
+
+set_candidate_hook(_candidate_hook)
+bind(sys.modules[__name__])

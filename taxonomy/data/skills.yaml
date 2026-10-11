@@ -1,51 +1,1221 @@
-# Ten examples. Agent B expands this to about 150 skills.
+# Skill ontology. decay is fundamental (half-life measured in years for durable skills)
+# or framework (faster decay for libraries and products).
 - id: python
   name: Python
   decay: fundamental
-  specializations: [backend, data_ml]
-  synonyms: [python, питон, py]
+  specializations:
+  - backend
+  - data_ml
+  synonyms:
+  - python
+  - питон
+  - py
 - id: go
   name: Go
   decay: fundamental
-  specializations: [backend, devops]
-  synonyms: [go, golang, го]
+  specializations:
+  - backend
+  - devops
+  synonyms:
+  - go
+  - golang
+  - голанг
+  - го
 - id: javascript
   name: JavaScript
   decay: fundamental
-  specializations: [frontend]
-  synonyms: [javascript, js, джаваскрипт]
+  specializations:
+  - frontend
+  - backend
+  synonyms:
+  - javascript
+  - js
+  - джаваскрипт
+- id: typescript
+  name: TypeScript
+  decay: fundamental
+  specializations:
+  - frontend
+  - backend
+  synonyms:
+  - typescript
+  - ts
+  - тайпскрипт
+- id: java
+  name: Java
+  decay: fundamental
+  specializations:
+  - backend
+  synonyms:
+  - java
+  - джава
+- id: kotlin
+  name: Kotlin
+  decay: fundamental
+  specializations:
+  - backend
+  synonyms:
+  - kotlin
+  - котлин
+- id: csharp
+  name: C#
+  decay: fundamental
+  specializations:
+  - backend
+  synonyms:
+  - csharp
+  - c#
+  - сишарп
+- id: rust
+  name: Rust
+  decay: fundamental
+  specializations:
+  - backend
+  - devops
+  synonyms:
+  - rust
+  - раст
+- id: php
+  name: PHP
+  decay: fundamental
+  specializations:
+  - backend
+  synonyms:
+  - php
+  - пхп
+- id: ruby
+  name: Ruby
+  decay: fundamental
+  specializations:
+  - backend
+  synonyms:
+  - ruby
+  - руби
+- id: c
+  name: C
+  decay: fundamental
+  specializations:
+  - backend
+  synonyms:
+  - язык си
+  - си
+- id: cpp
+  name: C++
+  decay: fundamental
+  specializations:
+  - backend
+  synonyms:
+  - cpp
+  - c++
+  - плюсы
+- id: scala
+  name: Scala
+  decay: fundamental
+  specializations:
+  - backend
+  - data_ml
+  synonyms:
+  - scala
+  - скала
+- id: swift
+  name: Swift
+  decay: fundamental
+  specializations:
+  - frontend
+  synonyms:
+  - swift
+  - свифт
+- id: elixir
+  name: Elixir
+  decay: fundamental
+  specializations:
+  - backend
+  synonyms:
+  - elixir
+  - эликсир
+- id: sql
+  name: SQL
+  decay: fundamental
+  specializations:
+  - backend
+  - data_ml
+  synonyms:
+  - sql
+  - скюэль
 - id: postgresql
   name: PostgreSQL
   decay: fundamental
-  specializations: [backend, data_ml]
-  synonyms: [postgresql, postgres, постгрес]
+  specializations:
+  - backend
+  - data_ml
+  synonyms:
+  - postgresql
+  - postgres
+  - постгрес
+  - psql
+- id: algorithms
+  name: Алгоритмы
+  decay: fundamental
+  specializations:
+  - backend
+  - data_ml
+  synonyms:
+  - algorithms
+  - алгоритмы
+- id: data_structures
+  name: Структуры данных
+  decay: fundamental
+  specializations:
+  - backend
+  synonyms:
+  - data structures
+  - структуры данных
+- id: networks
+  name: Сети
+  decay: fundamental
+  specializations:
+  - backend
+  - devops
+  synonyms:
+  - networks
+  - компьютерные сети
+- id: http
+  name: HTTP
+  decay: fundamental
+  specializations:
+  - backend
+  - frontend
+  synonyms:
+  - http
+  - https
+- id: linux
+  name: Linux
+  decay: fundamental
+  specializations:
+  - devops
+  - backend
+  synonyms:
+  - linux
+  - линукс
+- id: git
+  name: Git
+  decay: fundamental
+  specializations:
+  - backend
+  - frontend
+  - devops
+  - data_ml
+  synonyms:
+  - git
+  - гит
+- id: bash
+  name: Bash
+  decay: fundamental
+  specializations:
+  - devops
+  synonyms:
+  - bash
+  - shell
+  - командная строка
+- id: statistics
+  name: Статистика
+  decay: fundamental
+  specializations:
+  - data_ml
+  synonyms:
+  - statistics
+  - статистика
+- id: linear_algebra
+  name: Линейная алгебра
+  decay: fundamental
+  specializations:
+  - data_ml
+  synonyms:
+  - linear algebra
+  - линейная алгебра
+- id: html
+  name: HTML
+  decay: fundamental
+  specializations:
+  - frontend
+  synonyms:
+  - html
+  - хтмл
+- id: css
+  name: CSS
+  decay: fundamental
+  specializations:
+  - frontend
+  synonyms:
+  - css
+  - цсс
+- id: oop
+  name: ООП
+  decay: fundamental
+  specializations:
+  - backend
+  synonyms:
+  - oop
+  - ооп
+- id: concurrency
+  name: Многопоточность
+  decay: fundamental
+  specializations:
+  - backend
+  synonyms:
+  - concurrency
+  - многопоточность
+- id: cryptography
+  name: Криптография
+  decay: fundamental
+  specializations:
+  - backend
+  - devops
+  synonyms:
+  - cryptography
+  - криптография
+- id: security
+  name: Информационная безопасность
+  decay: fundamental
+  specializations:
+  - devops
+  - backend
+  synonyms:
+  - security
+  - информационная безопасность
+- id: tcp_ip
+  name: TCP/IP
+  decay: fundamental
+  specializations:
+  - devops
+  - backend
+  synonyms:
+  - tcp/ip
+  - tcp ip
+- id: rest
+  name: REST
+  decay: fundamental
+  specializations:
+  - backend
+  - frontend
+  synonyms:
+  - rest
+  - rest api
+- id: testing
+  name: Тестирование
+  decay: fundamental
+  specializations:
+  - backend
+  - frontend
+  synonyms:
+  - testing
+  - тестирование
+- id: system_design
+  name: Проектирование систем
+  decay: fundamental
+  specializations:
+  - backend
+  synonyms:
+  - system design
+  - проектирование систем
+- id: relational_model
+  name: Реляционная модель
+  decay: fundamental
+  specializations:
+  - backend
+  - data_ml
+  synonyms:
+  - relational model
+  - реляционная модель
+- id: etl
+  name: ETL
+  decay: fundamental
+  specializations:
+  - data_ml
+  synonyms:
+  - etl
+  - elt
+- id: nlp
+  name: NLP
+  decay: fundamental
+  specializations:
+  - data_ml
+  synonyms:
+  - nlp
+  - обработка естественного языка
+- id: computer_vision
+  name: Компьютерное зрение
+  decay: fundamental
+  specializations:
+  - data_ml
+  synonyms:
+  - computer vision
+  - компьютерное зрение
+- id: accessibility
+  name: Доступность
+  decay: fundamental
+  specializations:
+  - frontend
+  synonyms:
+  - accessibility
+  - a11y
+  - доступность
+- id: observability
+  name: Наблюдаемость
+  decay: fundamental
+  specializations:
+  - devops
+  synonyms:
+  - observability
+  - наблюдаемость
+- id: sre
+  name: SRE
+  decay: fundamental
+  specializations:
+  - devops
+  synonyms:
+  - sre
+  - site reliability
+- id: ci_cd
+  name: CI/CD
+  decay: fundamental
+  specializations:
+  - devops
+  synonyms:
+  - ci/cd
+  - cicd
+  - непрерывная интеграция
+- id: microservices
+  name: Микросервисы
+  decay: fundamental
+  specializations:
+  - backend
+  synonyms:
+  - microservices
+  - микросервисы
+- id: ddd
+  name: DDD
+  decay: fundamental
+  specializations:
+  - backend
+  synonyms:
+  - ddd
+  - domain driven design
+- id: clean_architecture
+  name: Чистая архитектура
+  decay: fundamental
+  specializations:
+  - backend
+  synonyms:
+  - clean architecture
+  - чистая архитектура
+- id: json
+  name: JSON
+  decay: fundamental
+  specializations:
+  - backend
+  - frontend
+  synonyms:
+  - json
+- id: xml
+  name: XML
+  decay: fundamental
+  specializations:
+  - backend
+  synonyms:
+  - xml
+- id: mtls
+  name: mTLS
+  decay: fundamental
+  specializations:
+  - devops
+  synonyms:
+  - mtls
+  - mutual tls
 - id: kafka
   name: Kafka
   decay: framework
-  specializations: [backend, data_ml]
-  synonyms: [kafka, кафка, apache kafka]
+  specializations:
+  - backend
+  - data_ml
+  synonyms:
+  - kafka
+  - кафка
+  - apache kafka
 - id: kubernetes
   name: Kubernetes
   decay: framework
-  specializations: [devops, backend]
-  synonyms: [kubernetes, k8s, кубер]
+  specializations:
+  - devops
+  - backend
+  synonyms:
+  - kubernetes
+  - k8s
+  - кубер
 - id: react
   name: React
   decay: framework
-  specializations: [frontend]
-  synonyms: [react, reactjs, реакт]
+  specializations:
+  - frontend
+  synonyms:
+  - react
+  - reactjs
+  - реакт
 - id: docker
   name: Docker
   decay: framework
-  specializations: [devops, backend]
-  synonyms: [docker, докер]
+  specializations:
+  - devops
+  - backend
+  synonyms:
+  - docker
+  - докер
 - id: pytorch
   name: PyTorch
   decay: framework
-  specializations: [data_ml]
-  synonyms: [pytorch, torch, пайторч]
+  specializations:
+  - data_ml
+  synonyms:
+  - pytorch
+  - torch
+  - пайторч
 - id: vue
   name: Vue
   decay: framework
-  specializations: [frontend]
-  synonyms: [vue, vuejs, вью]
+  specializations:
+  - frontend
+  synonyms:
+  - vue
+  - vuejs
+  - вью
+- id: redis
+  name: Redis
+  decay: framework
+  specializations:
+  - backend
+  synonyms:
+  - redis
+  - редис
+- id: mongodb
+  name: MongoDB
+  decay: framework
+  specializations:
+  - backend
+  synonyms:
+  - mongodb
+  - mongo
+  - монго
+- id: rabbitmq
+  name: RabbitMQ
+  decay: framework
+  specializations:
+  - backend
+  synonyms:
+  - rabbitmq
+  - rabbit
+- id: nats
+  name: NATS
+  decay: framework
+  specializations:
+  - backend
+  synonyms:
+  - nats
+- id: grpc
+  name: gRPC
+  decay: framework
+  specializations:
+  - backend
+  synonyms:
+  - grpc
+- id: graphql
+  name: GraphQL
+  decay: framework
+  specializations:
+  - backend
+  - frontend
+  synonyms:
+  - graphql
+  - графкл
+- id: django
+  name: Django
+  decay: framework
+  specializations:
+  - backend
+  synonyms:
+  - django
+  - джанго
+- id: fastapi
+  name: FastAPI
+  decay: framework
+  specializations:
+  - backend
+  synonyms:
+  - fastapi
+  - фастапи
+- id: flask
+  name: Flask
+  decay: framework
+  specializations:
+  - backend
+  synonyms:
+  - flask
+  - фласк
+- id: spring
+  name: Spring
+  decay: framework
+  specializations:
+  - backend
+  synonyms:
+  - spring
+  - spring boot
+- id: nodejs
+  name: Node.js
+  decay: framework
+  specializations:
+  - backend
+  - frontend
+  synonyms:
+  - nodejs
+  - node.js
+  - node
+- id: express
+  name: Express
+  decay: framework
+  specializations:
+  - backend
+  synonyms:
+  - express
+  - expressjs
+- id: nestjs
+  name: NestJS
+  decay: framework
+  specializations:
+  - backend
+  synonyms:
+  - nestjs
+  - nest
+- id: gin
+  name: Gin
+  decay: framework
+  specializations:
+  - backend
+  synonyms:
+  - gin
+  - gin-gonic
+- id: sqlalchemy
+  name: SQLAlchemy
+  decay: framework
+  specializations:
+  - backend
+  synonyms:
+  - sqlalchemy
+- id: nginx
+  name: Nginx
+  decay: framework
+  specializations:
+  - devops
+  synonyms:
+  - nginx
+  - нгинкс
+- id: elasticsearch
+  name: Elasticsearch
+  decay: framework
+  specializations:
+  - backend
+  - devops
+  synonyms:
+  - elasticsearch
+  - elastic
+- id: clickhouse
+  name: ClickHouse
+  decay: framework
+  specializations:
+  - data_ml
+  - backend
+  synonyms:
+  - clickhouse
+  - кликхаус
+- id: terraform
+  name: Terraform
+  decay: framework
+  specializations:
+  - devops
+  synonyms:
+  - terraform
+  - терраформ
+- id: ansible
+  name: Ansible
+  decay: framework
+  specializations:
+  - devops
+  synonyms:
+  - ansible
+  - ансибл
+- id: github_actions
+  name: GitHub Actions
+  decay: framework
+  specializations:
+  - devops
+  synonyms:
+  - github actions
+- id: gitlab_ci
+  name: GitLab CI
+  decay: framework
+  specializations:
+  - devops
+  synonyms:
+  - gitlab ci
+  - gitlab-ci
+- id: jenkins
+  name: Jenkins
+  decay: framework
+  specializations:
+  - devops
+  synonyms:
+  - jenkins
+  - дженкинс
+- id: helm
+  name: Helm
+  decay: framework
+  specializations:
+  - devops
+  synonyms:
+  - helm
+  - хелм
+- id: prometheus
+  name: Prometheus
+  decay: framework
+  specializations:
+  - devops
+  synonyms:
+  - prometheus
+  - прометеус
+- id: grafana
+  name: Grafana
+  decay: framework
+  specializations:
+  - devops
+  synonyms:
+  - grafana
+  - графана
+- id: argocd
+  name: Argo CD
+  decay: framework
+  specializations:
+  - devops
+  synonyms:
+  - argocd
+  - argo cd
+- id: pandas
+  name: Pandas
+  decay: framework
+  specializations:
+  - data_ml
+  synonyms:
+  - pandas
+  - пандас
+- id: numpy
+  name: NumPy
+  decay: framework
+  specializations:
+  - data_ml
+  synonyms:
+  - numpy
+  - нампи
+- id: sklearn
+  name: scikit-learn
+  decay: framework
+  specializations:
+  - data_ml
+  synonyms:
+  - sklearn
+  - scikit-learn
+  - сайкит
+- id: tensorflow
+  name: TensorFlow
+  decay: framework
+  specializations:
+  - data_ml
+  synonyms:
+  - tensorflow
+  - tf
+- id: huggingface
+  name: Hugging Face
+  decay: framework
+  specializations:
+  - data_ml
+  synonyms:
+  - huggingface
+  - transformers
+- id: spark
+  name: Spark
+  decay: framework
+  specializations:
+  - data_ml
+  synonyms:
+  - spark
+  - apache spark
+  - pyspark
+- id: airflow
+  name: Airflow
+  decay: framework
+  specializations:
+  - data_ml
+  - devops
+  synonyms:
+  - airflow
+- id: dbt
+  name: dbt
+  decay: framework
+  specializations:
+  - data_ml
+  synonyms:
+  - dbt
+- id: mlflow
+  name: MLflow
+  decay: framework
+  specializations:
+  - data_ml
+  synonyms:
+  - mlflow
+- id: xgboost
+  name: XGBoost
+  decay: framework
+  specializations:
+  - data_ml
+  synonyms:
+  - xgboost
+- id: catboost
+  name: CatBoost
+  decay: framework
+  specializations:
+  - data_ml
+  synonyms:
+  - catboost
+- id: lightgbm
+  name: LightGBM
+  decay: framework
+  specializations:
+  - data_ml
+  synonyms:
+  - lightgbm
+- id: nextjs
+  name: Next.js
+  decay: framework
+  specializations:
+  - frontend
+  synonyms:
+  - nextjs
+  - next.js
+  - next
+- id: nuxt
+  name: Nuxt
+  decay: framework
+  specializations:
+  - frontend
+  synonyms:
+  - nuxt
+  - nuxtjs
+- id: angular
+  name: Angular
+  decay: framework
+  specializations:
+  - frontend
+  synonyms:
+  - angular
+  - ангуляр
+- id: svelte
+  name: Svelte
+  decay: framework
+  specializations:
+  - frontend
+  synonyms:
+  - svelte
+  - свелт
+- id: tailwind
+  name: Tailwind CSS
+  decay: framework
+  specializations:
+  - frontend
+  synonyms:
+  - tailwind
+  - tailwindcss
+- id: webpack
+  name: Webpack
+  decay: framework
+  specializations:
+  - frontend
+  synonyms:
+  - webpack
+  - вебпак
+- id: vite
+  name: Vite
+  decay: framework
+  specializations:
+  - frontend
+  synonyms:
+  - vite
+  - вит
+- id: redux
+  name: Redux
+  decay: framework
+  specializations:
+  - frontend
+  synonyms:
+  - redux
+  - редакс
+- id: jest
+  name: Jest
+  decay: framework
+  specializations:
+  - frontend
+  synonyms:
+  - jest
+- id: cypress
+  name: Cypress
+  decay: framework
+  specializations:
+  - frontend
+  synonyms:
+  - cypress
+- id: playwright
+  name: Playwright
+  decay: framework
+  specializations:
+  - frontend
+  synonyms:
+  - playwright
+- id: pytest
+  name: pytest
+  decay: framework
+  specializations:
+  - backend
+  synonyms:
+  - pytest
+- id: oauth
+  name: OAuth
+  decay: framework
+  specializations:
+  - backend
+  synonyms:
+  - oauth
+  - oauth2
+- id: jwt
+  name: JWT
+  decay: framework
+  specializations:
+  - backend
+  synonyms:
+  - jwt
+- id: websockets
+  name: WebSocket
+  decay: framework
+  specializations:
+  - backend
+  - frontend
+  synonyms:
+  - websockets
+  - websocket
+  - вебсокеты
+- id: protobuf
+  name: Protobuf
+  decay: framework
+  specializations:
+  - backend
+  synonyms:
+  - protobuf
+  - protocol buffers
+- id: aws
+  name: AWS
+  decay: framework
+  specializations:
+  - devops
+  - backend
+  synonyms:
+  - aws
+  - amazon web services
+- id: gcp
+  name: GCP
+  decay: framework
+  specializations:
+  - devops
+  synonyms:
+  - gcp
+  - google cloud
+- id: azure
+  name: Azure
+  decay: framework
+  specializations:
+  - devops
+  synonyms:
+  - azure
+- id: mysql
+  name: MySQL
+  decay: framework
+  specializations:
+  - backend
+  synonyms:
+  - mysql
+- id: sqlite
+  name: SQLite
+  decay: framework
+  specializations:
+  - backend
+  synonyms:
+  - sqlite
+- id: cassandra
+  name: Cassandra
+  decay: framework
+  specializations:
+  - backend
+  synonyms:
+  - cassandra
+- id: dynamodb
+  name: DynamoDB
+  decay: framework
+  specializations:
+  - backend
+  synonyms:
+  - dynamodb
+- id: bigquery
+  name: BigQuery
+  decay: framework
+  specializations:
+  - data_ml
+  synonyms:
+  - bigquery
+- id: snowflake
+  name: Snowflake
+  decay: framework
+  specializations:
+  - data_ml
+  synonyms:
+  - snowflake
+- id: flink
+  name: Flink
+  decay: framework
+  specializations:
+  - data_ml
+  synonyms:
+  - flink
+  - apache flink
+- id: polars
+  name: Polars
+  decay: framework
+  specializations:
+  - data_ml
+  synonyms:
+  - polars
+- id: jupyter
+  name: Jupyter
+  decay: framework
+  specializations:
+  - data_ml
+  synonyms:
+  - jupyter
+  - jupyter notebook
+- id: matplotlib
+  name: Matplotlib
+  decay: framework
+  specializations:
+  - data_ml
+  synonyms:
+  - matplotlib
+- id: keras
+  name: Keras
+  decay: framework
+  specializations:
+  - data_ml
+  synonyms:
+  - keras
+- id: opencv
+  name: OpenCV
+  decay: framework
+  specializations:
+  - data_ml
+  synonyms:
+  - opencv
+- id: spacy
+  name: spaCy
+  decay: framework
+  specializations:
+  - data_ml
+  synonyms:
+  - spacy
+- id: langchain
+  name: LangChain
+  decay: framework
+  specializations:
+  - data_ml
+  synonyms:
+  - langchain
+- id: react_native
+  name: React Native
+  decay: framework
+  specializations:
+  - frontend
+  synonyms:
+  - react native
+  - react-native
+- id: flutter
+  name: Flutter
+  decay: framework
+  specializations:
+  - frontend
+  synonyms:
+  - flutter
+  - флаттер
+- id: dart
+  name: Dart
+  decay: fundamental
+  specializations:
+  - frontend
+  synonyms:
+  - dart
+  - дарт
+- id: sass
+  name: Sass
+  decay: framework
+  specializations:
+  - frontend
+  synonyms:
+  - sass
+  - scss
+- id: mobx
+  name: MobX
+  decay: framework
+  specializations:
+  - frontend
+  synonyms:
+  - mobx
+- id: zustand
+  name: Zustand
+  decay: framework
+  specializations:
+  - frontend
+  synonyms:
+  - zustand
+- id: pinia
+  name: Pinia
+  decay: framework
+  specializations:
+  - frontend
+  synonyms:
+  - pinia
+- id: storybook
+  name: Storybook
+  decay: framework
+  specializations:
+  - frontend
+  synonyms:
+  - storybook
+- id: threejs
+  name: Three.js
+  decay: framework
+  specializations:
+  - frontend
+  synonyms:
+  - threejs
+  - three.js
+- id: d3
+  name: D3
+  decay: framework
+  specializations:
+  - frontend
+  synonyms:
+  - d3
+  - d3.js
+- id: jquery
+  name: jQuery
+  decay: framework
+  specializations:
+  - frontend
+  synonyms:
+  - jquery
+- id: bootstrap
+  name: Bootstrap
+  decay: framework
+  specializations:
+  - frontend
+  synonyms:
+  - bootstrap
+- id: rxjs
+  name: RxJS
+  decay: framework
+  specializations:
+  - frontend
+  synonyms:
+  - rxjs
+- id: prisma
+  name: Prisma
+  decay: framework
+  specializations:
+  - backend
+  synonyms:
+  - prisma
+- id: hibernate
+  name: Hibernate
+  decay: framework
+  specializations:
+  - backend
+  synonyms:
+  - hibernate
+- id: celery
+  name: Celery
+  decay: framework
+  specializations:
+  - backend
+  synonyms:
+  - celery
+- id: pydantic
+  name: Pydantic
+  decay: framework
+  specializations:
+  - backend
+  synonyms:
+  - pydantic
+- id: istio
+  name: Istio
+  decay: framework
+  specializations:
+  - devops
+  synonyms:
+  - istio
+- id: vault
+  name: Vault
+  decay: framework
+  specializations:
+  - devops
+  synonyms:
+  - vault
+  - hashicorp vault
+- id: loki
+  name: Loki
+  decay: framework
+  specializations:
+  - devops
+  synonyms:
+  - loki
+- id: traefik
+  name: Traefik
+  decay: framework
+  specializations:
+  - devops
+  synonyms:
+  - traefik
+- id: opentelemetry
+  name: OpenTelemetry
+  decay: framework
+  specializations:
+  - devops
+  synonyms:
+  - opentelemetry
+  - otel
+- id: sentry
+  name: Sentry
+  decay: framework
+  specializations:
+  - backend
+  - frontend
+  synonyms:
+  - sentry
