@@ -1,0 +1,42 @@
+{
+  "seed": 20261011,
+  "candidate_email": "candidate@demo.fsp",
+  "employer_email": "employer@demo.fsp",
+  "admin_email": "admin@demo.fsp",
+  "candidate_id": "b8306c36-e518-5778-9ec5-6d145951629f",
+  "candidate_name": "Алексей Кузнецов",
+  "candidate_kc_sub": "seed:candidate@demo.fsp",
+  "employer_kc_sub": "seed:employer@demo.fsp",
+  "company_id": "bee18ade-6df7-526e-8fdb-49112e58a80b",
+  "company_name": "Северная Лампа",
+  "need_id": "3f8c3625-b266-535a-b292-d86428894046",
+  "need_key": "need-demo-kafka",
+  "need_title": "Backend-разработчик потока антифрода",
+  "hint": "Kafka только подтверждённая",
+  "pool_before": 24,
+  "pool_after": 9,
+  "demo_rank_equal_ef": 1,
+  "demo_rank_proxy_ef": 1,
+  "mean_s_before": 0.2957,
+  "mean_s_after": 0.3918,
+  "demo_features_equal_ef": {
+    "s": 0.7365,
+    "e": 0.7365,
+    "c": 1.0,
+    "must_cov": 0.97,
+    "grade_fit": 1.0,
+    "ef": 0.0,
+    "skill_avg": 0.97,
+    "fsp": 1.0,
+    "fresh": 1.0,
+    "nice_cov": 0.4
+  },
+  "resume_pdf": "seed/demo/candidate.pdf",
+  "score_pair_is_stub": true,
+  "assumptions": [
+    "Ранг посчитан локальной копией §6, не matching.service.score_pair.",
+    "equal_ef ставит experience fit в 0: так ведёт себя заглушка эмбеддингов.",
+    "proxy_ef берёт косинус токенов как sim и не использует пороги 0.75/0.15.",
+    "kc_sub вида seed:<email> не совпадёт с sub Keycloak, пока агент A не свяжет пользователя по email."
+  ]
+}

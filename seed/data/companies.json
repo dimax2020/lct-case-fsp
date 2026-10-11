@@ -1,0 +1,359 @@
+[
+  {
+    "id": "bee18ade-6df7-526e-8fdb-49112e58a80b",
+    "name": "Северная Лампа",
+    "city": "Новосибирск",
+    "size": "51-200",
+    "domain": "fintech",
+    "industry": "финтех",
+    "about": "Платёжный контур для небольших банков: события, витрины и правила, которые можно объяснить клиенту.",
+    "benefits": [
+      "dms",
+      "accreditation",
+      "flexible_start"
+    ],
+    "user": {
+      "id": "3e62d029-6fff-59f1-a40d-eb1b19bcce44",
+      "kc_sub": "seed:employer@demo.fsp",
+      "role": "employer",
+      "email": "employer@demo.fsp"
+    },
+    "recruiter_contact": {
+      "name": "Марина Орлова",
+      "email": "employer@demo.fsp",
+      "phone": "+73830001122"
+    }
+  },
+  {
+    "id": "c572ecdd-caa9-544d-8a6c-a1dcc60f6423",
+    "name": "Тихий Фарватер",
+    "city": "Казань",
+    "size": "11-50",
+    "domain": "logistics",
+    "industry": "логистика",
+    "about": "Следит за плечом доставки и за тем, где груз задерживается дольше обещанного.",
+    "benefits": [
+      "dms"
+    ],
+    "user": {
+      "id": "77e97ab4-0350-5447-8107-ad777c6f8285",
+      "kc_sub": "seed:employer-01@seed.fsp",
+      "role": "employer",
+      "email": "employer-01@seed.fsp"
+    },
+    "recruiter_contact": {
+      "name": "Илья Белов",
+      "email": "employer-01@seed.fsp",
+      "phone": "+78000000001"
+    }
+  },
+  {
+    "id": "a27c5d90-d524-5f5d-87f7-ed36a90dbe55",
+    "name": "Облачный Переплёт",
+    "city": "Москва",
+    "size": "51-200",
+    "domain": "edtech",
+    "industry": "образование",
+    "about": "Учебные кабинеты и проверки работ: тихое место, где преподаватель видит попытку ученика.",
+    "benefits": [
+      "accreditation",
+      "flexible_start"
+    ],
+    "user": {
+      "id": "63ef92c3-6a15-5d3c-b007-54a835ca3a4b",
+      "kc_sub": "seed:employer-02@seed.fsp",
+      "role": "employer",
+      "email": "employer-02@seed.fsp"
+    },
+    "recruiter_contact": {
+      "name": "Софья Морозова",
+      "email": "employer-02@seed.fsp",
+      "phone": "+78000000002"
+    }
+  },
+  {
+    "id": "0d27fff1-bee4-5b80-8c72-a8df8a9d6381",
+    "name": "Речная Схема",
+    "city": "Санкт-Петербург",
+    "size": "201-1000",
+    "domain": "gov",
+    "industry": "госсектор",
+    "about": "Внутренние кабинеты для ведомственных заявок. Бумагу не обещаем убрать, но очередь сделать короткой.",
+    "benefits": [
+      "dms",
+      "flexible_start"
+    ],
+    "user": {
+      "id": "613d50e5-7a17-5a5f-8e8a-227ebf65768c",
+      "kc_sub": "seed:employer-03@seed.fsp",
+      "role": "employer",
+      "email": "employer-03@seed.fsp"
+    },
+    "recruiter_contact": {
+      "name": "Кирилл Волков",
+      "email": "employer-03@seed.fsp",
+      "phone": "+78000000003"
+    }
+  },
+  {
+    "id": "3babb546-5555-586d-94cc-83892de4135a",
+    "name": "Полевая Арифметика",
+    "city": "Екатеринбург",
+    "size": "51-200",
+    "domain": "industrial",
+    "industry": "промышленность",
+    "about": "Считает сменные показатели цеха и показывает, какая линия выпала из ритма.",
+    "benefits": [
+      "accreditation"
+    ],
+    "user": {
+      "id": "3612b523-88b4-52c4-8b8d-c066c2eb16e5",
+      "kc_sub": "seed:employer-04@seed.fsp",
+      "role": "employer",
+      "email": "employer-04@seed.fsp"
+    },
+    "recruiter_contact": {
+      "name": "Дарья Соколова",
+      "email": "employer-04@seed.fsp",
+      "phone": "+78000000004"
+    }
+  },
+  {
+    "id": "a7a3b859-46bd-50be-abd3-14166a260634",
+    "name": "Медный Якорь",
+    "city": "Томск",
+    "size": "11-50",
+    "domain": "logistics",
+    "industry": "логистика",
+    "about": "Слоты причала и бумажные рейсы. Офис в Томске, суда в продукте вымышленные.",
+    "benefits": [
+      "dms",
+      "accreditation",
+      "flexible_start"
+    ],
+    "user": {
+      "id": "5db7ed6a-0b8e-5568-a10c-287b538b4de4",
+      "kc_sub": "seed:employer-05@seed.fsp",
+      "role": "employer",
+      "email": "employer-05@seed.fsp"
+    },
+    "recruiter_contact": {
+      "name": "Егор Лебедев",
+      "email": "employer-05@seed.fsp",
+      "phone": "+78000000005"
+    }
+  },
+  {
+    "id": "f92dcb67-8877-538f-9849-d9bdfcd7aec3",
+    "name": "Лунный Штамп",
+    "city": "Томск",
+    "size": "1-10",
+    "domain": "media",
+    "industry": "медиа",
+    "about": "Небольшая редакция: выпуск материалов, права на картинки и архив номеров.",
+    "benefits": [
+      "dms"
+    ],
+    "user": {
+      "id": "f1e810c8-7aa0-5f64-9286-ac6d4a821cad",
+      "kc_sub": "seed:employer-06@seed.fsp",
+      "role": "employer",
+      "email": "employer-06@seed.fsp"
+    },
+    "recruiter_contact": {
+      "name": "Алина Козлова",
+      "email": "employer-06@seed.fsp",
+      "phone": "+78000000006"
+    }
+  },
+  {
+    "id": "79bd47f9-211d-5991-9325-d42c3ed0f854",
+    "name": "Берёзовый Протокол",
+    "city": "Пермь",
+    "size": "51-200",
+    "domain": "health",
+    "industry": "здоровье",
+    "about": "Расписание кабинетов и напоминания пациентам. Медицинских диагнозов в продукте нет.",
+    "benefits": [
+      "accreditation",
+      "flexible_start"
+    ],
+    "user": {
+      "id": "f5fa7b9c-73fe-521e-a8be-80219bfce788",
+      "kc_sub": "seed:employer-07@seed.fsp",
+      "role": "employer",
+      "email": "employer-07@seed.fsp"
+    },
+    "recruiter_contact": {
+      "name": "Роман Новиков",
+      "email": "employer-07@seed.fsp",
+      "phone": "+78000000007"
+    }
+  },
+  {
+    "id": "31492260-ccc0-54a3-94a8-6623b9f635c9",
+    "name": "Соляной Маяк",
+    "city": "Самара",
+    "size": "11-50",
+    "domain": "telecom",
+    "industry": "телеком",
+    "about": "Учёт заявок на подключение дворов. Сеть чужая, наша часть — очередь и статус.",
+    "benefits": [
+      "dms",
+      "flexible_start"
+    ],
+    "user": {
+      "id": "44829678-447d-52ad-b501-b19ac7fe9c02",
+      "kc_sub": "seed:employer-08@seed.fsp",
+      "role": "employer",
+      "email": "employer-08@seed.fsp"
+    },
+    "recruiter_contact": {
+      "name": "Вера Фролова",
+      "email": "employer-08@seed.fsp",
+      "phone": "+78000000008"
+    }
+  },
+  {
+    "id": "652c5ede-566c-525a-ab76-29935919705e",
+    "name": "Кленовый Шлюз",
+    "city": "Нижний Новгород",
+    "size": "51-200",
+    "domain": "security",
+    "industry": "информационная безопасность",
+    "about": "Журнал доступов к внутренним стендам. Не антивирус и не расследование инцидентов.",
+    "benefits": [
+      "accreditation"
+    ],
+    "user": {
+      "id": "8af6ca77-4d32-5ddc-a3ed-c19a1966ecbc",
+      "kc_sub": "seed:employer-09@seed.fsp",
+      "role": "employer",
+      "email": "employer-09@seed.fsp"
+    },
+    "recruiter_contact": {
+      "name": "Павел Семёнов",
+      "email": "employer-09@seed.fsp",
+      "phone": "+78000000009"
+    }
+  },
+  {
+    "id": "9b1fe26f-2961-50e9-b4ce-778937c396dc",
+    "name": "Янтарный Конвейер",
+    "city": "Калининград",
+    "size": "201-1000",
+    "domain": "ecommerce",
+    "industry": "электронная коммерция",
+    "about": "Складские задания и обещание срока для витрины. Самой витрины у нас мало.",
+    "benefits": [
+      "dms",
+      "accreditation",
+      "flexible_start"
+    ],
+    "user": {
+      "id": "4e052fc3-5cca-51d5-9d0d-3d12df9c1952",
+      "kc_sub": "seed:employer-10@seed.fsp",
+      "role": "employer",
+      "email": "employer-10@seed.fsp"
+    },
+    "recruiter_contact": {
+      "name": "Ксения Голубева",
+      "email": "employer-10@seed.fsp",
+      "phone": "+78000000010"
+    }
+  },
+  {
+    "id": "10275c53-efe3-5b87-acde-7c6263dd9ebc",
+    "name": "Моховой Реестр",
+    "city": "Краснодар",
+    "size": "11-50",
+    "domain": "gov",
+    "industry": "госсектор",
+    "about": "Реестр муниципальных заявок на благоустройство. Статусы, не политика.",
+    "benefits": [
+      "dms"
+    ],
+    "user": {
+      "id": "2e831f68-6898-58e9-a306-cce0f3bb3c5a",
+      "kc_sub": "seed:employer-11@seed.fsp",
+      "role": "employer",
+      "email": "employer-11@seed.fsp"
+    },
+    "recruiter_contact": {
+      "name": "Денис Виноградов",
+      "email": "employer-11@seed.fsp",
+      "phone": "+78000000011"
+    }
+  },
+  {
+    "id": "5eedaacc-54b4-51e3-842f-b627714b6825",
+    "name": "Степной Компас",
+    "city": "Омск",
+    "size": "51-200",
+    "domain": "logistics",
+    "industry": "логистика",
+    "about": "Маршруты выездных бригад и расход топлива по путевым листам.",
+    "benefits": [
+      "accreditation",
+      "flexible_start"
+    ],
+    "user": {
+      "id": "5a03a503-fa7f-5a07-9c0d-bd5c951e3742",
+      "kc_sub": "seed:employer-12@seed.fsp",
+      "role": "employer",
+      "email": "employer-12@seed.fsp"
+    },
+    "recruiter_contact": {
+      "name": "Полина Богданова",
+      "email": "employer-12@seed.fsp",
+      "phone": "+78000000012"
+    }
+  },
+  {
+    "id": "d1c1da9e-afda-53fd-9041-ec3f6f67db21",
+    "name": "Озёрный Квант",
+    "city": "Иркутск",
+    "size": "11-50",
+    "domain": "edtech",
+    "industry": "образование",
+    "about": "Короткие лабораторные по данным для кружков. Моделей в продакшене нет.",
+    "benefits": [
+      "dms",
+      "flexible_start"
+    ],
+    "user": {
+      "id": "b64849bb-31fe-5485-9398-c362798198cd",
+      "kc_sub": "seed:employer-13@seed.fsp",
+      "role": "employer",
+      "email": "employer-13@seed.fsp"
+    },
+    "recruiter_contact": {
+      "name": "Глеб Воробьёв",
+      "email": "employer-13@seed.fsp",
+      "phone": "+78000000013"
+    }
+  },
+  {
+    "id": "89a784de-4cee-5b33-94fe-4bd4f245dd30",
+    "name": "Графитовый Причал",
+    "city": "Москва",
+    "size": "51-200",
+    "domain": "fintech",
+    "industry": "финтех",
+    "about": "Сверка реестров для касс самообслуживания. Платёжный лицензиат нам не требуется.",
+    "benefits": [
+      "accreditation"
+    ],
+    "user": {
+      "id": "c5fb59ae-7ec6-5b43-bc25-6cbe1658488e",
+      "kc_sub": "seed:employer-14@seed.fsp",
+      "role": "employer",
+      "email": "employer-14@seed.fsp"
+    },
+    "recruiter_contact": {
+      "name": "Таисия Федотова",
+      "email": "employer-14@seed.fsp",
+      "phone": "+78000000014"
+    }
+  }
+]

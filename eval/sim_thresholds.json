@@ -1,0 +1,21 @@
+{
+  "n_pairs": 50,
+  "embedding": "binary_token_cosine",
+  "method": "label0_p90_to_zero__label3_p90_to_one",
+  "sim_offset": 0.0,
+  "sim_scale": 0.32,
+  "spearman": 0.5806,
+  "spearman_raw_cosine": 0.5806,
+  "mean_sim_by_label": {
+    "0": 0.0327,
+    "1": 0.0848,
+    "2": 0.1644,
+    "3": 0.3226
+  },
+  "apply_to_config": false,
+  "tz_defaults": {
+    "sim_offset": 0.75,
+    "sim_scale": 0.15
+  },
+  "note": "Пороги растягивают косинус бинарных токенов: 90-й перцентиль пар с меткой 0 уходит в sim=0, 90-й перцентиль пар с меткой 3 — в sim=1. Это не multilingual-e5-base. embed() возвращает нулевой вектор, наблюдаемый косинус токенов не выше ~0.32, поэтому пороги ТЗ 0.75 и 0.15 обнулили бы все пары. В matching/config.py их не менять, пока агент D не прогонит эти же 50 пар через e5. apply_to_config=false."
+}
