@@ -1,6 +1,6 @@
 <script setup lang="ts">
 const props = defineProps<{ label?: string; count?: number | string; swatch?: string; defaultChecked?: boolean }>()
-const checked = defineModel<boolean>({ default: undefined })
+const checked = defineModel<boolean>()
 if (checked.value === undefined) checked.value = !!props.defaultChecked
 </script>
 

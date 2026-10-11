@@ -1,204 +1,467 @@
 <script setup lang="ts">
+import type { components } from '~/api/schema'
+import { read } from '~/utils/read'
+
+type Profile = components['schemas']['CandidateProfile']
+type Hint = components['schemas']['CandidateHint']
+type Parsed = components['schemas']['ParsedResume']
+type ProjectRole = components['schemas']['ProjectRole']
+type Spec = components['schemas']['Specialization']
+type Grade = components['schemas']['Grade']
+type WorkFormat = components['schemas']['WorkFormat']
+type Status = components['schemas']['CandidateStatus']
+
 useHead({ title: 'Профиль кандидата — Карьера ФСП' })
 
-const v = reactive((() => {
-  return {
-      yes: true, dots: 6, avatar: 88, small: 44, iconSize: 28,
-      links: [
-        { label: 'Профиль', href: '/candidate/profile', active: true },
-        { label: 'Приглашения', href: '/candidate/invites' },
-        { label: 'Грейд и тесты', href: '/candidate/grade' },
-        { label: 'Вакансии', href: '/candidate/vacancy' },
-        { label: 'Настройки', href: '/candidate/settings' }
-      ]
-    };
-})())
-
 const { show } = useToast()
-const github = ref('')
-const githubOpen = ref(false)
-const githubSaved = ref(false)
-const cvName = ref('Kuznetsov_CV.pdf')
+const api = useApi()
+const screen = useScreen(async () => {
+  const [profile, hints, invites, specs, domains] = await Promise.all([
+    read(api.GET('/api/v1/candidates/me')),
+    read(api.GET('/api/v1/candidates/me/hints')),
+    read(api.GET('/api/v1/invitations', { params: { query: { role: 'candidate' } } })),
+    read(api.GET('/api/v1/taxonomy/specializations')),
+    read(api.GET('/api/v1/taxonomy/domains')),
+  ])
+  return { profile, hints, invites, specs, domains }
+})
+
+const city = ref('')
+const salary = ref<string | number>('')
+const formats = ref<WorkFormat[]>([])
+const status = ref<Status>('seeking')
+const spec = ref<Spec | ''>('')
+const hover = ref('')
+const resume = ref<components['schemas']['ResumeView'] | null>(null)
+const draft = ref<Parsed | null>(null)
+const resumeError = ref('')
+const uploading = ref(false)
 const cvInput = ref<HTMLInputElement>()
-function saveGithub() {
-  if (!/github\.com\/.+/.test(github.value)) { show('Укажите ссылку вида github.com/username'); return }
-  githubSaved.value = true; githubOpen.value = false
-  show('GitHub добавлен — профиль станет заметнее')
+let pollTimer: ReturnType<typeof setTimeout> | undefined
+
+const step = ref(1)
+const task = ref('')
+const role = ref<ProjectRole>('owner')
+const skillQ = ref('')
+const skillHits = ref<components['schemas']['SkillHit'][]>([])
+const pickedSkills = ref<string[]>([])
+const scale = ref('')
+const outcome = ref('')
+const projectDate = ref('')
+const projectUrl = ref('')
+const savingProject = ref(false)
+
+watch(screen.data, (bundle) => {
+  const profile = bundle?.profile
+  if (!profile) return
+  city.value = profile.city ?? ''
+  salary.value = profile.min_salary ?? ''
+  formats.value = [...(profile.formats ?? [])]
+  status.value = profile.status
+  spec.value = profile.specialization ?? ''
+}, { immediate: true })
+
+const profile = computed(() => screen.data.value?.profile ?? null)
+const hints = computed(() => [...(screen.data.value?.hints ?? [])].sort((a, b) => b.priority - a.priority).slice(0, 3))
+const incoming = computed(() => (screen.data.value?.invites.items ?? []).filter(i => i.status === 'sent' || i.status === 'viewed'))
+const tested = computed(() => (profile.value?.skills ?? []).filter(s => s.source === 'test' && s.score != null))
+const unverified = computed(() => (profile.value?.skills ?? []).filter(s => s.source !== 'test' || s.score == null))
+const userName = computed(() => profile.value?.display_name || '…')
+
+function toggleFormat(f: WorkFormat) {
+  formats.value = formats.value.includes(f) ? formats.value.filter(x => x !== f) : [...formats.value, f]
 }
-function onCv(e: Event) {
-  const f = (e.target as HTMLInputElement).files?.[0]
-  if (!f) return
-  cvName.value = f.name
-  show('Резюме загружено — распознаём поля')
+
+async function saveSearch() {
+  const min = parseMoney(salary.value)
+  try {
+    const next = await read(api.PUT('/api/v1/candidates/me', {
+      body: {
+        city: city.value || null,
+        specialization: spec.value || null,
+        min_salary: Number.isFinite(min) ? min : null,
+        formats: formats.value,
+        status: status.value,
+      },
+    }))
+    if (screen.data.value) screen.data.value.profile = next
+    show(next.in_pool_eligible ? 'Условия поиска сохранены' : 'Сохранено. Без зарплаты и формата профиль не попадёт в подборки')
+    await refreshHints()
+  } catch (e) {
+    show(e instanceof Error ? e.message : 'Не удалось сохранить')
+  }
 }
+
+async function refreshHints() {
+  if (!screen.data.value) return
+  screen.data.value.hints = await read(api.GET('/api/v1/candidates/me/hints'))
+}
+
+async function onCv(e: Event) {
+  const file = (e.target as HTMLInputElement).files?.[0]
+  if (!file) return
+  resumeError.value = ''
+  if (file.size > 5 * 1024 * 1024) {
+    resumeError.value = 'Файл больше 5 МБ'
+    return
+  }
+  if (!file.name.toLowerCase().endsWith('.pdf') && file.type !== 'application/pdf') {
+    resumeError.value = 'Нужен файл PDF'
+    return
+  }
+  const text = new TextDecoder('latin1').decode(await file.arrayBuffer())
+  const pages = (text.match(/\/Type\s*\/Page(?![a-zA-Z])/g) || []).length
+  if (pages > 5) {
+    resumeError.value = 'В резюме больше 5 страниц'
+    return
+  }
+  uploading.value = true
+  try {
+    const created = await read(api.POST('/api/v1/candidates/me/resume', {
+      body: { file: file.name },
+      bodySerializer: () => {
+        const fd = new FormData()
+        fd.append('file', file)
+        return fd
+      },
+    }))
+    show('Резюме загружено — распознаём поля')
+    await poll(created.resume_id)
+  } catch (err) {
+    resumeError.value = err instanceof Error ? err.message : 'Не удалось загрузить резюме'
+  } finally {
+    uploading.value = false
+    if (cvInput.value) cvInput.value.value = ''
+  }
+}
+
+async function poll(id: string) {
+  const view = await read(api.GET('/api/v1/candidates/me/resume/{id}', { params: { path: { id } } }))
+  resume.value = view
+  if (view.status === 'parsed' && view.parsed) draft.value = structuredClone(view.parsed)
+  if (view.status === 'failed') resumeError.value = view.error || 'Не удалось разобрать резюме'
+  if (view.status === 'parsing' || view.status === 'uploaded') {
+    pollTimer = setTimeout(() => { poll(id).catch(err => { resumeError.value = err instanceof Error ? err.message : 'Ошибка статуса' }) }, 1000)
+  }
+}
+
+async function confirmResume() {
+  if (!resume.value || !draft.value) return
+  const body = draft.value
+  const missing = [
+    ...(body.experiences ?? []).filter(item => !item.evidence_span?.trim()),
+    ...(body.skills ?? []).filter(item => !item.evidence_span?.trim()),
+    ...(body.projects ?? []).filter(item => !item.evidence_span?.trim()),
+  ]
+  if (missing.length) {
+    show('Поле без цитаты из резюме не сохраняется')
+    return
+  }
+  try {
+    await read(api.POST('/api/v1/candidates/me/resume/{id}/confirm', {
+      params: { path: { id: resume.value.id } },
+      body,
+    }))
+    const next = await read(api.GET('/api/v1/candidates/me'))
+    if (screen.data.value) screen.data.value.profile = next
+    draft.value = null
+    show('Резюме подтверждено')
+    await refreshHints()
+  } catch (e) {
+    show(e instanceof Error ? e.message : 'Не удалось подтвердить')
+  }
+}
+
+async function linkFsp() {
+  const before = profile.value?.fsp_achievements?.length ?? 0
+  try {
+    const next = await read(api.POST('/api/v1/candidates/me/fsp-link'))
+    if (screen.data.value) screen.data.value.profile = next
+    const added = (next.fsp_achievements?.length ?? 0) - before
+    show(added > 0 ? `ФСП ID связан — достижений: ${added}` : 'Новых достижений ФСП нет')
+    await refreshHints()
+  } catch (e) {
+    show(e instanceof Error ? e.message : 'Не удалось связать ФСП ID')
+  }
+}
+
+let skillTimer: ReturnType<typeof setTimeout> | undefined
+function onSkillInput() {
+  clearTimeout(skillTimer)
+  skillTimer = setTimeout(async () => {
+    const q = skillQ.value.trim()
+    if (!q) { skillHits.value = []; return }
+    skillHits.value = await read(api.GET('/api/v1/taxonomy/skills', { params: { query: { q, limit: 8 } } }))
+  }, 200)
+}
+
+function addSkill(id: string) {
+  if (!pickedSkills.value.includes(id)) pickedSkills.value.push(id)
+  skillQ.value = ''
+  skillHits.value = []
+}
+
+async function saveProject() {
+  if (!task.value.trim() || !pickedSkills.value.length) {
+    show('Укажите задачу и хотя бы одну технологию из онтологии')
+    return
+  }
+  savingProject.value = true
+  try {
+    await read(api.POST('/api/v1/candidates/me/projects', {
+      body: {
+        task: task.value.trim(),
+        role: role.value,
+        skills: pickedSkills.value,
+        scale: scale.value || null,
+        outcome: outcome.value || null,
+        date: projectDate.value ? new Date(projectDate.value).toISOString() : null,
+        url: projectUrl.value || null,
+      },
+    }))
+    const next = await read(api.GET('/api/v1/candidates/me'))
+    if (screen.data.value) screen.data.value.profile = next
+    task.value = ''
+    pickedSkills.value = []
+    scale.value = ''
+    outcome.value = ''
+    projectDate.value = ''
+    projectUrl.value = ''
+    step.value = 1
+    show('Проект сохранён')
+    await refreshHints()
+  } catch (e) {
+    show(e instanceof Error ? e.message : 'Не удалось сохранить проект')
+  } finally {
+    savingProject.value = false
+  }
+}
+
+function years(item: Profile['experiences'] extends infer T ? T extends Array<infer E> ? E : never : never) {
+  if (!item.start) return ''
+  const end = item.end ? new Date(item.end) : new Date()
+  const n = Math.max(1, Math.round((end.getTime() - new Date(item.start).getTime()) / (864e5 * 365)))
+  return `${n} ${n === 1 ? 'год' : n < 5 ? 'года' : 'лет'}`
+}
+
+onBeforeUnmount(() => { clearTimeout(pollTimer); clearTimeout(skillTimer) })
 </script>
 
 <template>
   <div style="background: var(--bg); color: var(--text); font-family: var(--font-sans); min-height: 100vh;">
-    <FspHeader product="Карьера" user="Алексей К." :unread="v.yes" :links="v.links" logo-dark="/brand/championship-logo-white.svg" logo-light="/brand/championship-logo-navy.svg" />
-
+    <FspHeader product="Карьера" :user="userName" :links="candidateLinks" logo-dark="/brand/championship-logo-white.svg" logo-light="/brand/championship-logo-navy.svg" />
     <main style="max-width: 1240px; margin: 0 auto; padding: 40px 32px 64px; display: flex; flex-direction: column; gap: 32px;">
-
-      <section style="display: flex; flex-wrap: wrap; gap: 24px; align-items: center;">
-        <FspCompanyLogo name="Алексей Кузнецов" :size="v.avatar" />
-        <div style="flex: 999 1 360px; min-width: 0;">
-          <h1 style="margin: 0; font-size: 32px; line-height: 40px; font-weight: 700;">Алексей Кузнецов</h1>
-          <div style="margin-top: 6px; display: flex; flex-wrap: wrap; gap: 8px 20px; font-size: 15px; color: var(--text-muted);">
-            <span>Backend-разработчик</span><span>Новосибирск · готов к удалёнке</span><span>Опыт 4 года</span>
-          </div>
-          <div style="margin-top: 12px;"><FspStatusBadge status="new">Профиль виден работодателям</FspStatusBadge></div>
-        </div>
-        <div style="display: flex; flex-wrap: wrap; gap: 8px;">
-          <FspButton variant="outline" size="sm" toast="PDF-профиль сформирован и скачивается">Скачать PDF-профиль</FspButton>
-          <FspButton variant="plate" size="sm" href="/candidate/settings">Редактировать</FspButton>
-        </div>
-      </section>
-
-      <section style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: 16px;">
-        <FspPlate :dots="v.dots">
-          <div style="font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--on-plate-muted);">Ваша категория</div>
-          <div class="fsp-display" style="font-size: 28px; line-height: 32px; margin: 10px 0 16px;">Backend · Middle</div>
-          <div style="display: flex; gap: 32px;">
-            <div><div class="fsp-display" style="font-size: 28px; line-height: 32px;">12</div><div style="font-size: 13px; color: var(--on-plate-muted);">место из 340</div></div>
-            <div><div class="fsp-display" style="font-size: 28px; line-height: 32px;">82</div><div style="font-size: 13px; color: var(--on-plate-muted);">балла за тест</div></div>
-          </div>
-          <div style="margin-top: 16px;"><NuxtLink to="/candidate/grade" style="color: var(--on-plate); font-weight: 600; font-size: 14px;">Категория и грейд →</NuxtLink></div>
-        </FspPlate>
-
-        <NuxtLink to="/candidate/invites" class="fsp-cut" style="--cut: var(--cut-l); --fill: var(--surface); --edge: var(--line-card); --bw: var(--border-card); padding: 32px; text-decoration: none; color: var(--text); display: flex; flex-direction: column; gap: 8px;">
-          <span style="font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted);">Приглашения</span>
-          <span class="fsp-display" style="font-size: 44px; line-height: 48px;">2 <span style="font-size: 16px; color: var(--text-muted);">новых</span></span>
-          <span style="font-size: 14px; line-height: 20px; color: var(--text-muted);">Код Сибири — 250–320 тыс. ₽<br>Полярный Бит — 220–280 тыс. ₽</span>
-          <span style="margin-top: auto; font-weight: 600; font-size: 14px;">Посмотреть →</span>
-        </NuxtLink>
-
-        <div class="fsp-cut" style="--cut: var(--cut-l); --fill: var(--surface); --edge: var(--line-card); --bw: var(--border-card); padding: 32px; display: flex; flex-direction: column; gap: 12px;">
-          <span style="font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted);">Актуальность профиля</span>
-          <span class="fsp-display" style="font-size: 44px; line-height: 48px;">92%</span>
-          <div style="height: 8px; background: var(--line-strong);"><div style="width: 92%; height: 8px; background: var(--success);"></div></div>
-          <span style="font-size: 14px; line-height: 20px; color: var(--text-muted);">Решайте короткие задания от работодателей раз в 2–3 недели, чтобы оставаться выше в выдаче.</span>
-        </div>
-      </section>
-
-      <section aria-label="Как подняться в выдаче" class="fsp-cut" style="--cut: var(--cut-l); --fill: var(--surface); --edge: var(--line-card); --bw: var(--border-card); --edge: var(--accent-mark); --bw: var(--border-card); padding: 28px;">
-        <div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 16px; align-items: baseline; margin-bottom: 18px;">
-          <h2 class="fsp-display" style="font-size: 20px; line-height: 24px;">Как подняться в выдаче · топ-3</h2>
-          <span style="font-size: 13px; color: var(--text-muted);">По запросам работодателей в категории Backend · Middle за 30 дней</span>
-        </div>
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: 12px;">
-          <div class="fsp-cut" style="--cut: var(--cut-m); --fill: var(--surface-hover); padding: 20px; display: flex; flex-direction: column; gap: 8px;">
-            <span class="fsp-display" style="font-size: 13px; color: #ffffff; background: var(--accent-mark); width: 34px; height: 24px; display: inline-grid; place-items: center;">01</span>
-            <b style="font-size: 16px; line-height: 22px;">Подтвердите знание Kubernetes</b>
-            <span class="fsp-display" style="font-size: 26px; line-height: 30px; color: var(--text);">+30% <span style="font-family: var(--font-sans); font-size: 14px; font-weight: 500; color: var(--text-muted);">работодателей</span></span>
-            <span style="font-size: 14px; line-height: 20px; color: var(--text-muted);">K8s требуют в 3 из 10 запросов вашей категории. Мини-тест займёт 10 минут.</span>
-            <div style="margin-top: auto; padding-top: 8px;"><FspButton size="sm" href="/candidate/onboarding">Пройти мини-тест</FspButton></div>
-          </div>
-          <div class="fsp-cut" style="--cut: var(--cut-m); --fill: var(--surface-hover); padding: 20px; display: flex; flex-direction: column; gap: 8px;">
-            <span class="fsp-display" style="font-size: 13px; color: #ffffff; background: var(--accent-mark); width: 34px; height: 24px; display: inline-grid; place-items: center;">02</span>
-            <b style="font-size: 16px; line-height: 22px;">Решите задание Полярного Бита</b>
-            <span class="fsp-display" style="font-size: 26px; line-height: 30px; color: var(--text);">12 → 7 <span style="font-family: var(--font-sans); font-size: 14px; font-weight: 500; color: var(--text-muted);">место</span></span>
-            <span style="font-size: 14px; line-height: 20px; color: var(--text-muted);">Актуальность профиля станет 100% — вы поднимитесь в рейтинге категории.</span>
-            <div style="margin-top: auto; padding-top: 8px;"><FspButton size="sm" variant="outline" href="/candidate/onboarding">Решить задание</FspButton></div>
-          </div>
-          <div class="fsp-cut" style="--cut: var(--cut-m); --fill: var(--surface-hover); padding: 20px; display: flex; flex-direction: column; gap: 8px;">
-            <span class="fsp-display" style="font-size: 13px; color: #ffffff; background: var(--accent-mark); width: 34px; height: 24px; display: inline-grid; place-items: center;">03</span>
-            <b style="font-size: 16px; line-height: 22px;">Добавьте ссылку на GitHub</b>
-            <span class="fsp-display" style="font-size: 26px; line-height: 30px; color: var(--text);">+18% <span style="font-family: var(--font-sans); font-size: 14px; font-weight: 500; color: var(--text-muted);">просмотров</span></span>
-            <span style="font-size: 14px; line-height: 20px; color: var(--text-muted);">Профили с открытым кодом работодатели открывают заметно чаще.</span>
-            <div style="margin-top: auto; padding-top: 8px;">
-              <FspStatusBadge v-if="githubSaved" status="offer">{{ github }}</FspStatusBadge>
-              <form v-else-if="githubOpen" style="display: flex; flex-direction: column; gap: 8px;" @submit.prevent="saveGithub">
-                <FspInput v-model="github" placeholder="github.com/username" aria-label="Ссылка на GitHub" />
-                <FspButton size="sm" type="submit">Сохранить</FspButton>
-              </form>
-              <FspButton v-else size="sm" variant="outline" @click="githubOpen = true">Добавить</FspButton>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <div style="display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start;">
-        <div style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column; gap: 24px;">
-
-          <section style="padding: 24px 0 0; box-shadow: inset 0 1px 0 var(--line);">
-            <div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; align-items: baseline; margin-bottom: 20px;">
-              <h2 class="fsp-display" style="font-size: 20px; line-height: 24px;">Подтверждённые навыки</h2>
-              <span style="font-size: 13px; color: var(--text-muted);">по результатам теста 10.10.2026</span>
-            </div>
-            <div style="display: flex; flex-direction: column; gap: 14px;">
-              <div style="display: grid; grid-template-columns: 160px 1fr 48px; gap: 16px; align-items: center; font-size: 15px;"><span>Go</span><div style="height: 8px; background: var(--surface-hover);"><div style="width: 88%; height: 8px; background: var(--success);"></div></div><b style="text-align: right;">88</b></div>
-              <div style="display: grid; grid-template-columns: 160px 1fr 48px; gap: 16px; align-items: center; font-size: 15px;"><span>PostgreSQL</span><div style="height: 8px; background: var(--surface-hover);"><div style="width: 81%; height: 8px; background: var(--success);"></div></div><b style="text-align: right;">81</b></div>
-              <div style="display: grid; grid-template-columns: 160px 1fr 48px; gap: 16px; align-items: center; font-size: 15px;"><span>Конкурентность</span><div style="height: 8px; background: var(--surface-hover);"><div style="width: 76%; height: 8px; background: var(--warning);"></div></div><b style="text-align: right;">76</b></div>
-              <div style="display: grid; grid-template-columns: 160px 1fr 48px; gap: 16px; align-items: center; font-size: 15px;"><span>Алгоритмы</span><div style="height: 8px; background: var(--surface-hover);"><div style="width: 91%; height: 8px; background: var(--success);"></div></div><b style="text-align: right;">91</b></div>
-              <div style="display: grid; grid-template-columns: 160px 1fr 48px; gap: 16px; align-items: center; font-size: 15px;"><span>Проектирование API</span><div style="height: 8px; background: var(--surface-hover);"><div style="width: 69%; height: 8px; background: var(--warning);"></div></div><b style="text-align: right;">69</b></div>
-            </div>
-            <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 24px; padding-top: 20px; box-shadow: inset 0 1px 0 var(--line);">
-              <span style="font-size: 13px; color: var(--text-muted); margin-right: 4px; align-self: center;">Из резюме, без проверки:</span>
-              <FspTag>Kafka</FspTag>
-              <FspTag>Docker</FspTag>
-              <FspTag>Kubernetes</FspTag>
-              <FspTag>gRPC</FspTag>
-            </div>
-          </section>
-
-          <section style="padding: 24px 0 0; box-shadow: inset 0 1px 0 var(--line);">
-            <h2 class="fsp-display" style="font-size: 20px; line-height: 24px; margin-bottom: 20px;">Опыт работы</h2>
-            <div style="display: flex; flex-direction: column; gap: 20px;">
-              <div style="display: flex; gap: 16px;"><FspCompanyLogo name="Сибирь Телеком" :size="v.small" /><div><div style="font-weight: 600;">Backend-разработчик</div><div style="font-size: 14px; color: var(--text-muted);">Сибирь Телеком · 2023 — сейчас · 3 года</div><div style="font-size: 14px; line-height: 20px; margin-top: 6px;">Биллинг на Go: переписал расчёт тарифов, p99 с 900 до 120 мс.</div></div></div>
-              <div style="display: flex; gap: 16px;"><FspCompanyLogo name="Студия Восток" :size="v.small" /><div><div style="font-weight: 600;">Junior-разработчик</div><div style="font-size: 14px; color: var(--text-muted);">Студия Восток · 2022 — 2023 · 1 год</div></div></div>
-            </div>
-            <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 24px; padding-top: 20px; box-shadow: inset 0 1px 0 var(--line);">
-              <span style="font-size: 13px; color: var(--text-muted); margin-right: 4px; align-self: center;">Софт-скиллы:</span>
-              <FspTag>Менторство</FspTag>
-              <FspTag>Код-ревью</FspTag>
-              <FspTag>Работа в команде 5–8 человек</FspTag>
-            </div>
-          </section>
-        </div>
-
-        <aside style="flex: 1 1 380px; min-width: 0; display: flex; flex-direction: column; gap: 24px;">
-          <section style="padding: 24px 0 0; box-shadow: inset 0 1px 0 var(--line);">
-            <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 4px;">
-              <h2 class="fsp-display" style="font-size: 20px; line-height: 24px;">Достижения ФСП</h2>
-              <img src="/brand/fsp-star-dark.svg" alt="" aria-hidden="true" style="width: 28px; height: 28px;">
-            </div>
-            <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 20px;">Подтверждено через ФСП ID</div>
-            <div style="display: flex; flex-direction: column; gap: 16px;">
-              <div style="display: flex; flex-direction: column; gap: 6px; padding-bottom: 16px; box-shadow: inset 0 -1px 0 var(--line);">
-                <div style="display: flex; justify-content: space-between; gap: 8px; align-items: center;"><FspDisciplineBadge discipline="algo" /><span class="fsp-display" style="font-size: 16px;">2 место</span></div>
-                <div style="font-weight: 600;">Чемпионат России 2025</div>
-                <div style="font-size: 13px; color: var(--text-muted);">Финал · командный зачёт · 214 команд</div>
+      <ScreenState :phase="screen.phase.value" :error="screen.error.value" @retry="screen.load">
+        <template v-if="profile">
+          <section style="display: flex; flex-wrap: wrap; gap: 24px; align-items: center;">
+            <FspCompanyLogo :name="profile.full_name" :size="88" />
+            <div style="flex: 999 1 360px; min-width: 0;">
+              <h1 style="margin: 0; font-size: 32px; line-height: 40px; font-weight: 700;">{{ profile.full_name }}</h1>
+              <div style="margin-top: 6px; display: flex; flex-wrap: wrap; gap: 8px 20px; font-size: 15px; color: var(--text-muted);">
+                <span>{{ categoryLabel(profile.specialization, profile.grade) }}</span>
+                <span>{{ profile.city || 'Город не указан' }}<template v-if="profile.formats?.length"> · {{ profile.formats.map(f => FORMAT_LABEL[f]).join(', ') }}</template></span>
+                <span v-if="profile.min_salary">от {{ rub(profile.min_salary) }}</span>
               </div>
-              <div style="display: flex; flex-direction: column; gap: 6px; padding-bottom: 16px; box-shadow: inset 0 -1px 0 var(--line);">
-                <div style="display: flex; justify-content: space-between; gap: 8px; align-items: center;"><FspDisciplineBadge discipline="product" /><span class="fsp-display" style="font-size: 16px;">Финалист</span></div>
-                <div style="font-weight: 600;">Кубок России 2024</div>
-                <div style="font-size: 13px; color: var(--text-muted);">Продуктовое программирование · хакатон 48 ч</div>
+              <div style="margin-top: 12px;">
+                <FspStatusBadge :status="profile.visible ? 'new' : 'archived'">{{ profile.visible ? 'Профиль виден работодателям' : 'Профиль скрыт' }}</FspStatusBadge>
               </div>
-              <div style="display: flex; justify-content: space-between; font-size: 14px;"><span style="color: var(--text-muted);">Разряд ФСП</span><b>КМС</b></div>
+            </div>
+            <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+              <FspButton variant="plate" size="sm" href="/candidate/settings">Редактировать</FspButton>
             </div>
           </section>
 
-          <section class="fsp-cut" style="--cut: var(--cut-l); --fill: var(--surface); --edge: var(--line-card); --bw: var(--border-card); --edge: var(--accent-mark); --bw: var(--border-card); padding: 28px;">
-            <div style="font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted);">Задание от работодателя</div>
-            <div style="font-weight: 600; font-size: 17px; line-height: 24px; margin: 10px 0 6px;">Спроектируйте кэш для каталога на 2 млн позиций</div>
-            <div style="font-size: 14px; line-height: 20px; color: var(--text-muted);">Полярный Бит · ~30 минут · до 18 октября</div>
-            <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 20px;">
-              <FspButton size="sm" href="/candidate/onboarding">Решить</FspButton>
-              <FspButton size="sm" variant="outline" toast="Полярный Бит получил запрос — обсудите подход в переписке">Предложить подход</FspButton>
+          <p v-if="!profile.in_pool_eligible" style="margin: 0; padding: 16px 20px; background: var(--surface); box-shadow: inset 3px 0 0 var(--warning); font-size: 15px;">
+            Без минимальной зарплаты и формата профиль не участвует в подборках.
+          </p>
+
+          <section style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: 16px;">
+            <FspPlate :dots="6">
+              <div style="font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--on-plate-muted);">Ваша категория</div>
+              <div class="fsp-display" style="font-size: 28px; line-height: 32px; margin: 10px 0 16px;">{{ categoryLabel(profile.specialization, profile.grade) }}</div>
+              <div style="display: flex; gap: 32px;">
+                <div><div class="fsp-display" style="font-size: 28px; line-height: 32px;">{{ profile.category_rank ?? '—' }}</div><div style="font-size: 13px; color: var(--on-plate-muted);">место из {{ profile.category_size ?? '—' }}</div></div>
+                <div><div class="fsp-display" style="font-size: 28px; line-height: 32px;">{{ profile.grade_score ?? '—' }}</div><div style="font-size: 13px; color: var(--on-plate-muted);">балла за тест</div></div>
+              </div>
+              <div v-if="profile.ready_for_next" style="margin-top: 12px; font-size: 14px;">Готов к следующему грейду</div>
+              <div style="margin-top: 16px;"><NuxtLink to="/candidate/grade" style="color: var(--on-plate); font-weight: 600; font-size: 14px;">Категория и грейд →</NuxtLink></div>
+            </FspPlate>
+            <NuxtLink to="/candidate/invites" class="fsp-cut" style="--cut: var(--cut-l); --fill: var(--surface); --edge: var(--line-card); --bw: var(--border-card); padding: 32px; text-decoration: none; color: var(--text); display: flex; flex-direction: column; gap: 8px;">
+              <span style="font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted);">Приглашения</span>
+              <span class="fsp-display" style="font-size: 44px; line-height: 48px;">{{ incoming.length }} <span style="font-size: 16px; color: var(--text-muted);">новых</span></span>
+              <span style="font-size: 14px; line-height: 20px; color: var(--text-muted);">{{ incoming[0] ? incoming[0].company_name + ' — ' + salaryRange(incoming[0].salary_from, incoming[0].salary_to) : 'Пока нет входящих' }}</span>
+              <span style="margin-top: auto; font-weight: 600; font-size: 14px;">Посмотреть →</span>
+            </NuxtLink>
+            <div class="fsp-cut" style="--cut: var(--cut-l); --fill: var(--surface); --edge: var(--line-card); --bw: var(--border-card); padding: 32px; display: flex; flex-direction: column; gap: 12px;">
+              <span style="font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted);">Участие в подборках</span>
+              <span class="fsp-display" style="font-size: 32px; line-height: 36px;">{{ profile.in_pool_eligible ? 'Да' : 'Нет' }}</span>
+              <span style="font-size: 14px; line-height: 20px; color: var(--text-muted);">{{ STATUS_LABEL[profile.status] }}. Активность: {{ shortDate(profile.last_active_at) }}</span>
             </div>
           </section>
 
-          <section style="padding: 24px 0 0; box-shadow: inset 0 1px 0 var(--line);">
-            <h2 class="fsp-display" style="font-size: 16px; line-height: 20px; margin-bottom: 16px;">Резюме</h2>
-            <div style="display: flex; gap: 12px; align-items: center;">
-              <FspIcon name="briefcase" :size="v.iconSize" />
-              <div style="flex: 1; min-width: 0;"><div style="font-weight: 600; font-size: 14px;">{{ cvName }}</div><div style="font-size: 13px; color: var(--text-muted);">Распознано 10.10 · 14 полей</div></div>
-              <FspButton size="sm" variant="ghost" @click="cvInput?.click()">Заменить</FspButton>
-              <input ref="cvInput" type="file" accept=".pdf,application/pdf" hidden @change="onCv">
+          <section id="search" style="padding: 24px 0 0; box-shadow: inset 0 1px 0 var(--line); display: flex; flex-direction: column; gap: 16px;">
+            <h2 class="fsp-display" style="font-size: 20px; line-height: 24px;">Условия поиска</h2>
+            <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+              <FspChip v-for="s in screen.data.value?.specs ?? []" :key="s.id" :selected="spec === s.id" locked @click="spec = s.id as Spec">{{ s.name }}</FspChip>
+            </div>
+            <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+              <FspChip v-for="f in FORMATS" :key="f" :selected="formats.includes(f)" locked @click="toggleFormat(f)">{{ FORMAT_LABEL[f] }}</FspChip>
+              <FspChip v-for="st in (['seeking', 'open', 'paused'] as Status[])" :key="st" :selected="status === st" locked @click="status = st">{{ STATUS_LABEL[st] }}</FspChip>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 12px;">
+              <FspInput v-model="salary" label="Минимальная зарплата" suffix="₽" inputmode="numeric" />
+              <FspInput v-model="city" label="Город" />
+            </div>
+            <FspButton size="sm" @click="saveSearch">Сохранить условия</FspButton>
+          </section>
+
+          <section aria-label="Как подняться в выдаче" class="fsp-cut" style="--cut: var(--cut-l); --fill: var(--surface); --edge: var(--accent-mark); --bw: var(--border-card); padding: 28px;">
+            <h2 class="fsp-display" style="font-size: 20px; line-height: 24px; margin-bottom: 18px;">Как подняться в выдаче · топ-3</h2>
+            <p v-if="!hints.length" style="margin: 0; color: var(--text-muted);">Подсказок пока нет.</p>
+            <div v-else style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: 12px;">
+              <div v-for="(h, i) in hints" :key="h.id" class="fsp-cut" style="--cut: var(--cut-m); --fill: var(--surface-hover); padding: 20px; display: flex; flex-direction: column; gap: 8px;">
+                <span class="fsp-display" style="font-size: 13px; color: #ffffff; background: var(--accent-mark); width: 34px; height: 24px; display: inline-grid; place-items: center;">0{{ i + 1 }}</span>
+                <b style="font-size: 16px; line-height: 22px;">{{ h.title }}</b>
+                <span class="fsp-display" style="font-size: 22px; line-height: 28px;">{{ h.effect_text }}</span>
+                <div style="margin-top: auto; padding-top: 8px;"><FspButton size="sm" :href="h.action_href">{{ h.action_label }}</FspButton></div>
+              </div>
             </div>
           </section>
-        </aside>
-      </div>
+
+          <div style="display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start;">
+            <div style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column; gap: 24px;">
+              <section style="padding: 24px 0 0; box-shadow: inset 0 1px 0 var(--line);">
+                <h2 class="fsp-display" style="font-size: 20px; line-height: 24px; margin-bottom: 20px;">Подтверждённые навыки</h2>
+                <p v-if="!tested.length" style="margin: 0; color: var(--text-muted);">Навыков с баллом теста пока нет.</p>
+                <div v-else style="display: flex; flex-direction: column; gap: 14px;">
+                  <div v-for="s in tested" :key="s.skill_id + s.source" style="display: grid; grid-template-columns: 160px 1fr 48px; gap: 16px; align-items: center; font-size: 15px;">
+                    <span>{{ skillLabel(s.skill_id) }}</span>
+                    <div style="height: 8px; background: var(--surface-hover);"><div :style="{ width: Math.min(100, s.score || 0) + '%', height: '8px', background: scoreColor(s.score || 0) }" /></div>
+                    <b style="text-align: right;">{{ s.score }}</b>
+                  </div>
+                </div>
+                <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 24px; padding-top: 20px; box-shadow: inset 0 1px 0 var(--line);">
+                  <span style="font-size: 13px; color: var(--text-muted); margin-right: 4px; align-self: center;">Без балла теста:</span>
+                  <FspTag v-for="s in unverified" :key="s.skill_id + s.source">{{ skillLabel(s.skill_id) }}</FspTag>
+                  <span v-if="!unverified.length" style="font-size: 13px; color: var(--text-muted);">нет</span>
+                </div>
+              </section>
+
+              <section style="padding: 24px 0 0; box-shadow: inset 0 1px 0 var(--line);">
+                <h2 class="fsp-display" style="font-size: 20px; line-height: 24px; margin-bottom: 20px;">Опыт работы</h2>
+                <p v-if="!profile.experiences?.length" style="margin: 0; color: var(--text-muted);">Опыт появится после подтверждения резюме.</p>
+                <div v-else style="display: flex; flex-direction: column; gap: 20px;">
+                  <div v-for="exp in profile.experiences" :key="exp.id" style="display: flex; gap: 16px;" @mouseenter="hover = exp.id" @mouseleave="hover = ''">
+                    <FspCompanyLogo :name="exp.company" :size="44" />
+                    <div>
+                      <div style="font-weight: 600;">{{ exp.role }}</div>
+                      <div style="font-size: 14px; color: var(--text-muted);">{{ exp.company }} · {{ shortDate(exp.start) }} — {{ exp.end ? shortDate(exp.end) : 'сейчас' }}<template v-if="years(exp)"> · {{ years(exp) }}</template></div>
+                      <div style="font-size: 14px; line-height: 20px; margin-top: 6px;">{{ exp.description }}</div>
+                      <div v-if="hover === exp.id && exp.evidence_span" style="margin-top: 8px; font-size: 13px; line-height: 18px; background: var(--plate); color: var(--on-plate); padding: 8px 12px;">{{ exp.evidence_span }}</div>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              <section id="projects" style="padding: 24px 0 0; box-shadow: inset 0 1px 0 var(--line); display: flex; flex-direction: column; gap: 16px;">
+                <h2 class="fsp-display" style="font-size: 20px; line-height: 24px;">Проекты</h2>
+                <p v-if="!profile.projects?.length" style="margin: 0; color: var(--text-muted);">Проектов пока нет — добавьте первый через мастер.</p>
+                <div v-for="p in profile.projects" :key="p.id" style="padding-bottom: 12px; box-shadow: inset 0 -1px 0 var(--line);">
+                  <b>{{ p.task }}</b>
+                  <div style="font-size: 14px; color: var(--text-muted); margin-top: 4px;">{{ ROLE_LABEL[p.role] || p.role }} · {{ p.skills.map(skillLabel).join(', ') }}<template v-if="p.outcome"> · {{ p.outcome }}</template></div>
+                </div>
+                <div class="fsp-cut" style="--cut: var(--cut-m); --fill: var(--surface); --edge: var(--line-card); --bw: var(--border-card); padding: 20px; display: flex; flex-direction: column; gap: 12px;">
+                  <div style="font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted);">Мастер проекта · шаг {{ step }} из 3</div>
+                  <template v-if="step === 1">
+                    <FspInput v-model="task" label="Задача" />
+                    <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                      <FspChip v-for="r in (['owner', 'contributor', 'participant'] as ProjectRole[])" :key="r" :selected="role === r" locked @click="role = r">{{ ROLE_LABEL[r] }}</FspChip>
+                    </div>
+                    <FspButton size="sm" @click="task.trim() ? step = 2 : show('Опишите задачу')">Дальше</FspButton>
+                  </template>
+                  <template v-else-if="step === 2">
+                    <FspInput v-model="skillQ" label="Технологии из онтологии" icon="search" placeholder="Go, Kafka…" @input="onSkillInput" />
+                    <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                      <button v-for="h in skillHits" :key="h.id" type="button" style="all: unset; cursor: pointer;" @click="addSkill(h.id)"><FspTag>{{ h.name }}</FspTag></button>
+                      <FspTag v-for="id in pickedSkills" :key="id">{{ skillLabel(id) }}</FspTag>
+                    </div>
+                    <div style="display: flex; gap: 8px;">
+                      <FspButton size="sm" variant="ghost" @click="step = 1">Назад</FspButton>
+                      <FspButton size="sm" @click="pickedSkills.length ? step = 3 : show('Выберите технологию из подсказок')">Дальше</FspButton>
+                    </div>
+                  </template>
+                  <template v-else>
+                    <FspInput v-model="scale" label="Масштаб, необязательно" />
+                    <FspInput v-model="outcome" label="Результат" />
+                    <FspInput v-model="projectDate" label="Дата" type="date" />
+                    <FspInput v-model="projectUrl" label="Ссылка" />
+                    <div style="display: flex; gap: 8px;">
+                      <FspButton size="sm" variant="ghost" @click="step = 2">Назад</FspButton>
+                      <FspButton size="sm" :disabled="savingProject" @click="saveProject">Сохранить проект</FspButton>
+                    </div>
+                  </template>
+                </div>
+              </section>
+
+              <section v-if="draft" style="padding: 24px 0 0; box-shadow: inset 0 1px 0 var(--line); display: flex; flex-direction: column; gap: 16px;">
+                <h2 class="fsp-display" style="font-size: 20px; line-height: 24px;">Подтвердите резюме</h2>
+                <p style="margin: 0; font-size: 14px; color: var(--text-muted);">Наведите на поле — покажем цитату из резюме. Поле без цитаты не сохранится.</p>
+                <div v-for="(exp, i) in draft.experiences ?? []" :key="'e' + i" style="display: flex; flex-direction: column; gap: 8px;" @mouseenter="hover = 'e' + i" @mouseleave="hover = ''">
+                  <FspInput v-model="exp.company" label="Компания" />
+                  <FspInput v-model="exp.role" label="Роль" />
+                  <FspInput v-model="exp.description" label="Описание" />
+                  <div v-if="hover === 'e' + i" style="font-size: 13px; background: var(--plate); color: var(--on-plate); padding: 8px 12px;">{{ exp.evidence_span }}</div>
+                </div>
+                <div v-for="(sk, i) in draft.skills ?? []" :key="'s' + i" @mouseenter="hover = 's' + i" @mouseleave="hover = ''">
+                  <FspInput v-model="sk.name" label="Навык" />
+                  <div v-if="hover === 's' + i" style="margin-top: 8px; font-size: 13px; background: var(--plate); color: var(--on-plate); padding: 8px 12px;">{{ sk.evidence_span }}</div>
+                </div>
+                <div v-for="(pr, i) in draft.projects ?? []" :key="'p' + i" @mouseenter="hover = 'p' + i" @mouseleave="hover = ''">
+                  <FspInput v-model="pr.task" label="Проект из резюме" />
+                  <div v-if="hover === 'p' + i" style="margin-top: 8px; font-size: 13px; background: var(--plate); color: var(--on-plate); padding: 8px 12px;">{{ pr.evidence_span }}</div>
+                </div>
+                <FspButton size="sm" @click="confirmResume">Подтвердить</FspButton>
+              </section>
+            </div>
+
+            <aside style="flex: 1 1 380px; min-width: 0; display: flex; flex-direction: column; gap: 24px;">
+              <section id="fsp" style="padding: 24px 0 0; box-shadow: inset 0 1px 0 var(--line);">
+                <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 4px;">
+                  <h2 class="fsp-display" style="font-size: 20px; line-height: 24px;">Достижения ФСП</h2>
+                  <img src="/brand/fsp-star-dark.svg" alt="" aria-hidden="true" style="width: 28px; height: 28px;">
+                </div>
+                <p v-if="!profile.fsp_achievements?.length" style="margin: 12px 0; color: var(--text-muted); font-size: 14px;">Пока не связаны.</p>
+                <div v-else style="display: flex; flex-direction: column; gap: 16px; margin-top: 16px;">
+                  <div v-for="a in profile.fsp_achievements" :key="a.id" style="display: flex; flex-direction: column; gap: 6px; padding-bottom: 16px; box-shadow: inset 0 -1px 0 var(--line);">
+                    <div style="display: flex; justify-content: space-between; gap: 8px; align-items: center;">
+                      <FspDisciplineBadge :discipline="a.discipline" />
+                      <span class="fsp-display" style="font-size: 16px;">{{ a.place ? a.place + ' место' : 'Участие' }}</span>
+                    </div>
+                    <div style="font-weight: 600;">{{ a.event }}</div>
+                    <div style="font-size: 13px; color: var(--text-muted);">{{ a.year || '' }}</div>
+                  </div>
+                </div>
+                <FspButton size="sm" variant="outline" style="margin-top: 16px;" @click="linkFsp">Связать ФСП ID</FspButton>
+              </section>
+
+              <section style="padding: 24px 0 0; box-shadow: inset 0 1px 0 var(--line);">
+                <h2 class="fsp-display" style="font-size: 16px; line-height: 20px; margin-bottom: 16px;">Резюме</h2>
+                <div style="display: flex; gap: 12px; align-items: center;">
+                  <FspIcon name="briefcase" :size="28" />
+                  <div style="flex: 1; min-width: 0;">
+                    <div style="font-weight: 600; font-size: 14px;">{{ resume ? 'PDF загружен' : 'Файл не загружен' }}</div>
+                    <div style="font-size: 13px; color: var(--text-muted);">{{ uploading ? 'Отправляем…' : resume ? (resume.status === 'parsing' ? 'Распознаём…' : resume.status === 'parsed' ? 'Проверьте поля' : resume.status === 'confirmed' ? 'Подтверждено' : resume.status) : 'PDF до 5 МБ и 5 страниц' }}</div>
+                  </div>
+                  <FspButton size="sm" variant="ghost" @click="cvInput?.click()">{{ resume ? 'Заменить' : 'Загрузить' }}</FspButton>
+                  <input ref="cvInput" type="file" accept=".pdf,application/pdf" hidden @change="onCv">
+                </div>
+                <p v-if="resumeError" style="margin: 12px 0 0; color: var(--danger); font-size: 14px;">{{ resumeError }}</p>
+              </section>
+            </aside>
+          </div>
+        </template>
+        <p v-else style="margin: 0; color: var(--text-muted);">Профиль пуст.</p>
+      </ScreenState>
     </main>
   </div>
 </template>

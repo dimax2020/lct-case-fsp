@@ -36,6 +36,9 @@ function toggle(m: 'bell' | 'user') {
   menu.value = menu.value === m ? '' : m
   if (m === 'bell') hasUnread.value = false
 }
+function previewRole(role: 'candidate' | 'employer') {
+  if (import.meta.client) sessionStorage.setItem('fsp-mock-role', role)
+}
 function onDoc(e: MouseEvent) { if (root.value && !root.value.contains(e.target as Node)) menu.value = '' }
 onMounted(() => document.addEventListener('click', onDoc))
 onBeforeUnmount(() => document.removeEventListener('click', onDoc))
@@ -69,7 +72,7 @@ watch(() => route.fullPath, () => { menu.value = '' })
           <FspButton variant="outline" size="sm" icon="user" :aria-expanded="menu === 'user'" @click.stop="toggle('user')">{{ user }}</FspButton>
           <div v-if="menu === 'user'" class="fsp-menu fsp-cut" role="menu">
             <NuxtLink v-for="m in userMenu" :key="m.to" :to="m.to" class="fsp-menu-item" role="menuitem">{{ m.label }}</NuxtLink>
-            <NuxtLink :to="isEmployer ? '/candidate/profile' : '/employer/need'" class="fsp-menu-item" role="menuitem">{{ isEmployer ? 'Перейти в кабинет кандидата' : 'Перейти в кабинет компании' }}</NuxtLink>
+            <NuxtLink :to="isEmployer ? '/candidate/profile' : '/employer/need'" class="fsp-menu-item" role="menuitem" @click="previewRole(isEmployer ? 'candidate' : 'employer')">{{ isEmployer ? 'Перейти в кабинет кандидата' : 'Перейти в кабинет компании' }}</NuxtLink>
             <NuxtLink to="/" class="fsp-menu-item" role="menuitem">Выйти</NuxtLink>
           </div>
         </span>

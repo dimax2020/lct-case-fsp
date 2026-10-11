@@ -24,10 +24,12 @@ function submit() {
   if (mode.value === 'login' && !password.value) errors.password = 'Введите пароль'
   errors.agree = mode.value === 'register' && !agree.value ? 'Нужно согласие на обработку данных' : ''
   if (errors.email || errors.password || errors.agree) return
+  if (import.meta.client) sessionStorage.setItem('fsp-mock-role', role.value)
   show(mode.value === 'register' ? 'Аккаунт создан — письмо отправлено на ' + email.value : 'С возвращением!')
   navigateTo(role.value === 'employer' ? (mode.value === 'register' ? '/employer/company' : '/employer/need') : (mode.value === 'register' ? '/candidate/onboarding' : '/candidate/profile'))
 }
 function fspId() {
+  if (import.meta.client) sessionStorage.setItem('fsp-mock-role', role.value)
   show('Вход через ФСП ID: результаты соревнований подтянуты')
   navigateTo(role.value === 'employer' ? '/employer/need' : '/candidate/onboarding')
 }
