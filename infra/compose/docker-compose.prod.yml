@@ -1,21 +1,61 @@
-# Overlay for a single VPS with Let's Encrypt. Agent A finishes host rules.
+# HTTPS overlay. Run:
+#   docker compose -f infra/compose/docker-compose.yml -f infra/compose/docker-compose.prod.yml up
+# DOMAIN defaults to the demo host from the MVP spec. Point its A record at this VPS
+# and set ACME_EMAIL. Keycloak stays on the internal HTTP port; Traefik terminates TLS.
 services:
   traefik:
-    command:
+    command: !override
       - --providers.docker=true
       - --providers.docker.exposedbydefault=false
       - --providers.docker.network=fsp
       - --entrypoints.web.address=:80
+      - --entrypoints.web.http.redirections.entrypoint.to=websecure
+      - --entrypoints.web.http.redirections.entrypoint.scheme=https
       - --entrypoints.websecure.address=:443
       - --certificatesresolvers.le.acme.email=${ACME_EMAIL:-ops@example.ru}
       - --certificatesresolvers.le.acme.storage=/letsencrypt/acme.json
       - --certificatesresolvers.le.acme.httpchallenge.entrypoint=web
-    ports:
+    ports: !override
       - "80:80"
       - "443:443"
-    volumes:
+    volumes: !override
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - letsencrypt:/letsencrypt
+
+  web:
+    environment:
+      NUXT_PUBLIC_SITE_ORIGIN: https://${DOMAIN:-career-demo.example.ru}
+      KEYCLOAK_PUBLIC_BASE: https://${DOMAIN:-career-demo.example.ru}/auth
+      NUXT_OIDC_PROVIDERS_KEYCLOAK_BASE_URL: https://${DOMAIN:-career-demo.example.ru}/auth/realms/fsp
+      NUXT_OIDC_PROVIDERS_KEYCLOAK_REDIRECT_URI: https://${DOMAIN:-career-demo.example.ru}/auth/keycloak/callback
+      NUXT_OIDC_PROVIDERS_KEYCLOAK_LOGOUT_REDIRECT_URI: https://${DOMAIN:-career-demo.example.ru}/
+      NUXT_OIDC_PROVIDERS_KEYCLOAK_AUTHORIZATION_URL: https://${DOMAIN:-career-demo.example.ru}/auth/realms/fsp/protocol/openid-connect/auth
+      NUXT_OIDC_PROVIDERS_KEYCLOAK_LOGOUT_URL: https://${DOMAIN:-career-demo.example.ru}/auth/realms/fsp/protocol/openid-connect/logout
+    labels: !override
+      - traefik.enable=true
+      - traefik.http.routers.web.rule=Host(`${DOMAIN:-career-demo.example.ru}`)
+      - traefik.http.routers.web.entrypoints=websecure
+      - traefik.http.routers.web.tls.certresolver=le
+      - traefik.http.routers.web.priority=1
+      - traefik.http.services.web.loadbalancer.server.port=3000
+
+  api:
+    environment:
+      KEYCLOAK_ISSUER: https://${DOMAIN:-career-demo.example.ru}/auth/realms/fsp
+
+  keycloak:
+    environment:
+      KC_HOSTNAME: https://${DOMAIN:-career-demo.example.ru}/auth
+      KC_HOSTNAME_BACKCHANNEL_DYNAMIC: "true"
+      KC_PROXY_HEADERS: xforwarded
+      KC_HTTP_ENABLED: "true"
+    labels: !override
+      - traefik.enable=true
+      - traefik.http.routers.auth.rule=Host(`${DOMAIN:-career-demo.example.ru}`) && PathPrefix(`/auth`)
+      - traefik.http.routers.auth.entrypoints=websecure
+      - traefik.http.routers.auth.tls.certresolver=le
+      - traefik.http.routers.auth.priority=100
+      - traefik.http.services.auth.loadbalancer.server.port=8080
 
 volumes:
   letsencrypt:
