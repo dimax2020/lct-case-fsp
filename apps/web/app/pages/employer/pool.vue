@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { components } from '~/api/schema'
 import { read } from '~/utils/read'
+import { apiFetch, asList } from '~/utils/raw'
 
 type Short = components['schemas']['ShortlistOut']
 type Hint = components['schemas']['EmployerHint']
@@ -29,8 +30,21 @@ const companyName = ref('Компания')
 const needTitle = ref('Подборка')
 let stackTimer: ReturnType<typeof setTimeout> | undefined
 
+type BankPerson = {
+  id: string
+  candidate_id?: string
+  display_name: string
+  specialization?: string | null
+  grade?: string | null
+  city?: string | null
+  skills?: string[]
+  has_fsp?: boolean
+  test_score?: number | null
+}
+const bankItems = ref<BankPerson[]>([])
 const tabs = computed(() => [
   { value: 'pool', label: 'Подборка', count: tab.value === 'pool' ? shortlist.value?.total ?? 0 : undefined },
+  { value: 'bank', label: 'Весь банк', count: tab.value === 'bank' ? bankItems.value.length : undefined },
   { value: 'favorites', label: 'Избранные', count: tab.value === 'favorites' ? shortlist.value?.total ?? 0 : undefined },
 ])
 const refines = computed(() => {
@@ -48,8 +62,20 @@ const refines = computed(() => {
 
 async function load() {
   if (!needId.value) {
-    phase.value = 'ready'
-    shortlist.value = null
+    if (tab.value !== 'bank') {
+      phase.value = 'ready'
+      shortlist.value = null
+      return
+    }
+    phase.value = 'loading'
+    error.value = ''
+    try {
+      await reloadList()
+      phase.value = 'ready'
+    } catch (e) {
+      error.value = e instanceof Error ? e.message : 'Не удалось загрузить банк'
+      phase.value = 'error'
+    }
     return
   }
   phase.value = 'loading'
@@ -71,7 +97,23 @@ async function load() {
   }
 }
 
+function bankQuery() {
+  const [specialization, grade] = (category.value || '').split(':')
+  const query: Record<string, string | boolean> = {}
+  if (specialization) query.specialization = specialization
+  if (grade) query.grade = grade
+  const stack = stackQ.value.trim()
+  if (stack) query.stack = stack
+  if (onlyFsp.value) query.fsp = true
+  return query
+}
+
 async function reloadList() {
+  if (tab.value === 'bank') {
+    const data = await apiFetch<unknown>('/api/v1/candidates', { query: bankQuery() })
+    bankItems.value = asList<BankPerson>(data).map(row => ({ ...row, id: row.id || row.candidate_id || '' }))
+    return
+  }
   if (!needId.value) return
   const query: Record<string, string | number | boolean> = { tab: tab.value, page: 1, page_size: 20 }
   if (tab.value === 'pool' && category.value) query.category = category.value
@@ -91,7 +133,12 @@ async function reloadList() {
 
 function queueReload() {
   clearTimeout(stackTimer)
-  stackTimer = setTimeout(() => { reloadList().catch(e => { error.value = e instanceof Error ? e.message : 'Ошибка фильтра' }) }, 200)
+  stackTimer = setTimeout(() => {
+    reloadList().catch(e => {
+      error.value = e instanceof Error ? e.message : 'Ошибка фильтра'
+      if (tab.value === 'bank') phase.value = 'error'
+    })
+  }, 200)
 }
 
 watch([tab, category, onlyFsp, discipline, minScore, format, fresh, hintId], () => {
@@ -142,13 +189,13 @@ const discs = [
         <FspButton variant="outline" size="sm" href="/employer/need">Изменить описание</FspButton>
       </div>
       <ScreenState :phase="phase" :error="error" @retry="load">
-        <div v-if="!needId" style="padding: 24px 0; color: var(--text-muted);">
+        <FspTabs v-model="tab" :items="tabs" />
+        <div v-if="!needId && tab !== 'bank'" style="padding: 24px 0; color: var(--text-muted);">
           Сначала опишите потребность.
           <div style="margin-top: 12px;"><FspButton href="/employer/need">К форме</FspButton></div>
         </div>
         <template v-else>
-          <FspTabs v-model="tab" :items="tabs" />
-          <section v-if="tab === 'pool'" style="display: flex; flex-wrap: wrap; gap: 12px; margin: 24px 0;">
+          <section v-if="tab === 'pool' || tab === 'bank'" style="display: flex; flex-wrap: wrap; gap: 12px; margin: 24px 0;">
             <button v-for="c in shortlist?.categories ?? []" :key="c.id" type="button" :class="['fsp-cut', category === c.id && 'fsp-active']" :style="catStyle(category === c.id)" @click="category = c.id">
               <span style="display: block; font-weight: 600;">{{ c.title }}</span>
               <span style="display: block; font-size: 13px; margin-top: 4px;">{{ c.count }} кандидатов</span>
@@ -183,8 +230,23 @@ const discs = [
                 <span style="color: var(--text-muted);">Уточнения:</span>
                 <span v-if="!refines.length" style="color: var(--text-muted);">нет</span>
                 <button v-for="r in refines" :key="r.label" type="button" style="all: unset; cursor: pointer;" @click="r.off()"><FspTag>{{ r.label }} ×</FspTag></button>
-                <span style="margin-left: auto; color: var(--text-muted);">{{ shortlist?.total ?? 0 }} в списке</span>
+                <span style="margin-left: auto; color: var(--text-muted);">{{ (tab === 'bank' ? bankItems.length : (shortlist?.total ?? 0)) }} в списке</span>
               </div>
+              <template v-if="tab === 'bank'">
+                <p v-if="!bankItems.length" style="margin: 0; padding: 32px 0; color: var(--text-muted);">В банке нет кандидатов по этим условиям.</p>
+                <article v-for="c in bankItems" :key="c.id" style="padding: 24px 0; box-shadow: inset 0 1px 0 var(--line); display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start;">
+                  <FspCompanyLogo :name="c.display_name" :size="48" />
+                  <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px;">
+                    <div style="font-size: 18px; font-weight: 600;">{{ c.display_name }}</div>
+                    <div style="font-size: 14px; color: var(--text-muted);">{{ categoryLabel(c.specialization, c.grade) }}<template v-if="c.city"> · {{ c.city }}</template><template v-if="c.test_score != null"> · тест {{ c.test_score }}</template></div>
+                    <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                      <FspTag v-for="skill in c.skills ?? []" :key="skill">{{ skillLabel(skill) }}</FspTag>
+                      <FspTag v-if="c.has_fsp">Есть ФСП</FspTag>
+                    </div>
+                  </div>
+                </article>
+              </template>
+              <template v-else>
               <p v-if="!(shortlist?.items ?? []).length" style="margin: 0; padding: 32px 0; color: var(--text-muted);">Под эти условия никто не подходит — снимите часть уточнений.</p>
               <article v-for="c in shortlist?.items ?? []" :key="c.candidate_id" style="padding: 24px 0; box-shadow: inset 0 1px 0 var(--line); display: flex; flex-wrap: wrap; gap: 24px;">
                 <div class="fsp-display" style="font-size: 28px; width: 48px; color: var(--text-muted);">{{ String(c.position).padStart(2, '0') }}</div>
@@ -217,6 +279,7 @@ const discs = [
                   <FspButton :block="true" variant="ghost" size="sm" :href="`/employer/candidate?need=${needId}&candidate=${c.candidate_id}`">Открыть профиль</FspButton>
                 </div>
               </article>
+              </template>
             </section>
           </div>
         </template>

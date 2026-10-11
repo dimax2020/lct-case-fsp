@@ -305,12 +305,351 @@ function invitationStatus(db: Db, candidateId: string, needId: string) {
   return found?.status ?? null
 }
 
+type VacancyRec = {
+  id: string
+  company_id: string
+  company_name: string
+  title: string
+  specialization: string
+  grades: string[]
+  salary_from: number
+  salary_to: number
+  description: string
+  domain: string
+  must_skills: string[]
+  formats: string[]
+  city: string | null
+  status: string
+}
+
+type AppRec = {
+  id: string
+  vacancy_id: string
+  candidate_id: string
+  status: string
+  message: string
+  title: string
+  company_name: string
+  salary_from: number
+  salary_to: number
+  candidate_display_name: string
+  candidate_email: string
+  candidate_phone: string
+}
+
+type MicroRec = { id: string; title: string; body: string }
+
+type Gap = {
+  vacancies?: VacancyRec[]
+  applications?: AppRec[]
+  micro_tasks?: MicroRec[]
+  micro_answers?: string[]
+  consent_processing?: boolean
+  consent_publication?: boolean
+  soft_skills?: string[]
+  retake_locked?: boolean
+}
+
+function gap(db: Db) {
+  return db as Db & Gap
+}
+
+function ensureVacancies(db: Db) {
+  const state = gap(db)
+  if (!state.vacancies) {
+    const description = 'Ищем разработчика в антифрод: потоковая обработка событий, PostgreSQL и дежурства. Описание длиннее пятидесяти символов.'
+    state.vacancies = [
+      {
+        id: '88888888-8888-4888-8888-888888888881',
+        company_id: IDS.company,
+        company_name: db.company.name,
+        title: 'Backend-разработчик (Go) в антифрод',
+        specialization: 'backend',
+        grades: ['middle'],
+        salary_from: 250000,
+        salary_to: 320000,
+        description,
+        domain: 'fintech',
+        must_skills: ['go', 'postgresql'],
+        formats: ['remote'],
+        city: 'Новосибирск',
+        status: 'open',
+      },
+      {
+        id: '88888888-8888-4888-8888-888888888882',
+        company_id: IDS.company,
+        company_name: db.company.name,
+        title: 'Frontend-разработчик кабинета мерчанта',
+        specialization: 'frontend',
+        grades: ['middle'],
+        salary_from: 180000,
+        salary_to: 240000,
+        description: 'Нужен человек на кабинет мерчанта: Vue, витрины платежей и спокойный релиз раз в неделю. Текст длиннее пятидесяти символов.',
+        domain: 'fintech',
+        must_skills: ['vue', 'javascript'],
+        formats: ['remote'],
+        city: 'Новосибирск',
+        status: 'open',
+      },
+    ]
+  }
+  if (!state.applications) {
+    const first = state.vacancies[0]
+    const second = state.vacancies[1]
+    state.applications = []
+    if (first) {
+      state.applications.push({
+        id: '99999999-9999-4999-8999-999999999991',
+        vacancy_id: first.id,
+        candidate_id: IDS.c2,
+        status: 'sent',
+        message: 'Готова посмотреть антифрод на Go.',
+        title: first.title,
+        company_name: first.company_name,
+        salary_from: first.salary_from,
+        salary_to: first.salary_to,
+        candidate_display_name: 'Мария С.',
+        candidate_email: 'm.sokolova@mail.ru',
+        candidate_phone: '+7 843 000-11-22',
+      })
+    }
+    if (second) {
+      state.applications.push({
+        id: '99999999-9999-4999-8999-999999999992',
+        vacancy_id: second.id,
+        candidate_id: IDS.candidate,
+        status: 'viewed',
+        message: 'Интересен кабинет мерчанта.',
+        title: second.title,
+        company_name: second.company_name,
+        salary_from: second.salary_from,
+        salary_to: second.salary_to,
+        candidate_display_name: db.profile.display_name,
+        candidate_email: db.profile.contact_email || 'candidate@demo.fsp',
+        candidate_phone: db.profile.phone || '',
+      })
+    }
+  }
+  return state
+}
+
+function appView(row: AppRec, employer: boolean) {
+  const base = {
+    id: row.id,
+    vacancy_id: row.vacancy_id,
+    status: row.status,
+    title: row.title,
+    company_name: row.company_name,
+    salary_from: row.salary_from,
+    salary_to: row.salary_to,
+    message: row.message,
+  }
+  if (!employer) return base
+  return {
+    ...base,
+    candidate_display_name: row.candidate_display_name,
+    candidate_email: row.candidate_email,
+    candidate_phone: row.candidate_phone,
+  }
+}
+
+function ensureMicro(db: Db) {
+  const state = gap(db)
+  if (!state.micro_tasks) {
+    state.micro_tasks = [
+      { id: 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeee01', title: 'Разберите гонку в кэше', body: 'Где гонка и как её закрыть, не останавливая чтение.' },
+      { id: 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeee02', title: 'Как бы вы деградировали Kafka-консьюмер', body: 'Что отключите первым, если лаг растёт.' },
+    ]
+  }
+  if (!state.micro_answers) state.micro_answers = []
+  return state
+}
+
+function skillList(raw: string[] | string | undefined) {
+  if (Array.isArray(raw)) return raw.map(item => item.trim()).filter(Boolean)
+  return String(raw ?? '').split(',').map(item => item.trim()).filter(Boolean)
+}
+
+async function routeOfficial(db: Db, method: string, path: string, url: URL, req: Request): Promise<Response | null> {
+  if (path === '/api/v1/candidates/me/profile.pdf' && method === 'GET') {
+    const pdf = '%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n2 0 obj<</Type/Pages/Count 0>>endobj\ntrailer<</Root 1 0 R>>\n%%EOF'
+    return new Response(pdf, { status: 200, headers: { 'content-type': 'application/pdf' } })
+  }
+
+  if (path === '/api/v1/candidates' && method === 'GET') {
+    let rows = [...db.people]
+    const specialization = (qstr(url, 'specialization') ?? '').toLowerCase()
+    const grade = (qstr(url, 'grade') ?? '').toLowerCase()
+    if (specialization) rows = rows.filter(p => p.category_id.toLowerCase().startsWith(`${specialization}:`))
+    if (grade) rows = rows.filter(p => p.grade.toLowerCase() === grade)
+    if (qbool(url, 'fsp')) rows = rows.filter(p => p.fsp_badge)
+    const stack = (qstr(url, 'stack') ?? '').toLowerCase().split(/[,\s]+/).filter(Boolean)
+    if (stack.length) rows = rows.filter(p => stack.every(part => p.skills.some(skill => skill.toLowerCase().includes(part))))
+    const items = rows.slice(0, 50).map(p => ({
+      id: p.candidate_id,
+      display_name: p.display_name,
+      specialization: p.category_id.split(':')[0] ?? '',
+      grade: p.grade,
+      city: p.city,
+      skills: p.skills,
+      has_fsp: Boolean(p.fsp_badge),
+      test_score: p.test_score,
+    }))
+    return json({ items, total: rows.length })
+  }
+
+  if (path === '/api/v1/vacancies' && method === 'GET') {
+    const state = ensureVacancies(db)
+    const rows = role() === 'employer'
+      ? (state.vacancies ?? []).filter(v => v.company_id === IDS.company)
+      : (state.vacancies ?? []).filter(v => v.status === 'open')
+    return json(rows)
+  }
+  if (path === '/api/v1/vacancies' && method === 'POST') {
+    if (role() !== 'employer') return fail(403, 'Недостаточно прав')
+    const body = await readBody<{
+      title?: string
+      specialization?: string
+      grades?: string[]
+      grade?: string
+      salary_from?: number
+      salary_to?: number
+      description?: string
+      domain?: string
+      must_skills?: string[] | string
+      formats?: string[]
+      city?: string | null
+    }>(req)
+    const grades = body.grades?.length ? body.grades : (body.grade ? [body.grade] : [])
+    const specs = ['backend', 'frontend', 'data_ml', 'devops']
+    if (!body.title?.trim()) return fail(422, 'Укажите название')
+    if (!specs.includes(body.specialization ?? '')) return fail(422, 'Укажите специализацию')
+    if (!grades.length || grades.some(item => !LADDER.includes(item as S['Grade']))) return fail(422, 'Укажите грейд')
+    if (grades.length > 2) return fail(422, 'Можно указать не больше двух грейдов')
+    if (typeof body.salary_from !== 'number' || typeof body.salary_to !== 'number') return fail(422, 'Вилка обязательна')
+    if (body.salary_from > body.salary_to) return fail(422, 'Зарплата «от» не может быть больше «до»')
+    if ((body.description ?? '').trim().length < 50) return fail(422, 'Описание — не меньше 50 символов')
+    if (!body.domain?.trim()) return fail(422, 'Укажите домен')
+    const must = skillList(body.must_skills)
+    if (!must.length) return fail(422, 'Укажите обязательные навыки')
+    const state = ensureVacancies(db)
+    const vacancy: VacancyRec = {
+      id: uid(),
+      company_id: IDS.company,
+      company_name: db.company.name,
+      title: body.title.trim(),
+      specialization: body.specialization ?? 'backend',
+      grades,
+      salary_from: body.salary_from,
+      salary_to: body.salary_to,
+      description: body.description?.trim() ?? '',
+      domain: body.domain.trim(),
+      must_skills: must,
+      formats: body.formats?.length ? body.formats : ['remote'],
+      city: body.city ?? null,
+      status: 'open',
+    }
+    state.vacancies = [vacancy, ...(state.vacancies ?? [])]
+    return json(vacancy, 201)
+  }
+
+  const applyPath = path.match(/^\/api\/v1\/vacancies\/([^/]+)\/applications$/)
+  if (applyPath && method === 'POST') {
+    if (role() !== 'candidate') return fail(403, 'Недостаточно прав')
+    const state = ensureVacancies(db)
+    const vacancy = (state.vacancies ?? []).find(v => v.id === take(applyPath))
+    if (!vacancy || vacancy.status !== 'open') return fail(404, 'Вакансия не найдена')
+    const dup = (state.applications ?? []).find(a => a.vacancy_id === vacancy.id && a.candidate_id === IDS.candidate)
+    if (dup) return fail(409, 'Вы уже откликались на эту вакансию')
+    const body = await readBody<{ message?: string }>(req)
+    const row: AppRec = {
+      id: uid(),
+      vacancy_id: vacancy.id,
+      candidate_id: IDS.candidate,
+      status: 'sent',
+      message: body.message?.trim() || 'Отклик',
+      title: vacancy.title,
+      company_name: vacancy.company_name,
+      salary_from: vacancy.salary_from,
+      salary_to: vacancy.salary_to,
+      candidate_display_name: db.profile.display_name,
+      candidate_email: db.profile.contact_email || 'candidate@demo.fsp',
+      candidate_phone: db.profile.phone || '',
+    }
+    state.applications = [row, ...(state.applications ?? [])]
+    return json(appView(row, false), 201)
+  }
+
+  const vacancyPath = path.match(/^\/api\/v1\/vacancies\/([^/]+)$/)
+  if (vacancyPath && method === 'GET') {
+    const state = ensureVacancies(db)
+    const vacancy = (state.vacancies ?? []).find(v => v.id === take(vacancyPath))
+    if (!vacancy) return fail(404, 'Вакансия не найдена')
+    if (role() !== 'employer' && vacancy.status !== 'open') return fail(404, 'Вакансия не найдена')
+    return json(vacancy)
+  }
+
+  if (path === '/api/v1/applications' && method === 'GET') {
+    const state = ensureVacancies(db)
+    const asked = qstr(url, 'role') ?? role()
+    const employer = asked === 'employer'
+    const rows = (state.applications ?? []).filter(a => employer ? true : a.candidate_id === IDS.candidate)
+    const items = rows.map(row => appView(row, employer))
+    const counts: Record<string, number> = {}
+    for (const row of rows) counts[row.status] = (counts[row.status] ?? 0) + 1
+    return json({ items, counts })
+  }
+
+  if (path === '/api/v1/assessment/retake' && method === 'POST') {
+    const body = await readBody<{ direction?: string }>(req)
+    if (body.direction !== 'up' && body.direction !== 'down') return fail(422, 'Укажите направление: up или down')
+    const state = gap(db)
+    if (state.retake_locked) return fail(409, 'Менять грейд можно не чаще раза в 90 дней', 'grade_cooldown')
+    const current = db.profile.grade ?? db.grade.grade
+    if (!current) return fail(409, 'Сначала подтвердите грейд тестом', 'grade_missing')
+    const index = LADDER.indexOf(current)
+    const nextIndex = body.direction === 'up' ? index + 1 : index - 1
+    const next = LADDER[nextIndex]
+    if (!next) {
+      return fail(409, body.direction === 'up' ? 'Выше этого грейда подняться нельзя' : 'Ниже этого грейда опуститься нельзя', 'grade_edge')
+    }
+    db.profile.grade = next
+    db.grade.grade = next
+    state.retake_locked = true
+    return json({ direction: body.direction, grade: next })
+  }
+
+  if (path === '/api/v1/assessment/micro-tasks' && method === 'GET') {
+    const state = ensureMicro(db)
+    const answered = new Set(state.micro_answers ?? [])
+    return json((state.micro_tasks ?? []).filter(task => !answered.has(task.id)))
+  }
+
+  const answerPath = path.match(/^\/api\/v1\/assessment\/micro-tasks\/([^/]+)\/answer$/)
+  if (answerPath && method === 'POST') {
+    const state = ensureMicro(db)
+    const taskId = take(answerPath)
+    const task = (state.micro_tasks ?? []).find(item => item.id === taskId)
+    if (!task) return fail(404, 'Задание не найдено')
+    const body = await readBody<{ answer?: string }>(req)
+    if ((body.answer ?? '').trim().length < 20) return fail(422, 'Ответ — не меньше 20 символов')
+    if ((state.micro_answers ?? []).includes(taskId)) return fail(409, 'Ответ уже отправлен')
+    state.micro_answers = [...(state.micro_answers ?? []), taskId]
+    db.profile.last_active_at = new Date().toISOString()
+    return json({ id: taskId, status: 'answered' })
+  }
+
+  return null
+}
+
 async function route(db: Db, method: string, path: string, url: URL, req: Request): Promise<Response> {
+  const official = await routeOfficial(db, method, path, url, req)
+  if (official) return official
   if (method === 'GET' && path === '/api/v1/me') return json(me())
 
-  if (path === '/api/v1/candidates/me' && method === 'GET') return json(db.profile)
+  if (path === '/api/v1/candidates/me' && method === 'GET') return json({ ...db.profile, soft_skills: gap(db).soft_skills ?? [] })
   if (path === '/api/v1/candidates/me' && method === 'PUT') {
-    const body = await readBody<S['CandidateUpdate']>(req)
+    const body = await readBody<S['CandidateUpdate'] & { soft_skills?: string[] | string }>(req)
     const profile = db.profile
     if (body.full_name) {
       profile.full_name = body.full_name
@@ -328,8 +667,13 @@ async function route(db: Db, method: string, path: string, url: URL, req: Reques
     if (body.blocked_domains) profile.blocked_domains = body.blocked_domains
     if (body.phone !== undefined) profile.phone = body.phone
     if (body.contact_email !== undefined) profile.contact_email = body.contact_email
+    if (body.soft_skills !== undefined) {
+      gap(db).soft_skills = Array.isArray(body.soft_skills)
+        ? body.soft_skills.map(item => item.trim()).filter(Boolean)
+        : body.soft_skills.split(',').map(item => item.trim()).filter(Boolean)
+    }
     eligibility(profile)
-    return json(profile)
+    return json({ ...profile, soft_skills: gap(db).soft_skills ?? [] })
   }
 
   if (path === '/api/v1/candidates/me/projects' && method === 'GET') return json(db.profile.projects ?? [])
@@ -372,13 +716,25 @@ async function route(db: Db, method: string, path: string, url: URL, req: Reques
   }
 
   if (path === '/api/v1/candidates/me/grade' && method === 'GET') return json(db.grade)
-  if (path === '/api/v1/candidates/me/settings' && method === 'GET') return json(db.settings)
+  if (path === '/api/v1/candidates/me/settings' && method === 'GET') {
+    return json({
+      ...db.settings,
+      consent_processing: gap(db).consent_processing ?? false,
+      consent_publication: gap(db).consent_publication ?? false,
+    })
+  }
   if (path === '/api/v1/candidates/me/settings' && method === 'PUT') {
-    const body = await readBody<S['CandidateSettings']>(req)
+    const body = await readBody<S['CandidateSettings'] & { consent_processing?: boolean; consent_publication?: boolean }>(req)
     db.settings = { visible: body.visible, hidden_company_ids: body.hidden_company_ids ?? [] }
     db.profile.visible = body.visible
+    if (typeof body.consent_processing === 'boolean') gap(db).consent_processing = body.consent_processing
+    if (typeof body.consent_publication === 'boolean') gap(db).consent_publication = body.consent_publication
     eligibility(db.profile)
-    return json(db.settings)
+    return json({
+      ...db.settings,
+      consent_processing: gap(db).consent_processing ?? false,
+      consent_publication: gap(db).consent_publication ?? false,
+    })
   }
 
   if (path === '/api/v1/candidates/me/resume' && method === 'POST') {

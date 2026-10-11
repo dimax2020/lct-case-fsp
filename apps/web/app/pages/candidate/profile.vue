@@ -1,13 +1,12 @@
 <script setup lang="ts">
 import type { components } from '~/api/schema'
 import { read } from '~/utils/read'
+import { apiBlob, apiFetch, asList } from '~/utils/raw'
 
 type Profile = components['schemas']['CandidateProfile']
-type Hint = components['schemas']['CandidateHint']
 type Parsed = components['schemas']['ParsedResume']
 type ProjectRole = components['schemas']['ProjectRole']
 type Spec = components['schemas']['Specialization']
-type Grade = components['schemas']['Grade']
 type WorkFormat = components['schemas']['WorkFormat']
 type Status = components['schemas']['CandidateStatus']
 
@@ -28,6 +27,13 @@ const screen = useScreen(async () => {
 
 const city = ref('')
 const salary = ref<string | number>('')
+const softSkills = ref('')
+const pdfLoading = ref(false)
+type MicroTask = { id: string; title: string; body?: string }
+const tasks = ref<MicroTask[]>([])
+const taskPhase = ref<'loading' | 'ready' | 'error'>('loading')
+const taskError = ref('')
+const answers = reactive<Record<string, string>>({})
 const formats = ref<WorkFormat[]>([])
 const status = ref<Status>('seeking')
 const spec = ref<Spec | ''>('')
@@ -59,6 +65,10 @@ watch(screen.data, (bundle) => {
   formats.value = [...(profile.formats ?? [])]
   status.value = profile.status
   spec.value = profile.specialization ?? ''
+  if ('soft_skills' in profile) {
+    const extra = profile as Profile & { soft_skills?: string[] | string }
+    softSkills.value = Array.isArray(extra.soft_skills) ? extra.soft_skills.join(', ') : (extra.soft_skills || '')
+  }
 }, { immediate: true })
 
 const profile = computed(() => screen.data.value?.profile ?? null)
@@ -82,7 +92,8 @@ async function saveSearch() {
         min_salary: Number.isFinite(min) ? min : null,
         formats: formats.value,
         status: status.value,
-      },
+        soft_skills: softSkills.value.split(',').map(item => item.trim()).filter(Boolean),
+      } as components['schemas']['CandidateUpdate'],
     }))
     if (screen.data.value) screen.data.value.profile = next
     show(next.in_pool_eligible ? 'Условия поиска сохранены' : 'Сохранено. Без зарплаты и формата профиль не попадёт в подборки')
@@ -244,6 +255,57 @@ function years(item: Profile['experiences'] extends infer T ? T extends Array<in
   return `${n} ${n === 1 ? 'год' : n < 5 ? 'года' : 'лет'}`
 }
 
+async function downloadPdf() {
+  pdfLoading.value = true
+  try {
+    const blob = await apiBlob('/api/v1/candidates/me/profile.pdf')
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = 'profile.pdf'
+    link.click()
+    URL.revokeObjectURL(url)
+  } catch (e) {
+    show(e instanceof Error ? e.message : 'Не удалось скачать PDF')
+  } finally {
+    pdfLoading.value = false
+  }
+}
+
+async function loadTasks() {
+  taskPhase.value = 'loading'
+  taskError.value = ''
+  try {
+    tasks.value = asList<MicroTask>(await apiFetch<unknown>('/api/v1/assessment/micro-tasks'))
+    for (const task of tasks.value) {
+      if (answers[task.id] == null) answers[task.id] = ''
+    }
+    taskPhase.value = 'ready'
+  } catch (e) {
+    taskError.value = e instanceof Error ? e.message : 'Не удалось загрузить задания'
+    taskPhase.value = 'error'
+  }
+}
+
+async function sendAnswer(id: string) {
+  const answer = (answers[id] || '').trim()
+  if (answer.length < 20) {
+    show('Ответ — не меньше 20 символов')
+    return
+  }
+  try {
+    await apiFetch(`/api/v1/assessment/micro-tasks/${encodeURIComponent(id)}/answer`, {
+      method: 'POST',
+      body: { answer },
+    })
+    show('Ответ отправлен')
+    await loadTasks()
+  } catch (e) {
+    show(e instanceof Error ? e.message : 'Не удалось отправить ответ')
+  }
+}
+
+onMounted(loadTasks)
 onBeforeUnmount(() => { clearTimeout(pollTimer); clearTimeout(skillTimer) })
 </script>
 
@@ -267,6 +329,7 @@ onBeforeUnmount(() => { clearTimeout(pollTimer); clearTimeout(skillTimer) })
               </div>
             </div>
             <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+              <FspButton variant="outline" size="sm" :disabled="pdfLoading" @click="downloadPdf">Скачать PDF</FspButton>
               <FspButton variant="plate" size="sm" href="/candidate/settings">Редактировать</FspButton>
             </div>
           </section>
@@ -312,7 +375,21 @@ onBeforeUnmount(() => { clearTimeout(pollTimer); clearTimeout(skillTimer) })
               <FspInput v-model="salary" label="Минимальная зарплата" suffix="₽" inputmode="numeric" />
               <FspInput v-model="city" label="Город" />
             </div>
+            <FspInput v-model="softSkills" label="Гибкие навыки" hint="Через запятую" placeholder="коммуникация, менторство" />
             <FspButton size="sm" @click="saveSearch">Сохранить условия</FspButton>
+          </section>
+
+          <section style="padding: 24px 0 0; box-shadow: inset 0 1px 0 var(--line); display: flex; flex-direction: column; gap: 12px;">
+            <h2 class="fsp-display" style="font-size: 20px; line-height: 24px;">Задание от работодателя</h2>
+            <ScreenState :phase="taskPhase" :error="taskError" @retry="loadTasks">
+              <p v-if="!tasks.length" style="margin: 0; color: var(--text-muted);">Заданий пока нет.</p>
+              <div v-for="task in tasks" :key="task.id" style="display: flex; flex-direction: column; gap: 8px; padding-top: 12px;">
+                <b>{{ task.title }}</b>
+                <p v-if="task.body" style="margin: 0; font-size: 14px; line-height: 20px; color: var(--text-muted);">{{ task.body }}</p>
+                <FspInput v-model="answers[task.id]" label="Ответ" hint="Не меньше 20 символов" />
+                <div><FspButton size="sm" @click="sendAnswer(task.id)">Отправить</FspButton></div>
+              </div>
+            </ScreenState>
           </section>
 
           <section aria-label="Как подняться в выдаче" class="fsp-cut" style="--cut: var(--cut-l); --fill: var(--surface); --edge: var(--accent-mark); --bw: var(--border-card); padding: 28px;">

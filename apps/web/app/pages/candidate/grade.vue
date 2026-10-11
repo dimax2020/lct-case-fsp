@@ -1,6 +1,8 @@
 <script setup lang="ts">
-import { read } from '~/utils/read'
+import { ApiError, read } from '~/utils/read'
+import { apiFetch } from '~/utils/raw'
 useHead({ title: 'Категория и грейд — Карьера ФСП' })
+const { show } = useToast()
 const api = useApi()
 const screen = useScreen(async () => read(api.GET('/api/v1/candidates/me/grade')))
 const grade = computed(() => screen.data.value)
@@ -9,6 +11,29 @@ const currentGrade = computed(() => grade.value?.grade ?? null)
 function passed(g: typeof ladder[number]) {
   if (!currentGrade.value) return false
   return ladder.indexOf(g) < ladder.indexOf(currentGrade.value)
+}
+const retakeError = ref('')
+const retaking = ref(false)
+async function retake(direction: 'down' | 'up') {
+  if (retaking.value) return
+  retakeError.value = ''
+  retaking.value = true
+  try {
+    const created = await apiFetch<{ id?: string; attempt_id?: string }>('/api/v1/assessment/retake', { method: 'POST', body: { direction } })
+    const attemptId = created?.id || created?.attempt_id
+    if (attemptId) rememberAttempt(attemptId)
+    show(direction === 'down' ? 'Назначен тест на грейд ниже' : 'Назначен тест на грейд выше')
+    if (attemptId) {
+      await navigateTo('/candidate/onboarding')
+      return
+    }
+    await screen.load()
+  } catch (e) {
+    if (e instanceof ApiError && e.status === 409) retakeError.value = e.message
+    else show(e instanceof Error ? e.message : 'Не удалось назначить тест')
+  } finally {
+    retaking.value = false
+  }
 }
 const nextAt = computed(() => {
   const last = grade.value?.history?.[0]?.finished_at
@@ -63,7 +88,10 @@ const nextAt = computed(() => {
             </ol>
             <div style="display: flex; flex-wrap: wrap; gap: 12px; margin-top: 24px;">
               <FspButton href="/candidate/onboarding">Пройти тест</FspButton>
+              <FspButton variant="outline" :disabled="retaking" @click="retake('down')">Пройти на грейд ниже</FspButton>
+              <FspButton variant="outline" :disabled="retaking" @click="retake('up')">Пройти на грейд выше</FspButton>
             </div>
+            <p v-if="retakeError" role="alert" style="margin: 12px 0 0; color: var(--danger);">{{ retakeError }}</p>
           </section>
           <section style="padding: 24px 0 0; box-shadow: inset 0 1px 0 var(--line);">
             <h2 class="fsp-display" style="font-size: 20px; line-height: 24px; margin-bottom: 20px;">Баллы по навыкам</h2>
